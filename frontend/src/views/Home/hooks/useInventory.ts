@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import InventoryService from "@services/inventory"
 import { GiftItem } from "../../../types/inventory"
 import { useCustomToast } from "@helpers/toastUtil"
@@ -10,7 +10,7 @@ export const useInventory = () => {
 
   const showToast = useCustomToast()
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     setIsLoading(true)
     setIsError(false)
     try {
@@ -26,17 +26,16 @@ export const useInventory = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [showToast])
 
-  // Загружаем данные при монтировании компонента
   useEffect(() => {
     fetchInventory()
-  }, [])
+  }, [fetchInventory])
 
   return {
     items,
     isLoading,
     isError,
-    refetch: fetchInventory, // Полезно для pull-to-refresh
+    refetch: fetchInventory,
   }
 }

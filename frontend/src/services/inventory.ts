@@ -1,19 +1,42 @@
 import Settings from "@infrastructure/settings"
-import { GiftItem } from "../../src/types/inventory"
+import { GiftItem, ApiGiftItem } from "../../src/types/inventory"
 
 export default class InventoryService {
-  // Получаем токен авторизации так же, как в Wallet.ts
+
+  // та самая константа, которую ты просил
+  private static readonly HARDCODED_TGAUTH = JSON.stringify({
+    "id": 1342062477,
+    "first_name": "ceawse",
+    "username": "ceawse",
+    "photo_url": "https://t.me/i/userpic/320/NM1RHMIvtVDrvMyuZXE-VkglHoqyqOBKg6vze94rxHM.jpg",
+    "auth_date": 1767447329,
+    "hash": "bcd97d9231374c73a0592db4428df53a14c1c1257ab26c0dc58251482f4eb8e0"
+  });
+
+  // ID пользователя из твоей константы, чтобы Poso вернул данные именно для этого юзера
+  private static readonly HARDCODED_USER_ID = "0d3c39af-ff02-5414-b9a8-fb3d09b85f92";
+
+  // Этот метод НЕ ТРОГАЕМ, как ты и сказал
   private static getAuthToken(): string {
     return window.Telegram.WebApp.initData
   }
 
   static async getItems(): Promise<GiftItem[]> {
     try {
-      const response = await fetch(`${Settings.apiUrl()}/inventory`, {
+      // Формируем query parameters для URL
+      const queryParams = new URLSearchParams({
+        current_owner_id: this.HARDCODED_USER_ID,
+        tgauth: this.HARDCODED_TGAUTH
+      })
+
+      // Добавляем параметры к URL
+      const url = `${Settings.apiUrl()}/inventory?${queryParams.toString()}`
+
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          // Обязательно передаем initData для валидации на бекенде
+          // Обязательно передаем initData для валидации на бекенде (Spring Security)
           Authorization: this.getAuthToken(),
         },
       })
@@ -24,12 +47,39 @@ export default class InventoryService {
 
       const data = await response.json()
 
-      // Предполагаем, что бекенд возвращает массив, либо поле items
-      // Адаптируй этот момент под свой реальный ответ API
-      return data.items || data || []
+      // Твой бекенд возвращает { items: [...] }
+      // Нам нужно их смаппить, потому что UI ждет camelCase (floorPrice), а бек шлет snake_case (model_floor)
+      const rawItems: ApiGiftItem[] = data.items || []
+
+      return rawItems.map(this.mapDtoToModel)
+
     } catch (error) {
       console.error("InventoryService Error:", error)
       throw error
+    }
+  }
+
+  // Маппер, чтобы не переделывать весь UI компонент GiftCard
+  private static mapDtoToModel(dto: ApiGiftItem): GiftItem {
+    // Безопасно достаем цену
+    const price = dto.gift_value?.model_floor?.average?.ton || 0
+
+    // Формируем картинку (если url пустой или не картинка, генерируем по слагу)
+    const imageUrl = dto.url && dto.url.startsWith('http')
+        ? dto.url
+        : `https://nft.fragment.com/number/${dto.slug}.webp`
+
+    return {
+      id: dto.id,
+      giftId: dto.gift_id,
+      name: dto.title,
+      collection: dto.model_name,
+      image: imageUrl,
+      floorPrice: Number(price.toFixed(2)),
+      currency: "TON",
+      quantity: 1,
+      // Простая логика рарности на основе номера
+      rarity: dto.num < 1000 ? "Legendary" : dto.num < 5000 ? "Rare" : "Common"
     }
   }
 }

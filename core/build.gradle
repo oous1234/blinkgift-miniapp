@@ -14,6 +14,10 @@ java {
     }
 }
 
+ext {
+    set('springCloudVersion', "2025.1.0")
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -38,8 +42,15 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
     implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
 }

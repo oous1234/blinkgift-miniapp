@@ -4,48 +4,54 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
-import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-public class TelegramAuthFilter extends AbstractAuthenticationProcessingFilter {
+@Slf4j
+@RequiredArgsConstructor
+public class TelegramAuthFilter extends OncePerRequestFilter {
 
-    public TelegramAuthFilter(RequestMatcher requiresAuthenticationRequestMatcher) {
-        super(requiresAuthenticationRequestMatcher);
-    }
+    private final AuthenticationManager authenticationManager;
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
-            throws AuthenticationException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // Достаем заголовок Authorization
-        // Формат ожидается: "twa-init-data <строка_данных>" или просто "<строка_данных>"
-        // В Node.js коде смотрели просто на req.headers.authorization
+        // 1. Достаем заголовок
         String header = request.getHeader("Authorization");
 
-        if (header == null) {
-            // Если заголовка нет, фильтр ничего не делает, дальше сработает Security Config (403)
-            return null;
+        // 2. Если заголовка нет, просто идем дальше (SecurityConfig сам решит, пускать ли анонима)
+        if (header == null || header.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        // Очищаем префикс "Bearer " если вдруг фронт его шлет, хотя для TWA это не стандарт
+        // 3. Очищаем префикс (если есть)
         String initData = header.startsWith("Bearer ") ? header.substring(7) : header;
 
-        // Создаем токен и пробуем аутентифицировать через Manager -> Provider
-        TelegramAuthenticationToken token = new TelegramAuthenticationToken(initData);
-        return getAuthenticationManager().authenticate(token);
-    }
+        try {
+            // 4. Пытаемся авторизовать
+            TelegramAuthenticationToken authRequest = new TelegramAuthenticationToken(initData);
+            Authentication authResult = authenticationManager.authenticate(authRequest);
 
-    @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                                            FilterChain chain, Authentication authResult)
-            throws IOException, ServletException {
-        // Если все ок, кладем юзера в контекст и идем дальше к Контроллеру
-        SecurityContextHolder.getContext().setAuthentication(authResult);
-        chain.doFilter(request, response);
+            // 5. Если успешно — кладем в контекст
+            SecurityContextHolder.getContext().setAuthentication(authResult);
+
+        } catch (AuthenticationException e) {
+            // Если токен невалидный — логируем, но не падаем (можно вернуть 401 тут,
+            // но лучше дать Spring Security обработать это дальше)
+            log.warn("Telegram auth failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+        }
+
+        // 6. ВСЕГДА продолжаем цепочку
+        filterChain.doFilter(request, response);
     }
 }

@@ -3,13 +3,8 @@ package com.blinkgift.core.dto.external;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PosoApiResponse {
-    private List<PosoGiftItem> gifts;
-    private int total;
-    private int limit;
-    private int offset;
+public class FloorPrice {
+    private PriceDetail average;
 }

@@ -59,16 +59,9 @@ public class SecurityConfig {
     }
 
     // Настраиваем наш фильтр
+    @Bean // Можно добавить @Bean, чтобы Spring управлял им, или вызывать как раньше
     public TelegramAuthFilter telegramAuthFilter() {
-        RequestMatcher matcher = request -> true;
-        TelegramAuthFilter filter = new TelegramAuthFilter(matcher);
-        filter.setAuthenticationManager(authenticationManager());
-        // В случае успеха фильтр просто продолжает выполнение цепочки
-        filter.setAuthenticationSuccessHandler((request, response, authentication) -> {
-            // Ничего не делаем, просто идем дальше (filter chain proceed)
-            // Реализовано внутри метода successfulAuthentication фильтра
-        });
-        return filter;
+        return new TelegramAuthFilter(authenticationManager());
     }
 
     // Настройка CORS (чтобы фронтенд мог слать запросы)

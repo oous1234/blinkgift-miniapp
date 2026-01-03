@@ -1,3 +1,4 @@
+// frontend/src/views/Home/index.tsx
 import React, { useState } from "react"
 import { Box, SimpleGrid, Flex, Spinner, Center, Text, Button } from "@chakra-ui/react"
 import { useInventory } from "./hooks/useInventory"
@@ -5,32 +6,32 @@ import { useProfileAnalytics } from "./hooks/useProfileAnalytics"
 import { NetWorthCard } from "@components/Home/NetWorthCard"
 import { GiftCard } from "@components/Home/GiftCard"
 import BottomNavigation from "@components/navigation/BottomNavigation"
+import { Pagination } from "@components/Home/Pagination" // Импорт нового компонента
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"inventory" | "stats">("inventory")
 
-  // Получаем данные
-  const { items, isLoading, isError, refetch } = useInventory()
+  // Получаем данные и управление пагинацией
+  const { items, totalCount, currentPage, limit, isLoading, isError, refetch, setPage } =
+    useInventory()
 
-  // Считаем аналитику на основе реальных данных (сумма floorPrice и т.д.)
   const analytics = useProfileAnalytics(items)
 
-  // Для отладки на экране
-  const tgData = window.Telegram?.WebApp?.initDataUnsafe
-  const debugInfo = `User: ${tgData?.user?.username} (ID: ${tgData?.user?.id})`
-
-  if (isLoading) {
+  // Loading state
+  if (isLoading && items.length === 0) {
+    // Показываем спиннер только при первой загрузке или смене страниц, если данных нет
     return (
       <Center minH="100vh" bg="#0F1115" flexDirection="column" gap={4}>
         <Spinner size="xl" color="blue.400" thickness="4px" speed="0.65s" />
         <Text color="gray.500" fontSize="sm">
-          Searching blockchain...
+          Loading assets...
         </Text>
       </Center>
     )
   }
 
-  if (isError) {
+  // Error state
+  if (isError && items.length === 0) {
     return (
       <Center minH="100vh" bg="#0F1115" flexDirection="column" gap={4}>
         <Text color="red.400">Connection failed</Text>
@@ -43,9 +44,6 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="100px" px="16px" pt="16px">
-      {/* Debug Info (можно скрыть в продакшене) */}
-      {/* <Text fontSize="xs" color="gray.700" mb={2} textAlign="center">{debugInfo}</Text> */}
-
       <NetWorthCard {...analytics} />
 
       {/* Tabs */}
@@ -61,7 +59,7 @@ const ProfilePage: React.FC = () => {
           isActive={activeTab === "inventory"}
           onClick={() => setActiveTab("inventory")}
           label="Gifts"
-          badge={items.length}
+          badge={totalCount > 0 ? totalCount : items.length} // Показываем общий тотал если есть
         />
         <TabButton
           isActive={activeTab === "stats"}
@@ -82,11 +80,25 @@ const ProfilePage: React.FC = () => {
                 <Text>No gifts found</Text>
               </Center>
             ) : (
-              <SimpleGrid columns={2} spacing="12px">
-                {items.map((item) => (
-                  <GiftCard key={item.id} item={item} />
-                ))}
-              </SimpleGrid>
+              <Box>
+                {/* Сетка товаров */}
+                <SimpleGrid columns={2} spacing="12px" mb={4}>
+                  {/* Прозрачность при подгрузке новой страницы, но контент остается */}
+                  <Box display="contents" opacity={isLoading ? 0.5 : 1} transition="opacity 0.2s">
+                    {items.map((item) => (
+                      <GiftCard key={item.id} item={item} />
+                    ))}
+                  </Box>
+                </SimpleGrid>
+
+                {/* Компонент Пагинации */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalCount={totalCount}
+                  pageSize={limit}
+                  onPageChange={setPage}
+                />
+              </Box>
             )}
           </>
         ) : (
@@ -99,7 +111,7 @@ const ProfilePage: React.FC = () => {
   )
 }
 
-// UI Components Helpers
+// ... TabButton, StatisticsView, StatRow (остаются без изменений)
 const TabButton = ({ isActive, onClick, label, badge }: any) => (
   <Box
     as="button"

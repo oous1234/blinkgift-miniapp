@@ -24,7 +24,7 @@ public class InventoryServiceImpl implements InventoryService {
 
         try {
             // Передаем лимит и смещение в Feign клиент
-            PosoApiResponse response = posoApiClient.getGifts(ownerId, tgAuth, limit, offset);
+            PosoApiResponse response = posoApiClient.getGifts(ownerId, tgAuth, limit, offset, null);
 
             if (response != null && response.getGifts() != null) {
                 return new InventoryResponse(response.getGifts());

@@ -28,12 +28,17 @@ public class InventoryController {
             log.warn("Inventory request with empty current_owner_id");
             return ResponseEntity.badRequest().build();
         }
+        log.info(currentOwnerId);
+        log.info(tgAuth);
+        log.info(String.valueOf(limit));
+        log.info(String.valueOf(offset));
+
 
         if (limit > 50) {
-            limit = 50; // API не позволяет больше 50
+            limit = 50;
         }
 
-        InventoryResponse response = inventoryService.getUserInventory(currentOwnerId, tgAuth, limit, offset);
+        InventoryResponse response = inventoryService.getUserInventory(currentOwnerId, tgAuth, 10, offset);
         return ResponseEntity.ok(response);
     }
 }

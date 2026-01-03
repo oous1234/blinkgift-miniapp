@@ -19,7 +19,7 @@
       ]
     },
     "types": [
-      "node", "jest", "express", "mongodb"
+      "express"
     ],
     "typeRoots": [
       "node_modules/@types"

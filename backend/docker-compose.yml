@@ -6,6 +6,8 @@ services:
     build: ./
     ports:
       - 3333:3333
+    depends_on: # <-- ДОБАВИТЬ (чтобы приложение знало о базе)
+      - mongodb      # <--
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3333/"]
       interval: 30s
@@ -15,7 +17,6 @@ services:
   mongodb:
     image: mongo
     restart: always
-    scale: 0
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example

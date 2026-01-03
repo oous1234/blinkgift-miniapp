@@ -23,11 +23,11 @@ const config: Config = {
   botToken: nodeConfig.get<string>("botToken"),
   webServerPort: nodeConfig.get<number>("webServerPort"),
   frontendEndpoint: nodeConfig.get<string>("frontendEndpoint"),
-  dbConnectionString: `mongodb+srv://${nodeConfig.get("mongodb.username")}:${nodeConfig.get(
-    "mongodb.password"
-  )}@${nodeConfig.get("mongodb.host")}/${nodeConfig.get(
-    "mongodb.db"
-  )}?ssl=true&retryWrites=true&w=majority`,
+
+  // ИСПРАВЛЕНО: Заменили 'mongodb' на '127.0.0.1'
+  // Docker пробрасывает порт 27017 на ваш компьютер (localhost), поэтому подключаемся туда.
+  dbConnectionString: `mongodb://root:example@127.0.0.1:27017/main?authSource=admin`,
+
   houseEdge: nodeConfig.get<number>("houseEdge"),
   stripeToken: nodeConfig.get<string>("stripeToken"),
 }

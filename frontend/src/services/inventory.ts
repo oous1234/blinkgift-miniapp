@@ -18,7 +18,7 @@ export default class InventoryService {
   }
 
   // Обновили сигнатуру метода
-  static async getItems(limit: number = 5, offset: number = 0): Promise<InventoryServiceResponse> {
+  static async getItems(limit: number = 1, offset: number = 0): Promise<InventoryServiceResponse> {
     try {
       const queryParams = new URLSearchParams({
         current_owner_id: this.HARDCODED_USER_ID,

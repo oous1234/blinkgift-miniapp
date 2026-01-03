@@ -4,7 +4,7 @@ import InventoryService from "@services/inventory"
 import { GiftItem } from "../../../types/inventory"
 import { useCustomToast } from "@helpers/toastUtil"
 
-const PAGE_LIMIT = 50
+const PAGE_LIMIT = 1
 
 export const useInventory = () => {
   const [items, setItems] = useState<GiftItem[]>([])

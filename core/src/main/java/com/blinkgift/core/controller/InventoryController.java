@@ -38,7 +38,7 @@ public class InventoryController {
             limit = 50;
         }
 
-        InventoryResponse response = inventoryService.getUserInventory(currentOwnerId, tgAuth, 10, offset);
+        InventoryResponse response = inventoryService.getUserInventory(currentOwnerId, tgAuth, limit, offset);
         return ResponseEntity.ok(response);
     }
 }

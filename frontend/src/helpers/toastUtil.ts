@@ -1,4 +1,5 @@
 import { useToast } from "@chakra-ui/react"
+import { useCallback } from "react" // <--- Добавь импорт
 
 export type ToastOptions = {
   title: string
@@ -11,13 +12,14 @@ export type ToastOptions = {
 export const useCustomToast = () => {
   const toast = useToast()
 
-  const showToast = ({
-    title,
-    description = "",
-    status = "info",
-    duration = 3000,
-    isClosable = true,
-  }: ToastOptions) => {
+  // Оборачиваем в useCallback
+  const showToast = useCallback(({
+                                   title,
+                                   description = "",
+                                   status = "info",
+                                   duration = 3000,
+                                   isClosable = true,
+                                 }: ToastOptions) => {
     toast({
       title,
       description,
@@ -26,7 +28,7 @@ export const useCustomToast = () => {
       isClosable,
       position: "bottom",
     })
-  }
+  }, [toast])
 
   return showToast
 }

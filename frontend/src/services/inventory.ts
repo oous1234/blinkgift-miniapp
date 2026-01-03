@@ -63,11 +63,9 @@ export default class InventoryService {
   private static mapDtoToModel(dto: ApiGiftItem): GiftItem {
     // Безопасно достаем цену
     const price = dto.gift_value?.model_floor?.average?.ton || 0
-
-    // Формируем картинку (если url пустой или не картинка, генерируем по слагу)
-    const imageUrl = dto.url && dto.url.startsWith('http')
-        ? dto.url
-        : `https://nft.fragment.com/number/${dto.slug}.webp`
+    const address = dto.slug + "-" + dto.num
+    const imageUrl = `https://nft.fragment.com/gift/${address}.webp`
+    const brownGradient = "radial-gradient(circle, rgb(177, 144, 126) 0%, rgb(124, 99, 86) 100%)"
 
     return {
       id: dto.id,
@@ -78,8 +76,11 @@ export default class InventoryService {
       floorPrice: Number(price.toFixed(2)),
       currency: "TON",
       quantity: 1,
-      // Простая логика рарности на основе номера
-      rarity: dto.num < 1000 ? "Legendary" : dto.num < 5000 ? "Rare" : "Common"
+      rarity: dto.num < 1000 ? "Legendary" : dto.num < 5000 ? "Rare" : "Common",
+
+      // --- ВАЖНЫЕ ИЗМЕНЕНИЯ ---
+      num: dto.num, // <--- Берём реальный номер (например, 8442)
+      background: brownGradient, // <--- Сохраняем фон
     }
   }
 }

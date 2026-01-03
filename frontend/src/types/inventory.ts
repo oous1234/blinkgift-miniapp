@@ -27,6 +27,9 @@ export interface GiftItem {
   floorPrice: number
   quantity: number
   currency: "TON" | "USD"
+
+  num: number // Реальный номер (8442)
+  background?: string // CSS градиент фона
 }
 
 export interface InventoryResponse {

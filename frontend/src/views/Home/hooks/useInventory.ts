@@ -11,6 +11,9 @@ export const useInventory = () => {
   const showToast = useCustomToast()
 
   const fetchInventory = useCallback(async () => {
+    // Если уже идет загрузка, можно не запускать повторно (опционально, но полезно)
+    // Но в данном случае важнее исправить зависимости.
+
     setIsLoading(true)
     setIsError(false)
     try {
@@ -26,7 +29,9 @@ export const useInventory = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [showToast])
+    // Убираем showToast из массива зависимостей, чтобы избежать циклов
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     fetchInventory()

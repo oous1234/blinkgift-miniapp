@@ -20,6 +20,7 @@ public class OwnerController {
     public ResponseEntity<OwnerApiResponse> getOwner(
             @RequestParam(value = "id", required = false) String id,
             @RequestParam(value = "telegram_id", required = false) String telegramId,
+            @RequestParam("tgauth") String tgAuth,
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "owner_address", required = false) String ownerAddress) {
 
@@ -27,7 +28,7 @@ public class OwnerController {
                 id, telegramId, username, ownerAddress);
 
         try {
-            OwnerApiResponse response = ownerService.getOwnerInfo(id, telegramId, username, ownerAddress);
+            OwnerApiResponse response = ownerService.getOwnerInfo(id, telegramId,tgAuth, username, ownerAddress);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid request parameters: {}", e.getMessage());

@@ -16,7 +16,7 @@ public class OwnerServiceImpl implements OwnerService {
     private final OwnerApiClient ownerApiClient;
 
     @Override
-    public OwnerApiResponse getOwnerInfo(String id, String telegramId, String username, String ownerAddress) {
+    public OwnerApiResponse getOwnerInfo(String id, String telegramId,String tgAuth, String username, String ownerAddress) {
         log.info("Requesting owner info: id={}, telegramId={}, username={}, ownerAddress={}",
                 id, telegramId, username, ownerAddress);
 
@@ -25,7 +25,7 @@ public class OwnerServiceImpl implements OwnerService {
         }
 
         try {
-            OwnerApiResponse response = ownerApiClient.getOwnerInfo(id, telegramId, username, ownerAddress, null);
+            OwnerApiResponse response = ownerApiClient.getOwnerInfo(id, telegramId,tgAuth, username, ownerAddress, null);
 
             if (response == null) {
                 log.warn("Owner not found for given parameters");

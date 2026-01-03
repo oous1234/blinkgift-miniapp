@@ -1,0 +1,50 @@
+[
+  {
+    "id": "1",
+    "name": "Plush Pepe",
+    "collection": "Telegram Stars",
+    "image": "https://nft.fragment.com/gift/plushpepe-1515.medium.jpg",
+    "rarity": "Legendary",
+    "floorPrice": 250.0,
+    "purchasePrice": 180.0,
+    "background": "Nebula",
+    "quantity": 1,
+    "lastSaleDate": "2024-12-20"
+  },
+  {
+    "id": "2",
+    "name": "Loot Bag",
+    "collection": "Gemstones",
+    "image": "https://nft.fragment.com/gift/lootbag-11217.medium.jpg",
+    "rarity": "Rare",
+    "floorPrice": 215000.0,
+    "purchasePrice": 60.0,
+    "background": "Arctic",
+    "quantity": 3,
+    "lastSaleDate": "2025-01-01"
+  },
+  {
+    "id": "3",
+    "name": "Durov’s Cap",
+    "collection": "Christmas 2024",
+    "image": "https://nft.fragment.com/gift/durovscap-2222.medium.jpg",
+    "rarity": "Common",
+    "floorPrice": 12.5,
+    "purchasePrice": 12.5,
+    "background": "Red Velvet",
+    "quantity": 10,
+    "lastSaleDate": "2023-12-25"
+  },
+  {
+    "id": "4",
+    "name": "Ion Gem",
+    "collection": "Alchemist",
+    "image": "https://nft.fragment.com/gift/iongem-555.medium.jpg",
+    "rarity": "Limited",
+    "floorPrice": 500.0,
+    "purchasePrice": 50.0,
+    "background": "Matrix",
+    "quantity": 1,
+    "lastSaleDate": "2024-10-10"
+  }
+]

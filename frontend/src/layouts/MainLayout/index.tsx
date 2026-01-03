@@ -5,7 +5,7 @@ import { HOME } from "@router/paths" // Убедитесь, что путь ве
 import { WebApp } from "@grammyjs/web-app"
 
 // Импортируем наше новое меню
-import SettingsDrawer from "../../components/SettingsDrawer"
+import SettingsDrawer from "@components/overlay/SettingsDrawer"
 
 import {
   WrapperStyle,

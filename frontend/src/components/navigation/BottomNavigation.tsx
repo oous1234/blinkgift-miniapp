@@ -8,7 +8,7 @@ import {
   NavItemStyle,
   NavItemIconBox,
   NavItemTextStyle,
-} from "./styles"
+} from "../styles"
 
 // Количество вкладок
 const TABS = ["Profile", "Market", "More"]

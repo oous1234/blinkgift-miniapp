@@ -1,236 +1,173 @@
-import React, { useState, useMemo } from "react"
-import { Box, Text, Flex, SimpleGrid, Image } from "@chakra-ui/react"
-import {
-  WrapperStyle,
-  NetWorthCardStyle,
-  GlowEffectStyle,
-  StatLabelStyle,
-  StatValueMainStyle,
-  TabContainerStyle,
-  TabButtonStyle,
-  GiftCardStyle,
-  GiftImageContainer,
-  GiftImageStyle,
-  GiftInfoContainer,
-  RarityBadgeStyle,
-  StatCardStyle,
-  ChartPlaceholderStyle,
-} from "./styles"
-import { MOCK_INVENTORY, GiftItem } from "./data"
-// Импортируем новый компонент (поправьте путь если нужно)
-import BottomNavigation from "../../components/BottomNavigation"
+import React, { useState } from "react"
+import { Box, SimpleGrid, Flex, Spinner, Center, Text, Button } from "@chakra-ui/react"
+// 1. Импортируем наш новый хук
+import { useInventory } from "./hooks/useInventory"
+import { useProfileAnalytics } from "./hooks/useProfileAnalytics"
+// Компоненты UI
+import { NetWorthCard } from "@components/Home/NetWorthCard"
+import { GiftCard } from "@components/Home/GiftCard"
+import BottomNavigation from "@components/navigation/BottomNavigation"
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"inventory" | "stats">("inventory")
 
-  // --- ANALYTICS ENGINE (Без изменений) ---
-  const analytics = useMemo(() => {
-    let totalValue = 0
-    let totalInvested = 0
-    let itemCount = 0
-    let bestPerformer = { name: "None", profit: -Infinity }
+  // 2. Используем хук для получения реальных данных
+  const { items, isLoading, isError, refetch } = useInventory()
 
-    MOCK_INVENTORY.forEach((item) => {
-      const itemValue = item.floorPrice * item.quantity
-      const itemCost = item.purchasePrice * item.quantity
-      const profit = itemValue - itemCost
+  // 3. Аналитика теперь считается на основе пришедших items, а не моков
+  const analytics = useProfileAnalytics(items)
 
-      totalValue += itemValue
-      totalInvested += itemCost
-      itemCount += item.quantity
+  // 4. Лоадер на весь экран, пока грузятся данные
+  if (isLoading) {
+    return (
+      <Center minH="100vh" bg="#0F1115" flexDirection="column" gap={4}>
+        <Spinner size="xl" color="blue.400" thickness="4px" speed="0.65s" />
+        <Text color="gray.500" fontSize="sm">
+          Loading assets...
+        </Text>
+      </Center>
+    )
+  }
 
-      if (profit > bestPerformer.profit) {
-        bestPerformer = { name: item.name, profit }
-      }
-    })
-
-    const totalPnL = totalValue - totalInvested
-    const pnlPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0
-
-    return { totalValue, totalPnL, pnlPercent, itemCount, bestPerformer }
-  }, [])
+  // 5. Обработка ошибки загрузки
+  if (isError) {
+    return (
+      <Center minH="100vh" bg="#0F1115" flexDirection="column" gap={4}>
+        <Text color="red.400">Failed to load inventory</Text>
+        <Button onClick={refetch} size="sm" colorScheme="blue">
+          Try Again
+        </Button>
+      </Center>
+    )
+  }
 
   return (
-    <Box style={WrapperStyle}>
-      {/* 1. NET WORTH CARD (Без изменений) */}
-      <Box style={NetWorthCardStyle}>
-        <Box style={GlowEffectStyle} />
+    <Box minH="100vh" bg="#0F1115" color="white" pb="100px" px="16px" pt="16px">
+      {/* Карточка баланса */}
+      <NetWorthCard {...analytics} />
 
-        <Box position="relative" zIndex={1}>
-          <Flex justify="space-between" align="center" mb="12px">
-            <Text style={StatLabelStyle}>ESTIMATED BALANCE</Text>
-            <Box
-              bg={analytics.totalPnL >= 0 ? "rgba(76, 175, 80, 0.2)" : "rgba(255, 82, 82, 0.2)"}
-              color={analytics.totalPnL >= 0 ? "#4CAF50" : "#FF5252"}
-              px="8px"
-              py="2px"
-              borderRadius="6px"
-              fontSize="12px"
-              fontWeight="700"
-            >
-              {analytics.totalPnL >= 0 ? "+" : ""}
-              {analytics.pnlPercent.toFixed(2)}%
-            </Box>
-          </Flex>
-
-          <Flex align="baseline" gap="8px">
-            <Text style={StatValueMainStyle}>{analytics.totalValue.toLocaleString()}</Text>
-            <Text fontSize="24px" fontWeight="700" color="#0098EA">
-              TON
-            </Text>
-          </Flex>
-
-          <Text fontSize="14px" color="gray.500" mt="6px" fontWeight="500">
-            ≈ ${(analytics.totalValue * 5.2).toLocaleString()} USD
-          </Text>
-
-          <Box
-            h="1px"
-            bg="linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)"
-            my="20px"
-          />
-
-          <Flex align="center" justify="space-between">
-            <Text fontSize="13px" color="gray.400">
-              Top Performer
-            </Text>
-            <Flex align="center" gap="6px">
-              <Text fontSize="13px" fontWeight="600" color="white">
-                {analytics.bestPerformer.name}
-              </Text>
-              <Text
-                fontSize="12px"
-                color="#0098EA"
-                bg="rgba(0,152,234,0.1)"
-                px="6px"
-                borderRadius="4px"
-              >
-                +{analytics.bestPerformer.profit.toFixed(0)} TON
-              </Text>
-            </Flex>
-          </Flex>
-        </Box>
-      </Box>
-
-      {/* 2. COMPACT TABS (Обновленный дизайн) */}
-      <Box style={TabContainerStyle}>
-        <button
-          style={TabButtonStyle(activeTab === "inventory")}
+      {/* Табы */}
+      <Flex
+        bg="whiteAlpha.50"
+        p="4px"
+        borderRadius="14px"
+        mb="24px"
+        border="1px solid"
+        borderColor="whiteAlpha.100"
+      >
+        <TabButton
+          isActive={activeTab === "inventory"}
           onClick={() => setActiveTab("inventory")}
-        >
-          Items
-          {/* Badge стал меньше и аккуратнее */}
-          <Box
-            bg={activeTab === "inventory" ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)"}
-            px="5px"
-            borderRadius="4px"
-            fontSize="10px"
-            fontWeight="700"
-          >
-            {analytics.itemCount}
-          </Box>
-        </button>
-        <button style={TabButtonStyle(activeTab === "stats")} onClick={() => setActiveTab("stats")}>
-          Analytics
-        </button>
-      </Box>
+          label="Items"
+          badge={items.length} // Используем реальную длину массива
+        />
+        <TabButton
+          isActive={activeTab === "stats"}
+          onClick={() => setActiveTab("stats")}
+          label="Analytics"
+        />
+      </Flex>
 
-      {/* 3. CONTENT AREA */}
+      {/* Контент */}
       <Box animation="fadeIn 0.3s ease-in-out">
         {activeTab === "inventory" ? (
-          <SimpleGrid columns={2} spacing="12px">
-            {MOCK_INVENTORY.map((item) => (
-              <GiftCard key={item.id} item={item} />
-            ))}
-          </SimpleGrid>
+          <>
+            {items.length === 0 ? (
+              // Если инвентарь пуст
+              <Center py={10} flexDirection="column">
+                <Text fontSize="42px">🤷‍♂️</Text>
+                <Text color="gray.500" mt={2}>
+                  No items found
+                </Text>
+              </Center>
+            ) : (
+              <SimpleGrid columns={2} spacing="12px">
+                {items.map((item) => (
+                  <GiftCard key={item.id} item={item} />
+                ))}
+              </SimpleGrid>
+            )}
+          </>
         ) : (
           <StatisticsView analytics={analytics} />
         )}
       </Box>
 
-      {/* 4. BOTTOM NAVIGATION COMPONENT */}
       <BottomNavigation />
     </Box>
   )
 }
 
-// --- SUB-COMPONENTS (Остальные компоненты без изменений) ---
-// (GiftCard, StatisticsView и StatRow остаются такими же, как в прошлом коде,
-// стили импортируются из styles.ts)
-
-const GiftCard = ({ item }: { item: GiftItem }) => {
-  return (
-    <Box style={GiftCardStyle}>
-      {item.quantity > 1 && (
-        <Box position="absolute" top="10px" right="10px" zIndex={2}>
-          <Box
-            bg="#0098EA"
-            color="white"
-            fontSize="10px"
-            fontWeight="bold"
-            px="6px"
-            py="2px"
-            borderRadius="4px"
-            boxShadow="0 2px 8px rgba(0,152,234,0.4)"
-          >
-            x{item.quantity}
-          </Box>
-        </Box>
-      )}
-      <Box style={GiftImageContainer}>
-        <Image
-          src={item.image}
-          alt={item.name}
-          style={GiftImageStyle}
-          fallback={<Text fontSize="42px">🎁</Text>}
-        />
+// Маленький локальный компонент для кнопки таба (можно вынести, но он прост)
+const TabButton = ({ isActive, onClick, label, badge }: any) => (
+  <Box
+    as="button"
+    flex={1}
+    py="12px"
+    borderRadius="10px"
+    bg={isActive ? "#1F232E" : "transparent"}
+    color={isActive ? "white" : "gray.500"}
+    fontWeight={isActive ? "600" : "500"}
+    fontSize="14px"
+    border="1px solid"
+    borderColor={isActive ? "whiteAlpha.50" : "transparent"}
+    onClick={onClick}
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    gap="8px"
+    transition="all 0.2s"
+    _active={{ transform: "scale(0.98)" }}
+  >
+    {label}
+    {badge !== undefined && (
+      <Box
+        bg={isActive ? "whiteAlpha.300" : "whiteAlpha.100"}
+        px="5px"
+        borderRadius="4px"
+        fontSize="10px"
+        fontWeight="bold"
+      >
+        {badge}
       </Box>
-      <Box style={GiftInfoContainer}>
-        <Text fontSize="14px" fontWeight="700" color="white" isTruncated mb="6px">
-          {item.name}
-        </Text>
-        <Flex justify="space-between" align="flex-end">
-          <Flex direction="column">
-            <Text fontSize="10px" color="gray.500" mb="1px">
-              Floor
-            </Text>
-            <Text fontSize="14px" fontWeight="700" color="white">
-              {item.floorPrice} <span style={{ fontSize: "10px", color: "#0098EA" }}>TON</span>
-            </Text>
-          </Flex>
-          {item.floorPrice > item.purchasePrice && (
-            <Text
-              fontSize="11px"
-              color="#4CAF50"
-              fontWeight="600"
-              bg="rgba(76,175,80,0.1)"
-              px="4px"
-              borderRadius="3px"
-            >
-              +{(item.floorPrice - item.purchasePrice).toFixed(1)}
-            </Text>
-          )}
-        </Flex>
-      </Box>
-    </Box>
-  )
-}
+    )}
+  </Box>
+)
 
 const StatisticsView = ({ analytics }: { analytics: any }) => {
   return (
     <Box>
-      <Box style={StatCardStyle}>
+      <Box
+        bg="#161920" // Chakra UI prop
+        borderRadius="20px" // Chakra UI prop
+        p="20px" // Chakra UI prop
+        border="1px solid"
+        borderColor="whiteAlpha.100" // Chakra UI prop
+      >
         <Text fontSize="16px" fontWeight="700" mb="16px" color="white">
           Portfolio Growth
         </Text>
-        <Box style={ChartPlaceholderStyle}>
+
+        {/* Chart Placeholder */}
+        <Box
+          height="180px"
+          bg="linear-gradient(180deg, rgba(22,25,32,0) 0%, rgba(0,152,234,0.05) 100%)"
+          borderRadius="16px"
+          mb="20px"
+          border="1px dashed"
+          borderColor="whiteAlpha.100"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          flexDirection="column"
+        >
           <Flex align="flex-end" gap="8px" h="80px">
             {[30, 45, 35, 60, 50, 80, 65].map((h, i) => (
               <Box
                 key={i}
                 w="12px"
                 h={`${h}%`}
-                bg={i === 5 ? "#0098EA" : "rgba(255,255,255,0.1)"}
+                bg={i === 5 ? "#0098EA" : "whiteAlpha.100"}
                 borderRadius="4px"
               />
             ))}
@@ -239,6 +176,8 @@ const StatisticsView = ({ analytics }: { analytics: any }) => {
             Last 7 Days Activity
           </Text>
         </Box>
+
+        {/* Stat Rows */}
         <Flex direction="column" gap="0">
           <StatRow label="Total Items Owned" value={analytics.itemCount.toString()} />
           <StatRow label="Realized PnL" value="+450 TON" highlight />
@@ -250,20 +189,14 @@ const StatisticsView = ({ analytics }: { analytics: any }) => {
   )
 }
 
-const StatRow = ({
-  label,
-  value,
-  highlight,
-}: {
-  label: string
-  value: string
-  highlight?: boolean
-}) => (
+// --- Статический компонент StatRow ---
+const StatRow = ({ label, value, highlight }: any) => (
   <Flex
     justify="space-between"
     align="center"
     py="12px"
-    borderBottom="1px solid rgba(255,255,255,0.05)"
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.50"
     _last={{ borderBottom: "none" }}
   >
     <Text fontSize="13px" color="gray.400">
@@ -272,7 +205,7 @@ const StatRow = ({
     <Text
       fontSize="14px"
       fontWeight={highlight ? "700" : "600"}
-      color={highlight ? "#4CAF50" : "white"}
+      color={highlight ? "green.400" : "white"}
     >
       {value}
     </Text>

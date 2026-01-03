@@ -14,7 +14,7 @@ export default class InventoryService {
   });
 
   // ID пользователя из твоей константы, чтобы Poso вернул данные именно для этого юзера
-  private static readonly HARDCODED_USER_ID = "0d3c39af-ff02-5414-b9a8-fb3d09b85f92";
+  private static readonly HARDCODED_USER_ID = "62030bed-09b7-5fc0-85d2-58067f99d1ea";
 
   // Этот метод НЕ ТРОГАЕМ, как ты и сказал
   private static getAuthToken(): string {

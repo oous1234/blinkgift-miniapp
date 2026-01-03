@@ -14,15 +14,13 @@ export const GiftCard: React.FC<{ item: GiftItem }> = ({ item }) => {
     <Box position="relative">
       <AspectRatio ratio={1}>
         <Box
-          borderRadius="12px"
+          borderRadius="16px"
+          bg="#0F0F0F"
           border="1px solid"
-          borderColor="whiteAlpha.200"
-          position="relative"
+          borderColor="whiteAlpha.100"
           overflow="hidden"
-          cursor="pointer"
-          bg={bgStyle} // <--- ИСПОЛЬЗУЕМ ФОН ИЗ ОБЪЕКТА
-          transition="all 0.2s"
-          _hover={{ borderColor: "whiteAlpha.400" }}
+          transition="all 0.3s cubic-bezier(.25,.8,.25,1)"
+          _hover={{ borderColor: "purple.500", transform: "translateY(-2px)" }}
         >
           <Box
             w="100%"

@@ -34,9 +34,13 @@ export interface GiftItem {
 export interface InventoryResponse {
   items: ApiGiftItem[]
   total: number
+  limit: number
+  offset: number
 }
 
 export interface InventoryServiceResponse {
   items: GiftItem[]
   total: number
+  limit: number
+  offset: number
 }

@@ -1,138 +1,102 @@
-// frontend/src/components/common/Pagination.tsx
+// frontend/src/components/Home/Pagination.tsx
 import React from "react"
-import { HStack, Button, Text, IconButton, Box } from "@chakra-ui/react"
-import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons"
+import { Flex, Button, Text, Box } from "@chakra-ui/react"
 
 interface PaginationProps {
   currentPage: number
   totalCount: number
   pageSize: number
   onPageChange: (page: number) => void
-  siblingCount?: number
+  limit?: number
+  offset?: number
 }
 
 export const Pagination: React.FC<PaginationProps> = ({
-  currentPage,
-  totalCount,
-  pageSize,
-  onPageChange,
-  siblingCount = 1,
-}) => {
+                                                        currentPage,
+                                                        totalCount,
+                                                        pageSize,
+                                                        onPageChange,
+                                                        limit,
+                                                        offset
+                                                      }) => {
   const totalPages = Math.ceil(totalCount / pageSize)
 
-  if (totalPages <= 1) return null
-
-  // Генерация массива страниц (алгоритм с троеточием)
-  const generatePagination = () => {
-    const range = []
-    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1)
-    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages)
-
-    const shouldShowLeftDots = leftSiblingIndex > 2
-    const shouldShowRightDots = rightSiblingIndex < totalPages - 2
-
-    const firstPageIndex = 1
-    const lastPageIndex = totalPages
-
-    if (!shouldShowLeftDots && shouldShowRightDots) {
-      let leftItemCount = 3 + 2 * siblingCount
-      let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1)
-      return [...leftRange, "DOTS", totalPages]
-    }
-
-    if (shouldShowLeftDots && !shouldShowRightDots) {
-      let rightItemCount = 3 + 2 * siblingCount
-      let rightRange = Array.from(
-        { length: rightItemCount },
-        (_, i) => totalPages - rightItemCount + i + 1
-      )
-      return [firstPageIndex, "DOTS", ...rightRange]
-    }
-
-    if (shouldShowLeftDots && shouldShowRightDots) {
-      let middleRange = Array.from(
-        { length: rightSiblingIndex - leftSiblingIndex + 1 },
-        (_, i) => leftSiblingIndex + i
-      )
-      return [firstPageIndex, "DOTS", ...middleRange, "DOTS", lastPageIndex]
-    }
-
-    return Array.from({ length: totalPages }, (_, i) => i + 1)
-  }
-
-  const paginationRange = generatePagination()
-
-  const btnStyles = {
-    size: "sm",
-    variant: "ghost",
-    color: "gray.400",
-    _hover: { bg: "whiteAlpha.100", color: "white" },
-    borderRadius: "12px",
-    minW: "32px",
-    h: "32px",
-    fontSize: "13px",
-  }
-
-  const activeBtnStyles = {
-    ...btnStyles,
-    bg: "blue.500",
-    color: "white",
-    _hover: { bg: "blue.400" },
-    fontWeight: "bold",
+  if (totalPages <= 1) {
+    return null
   }
 
   return (
-    <Box
-      py={4}
-      display="flex"
-      justifyContent="center"
-      // Glassmorphism подложка
-      bg="rgba(22, 25, 32, 0.6)"
-      backdropFilter="blur(10px)"
-      borderTop="1px solid rgba(255,255,255,0.05)"
-      position="sticky"
-      bottom="76px" // Выше нижнего меню
-      zIndex={90}
-      mx="-16px" // Компенсация padding родителя
-      px="16px"
-    >
-      <HStack spacing={1}>
-        <IconButton
-          aria-label="Previous page"
-          icon={<ChevronLeftIcon />}
-          onClick={() => onPageChange(currentPage - 1)}
-          isDisabled={currentPage === 1}
-          {...btnStyles}
-        />
+      <Flex
+          direction="column"
+          align="center"
+          gap={2}
+          py={4}
+          borderTop="1px solid"
+          borderColor="whiteAlpha.100"
+      >
+        {/* Можно отображать дополнительную информацию */}
+        {limit && offset !== undefined && (
+            <Text fontSize="xs" color="gray.500">
+              Showing {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount} items
+            </Text>
+        )}
 
-        {paginationRange.map((pageNumber, index) => {
-          if (pageNumber === "DOTS") {
-            return (
-              <Text key={`dots-${index}`} color="gray.600" px={1}>
-                ...
-              </Text>
-            )
-          }
+        <Flex gap={2} align="center">
+          <Button
+              size="sm"
+              variant="outline"
+              colorScheme="blue"
+              isDisabled={currentPage === 1}
+              onClick={() => onPageChange(currentPage - 1)}
+          >
+            Previous
+          </Button>
 
-          return (
-            <Button
-              key={pageNumber}
-              onClick={() => onPageChange(Number(pageNumber))}
-              {...(pageNumber === currentPage ? activeBtnStyles : btnStyles)}
-            >
-              {pageNumber}
-            </Button>
-          )
-        })}
+          <Flex gap={1}>
+            {[...Array(totalPages)].map((_, index) => {
+              const pageNum = index + 1
 
-        <IconButton
-          aria-label="Next page"
-          icon={<ChevronRightIcon />}
-          onClick={() => onPageChange(currentPage + 1)}
-          isDisabled={currentPage === totalPages}
-          {...btnStyles}
-        />
-      </HStack>
-    </Box>
+              // Показываем только ограниченное количество страниц
+              if (
+                  pageNum === 1 ||
+                  pageNum === totalPages ||
+                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+              ) {
+                return (
+                    <Button
+                        key={pageNum}
+                        size="sm"
+                        variant={currentPage === pageNum ? "solid" : "outline"}
+                        colorScheme="blue"
+                        onClick={() => onPageChange(pageNum)}
+                        minW="32px"
+                        h="32px"
+                        p={1}
+                    >
+                      {pageNum}
+                    </Button>
+                )
+              }
+
+              // Добавляем троеточие для пропущенных страниц
+              if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                return <Text key={`dots-${pageNum}`}>...</Text>
+              }
+
+              return null
+            })}
+          </Flex>
+
+          <Button
+              size="sm"
+              variant="outline"
+              colorScheme="blue"
+              isDisabled={currentPage === totalPages}
+              onClick={() => onPageChange(currentPage + 1)}
+          >
+            Next
+          </Button>
+        </Flex>
+      </Flex>
   )
 }

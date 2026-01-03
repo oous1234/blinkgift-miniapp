@@ -12,7 +12,7 @@ const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"inventory" | "stats">("inventory")
 
   // Получаем данные и управление пагинацией
-  const { items, totalCount, currentPage, limit, isLoading, isError, refetch, setPage } =
+  const { items, totalCount, currentPage, limit, offset, isLoading, isError, refetch, setPage } =
     useInventory()
 
   const analytics = useProfileAnalytics(items)

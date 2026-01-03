@@ -17,8 +17,8 @@ export default class InventoryService {
     return window.Telegram.WebApp.initData
   }
 
-  // Обновили сигнатуру метода
-  static async getItems(limit: number = 1, offset: number = 0): Promise<InventoryServiceResponse> {
+  // Обновленный метод с новыми полями в ответе
+  static async getItems(limit: number = 10, offset: number = 0): Promise<InventoryServiceResponse> {
     try {
       const queryParams = new URLSearchParams({
         current_owner_id: this.HARDCODED_USER_ID,
@@ -28,7 +28,6 @@ export default class InventoryService {
       })
 
       const url = `${Settings.apiUrl()}/inventory?${queryParams.toString()}`
-      print(url)
 
       const response = await fetch(url, {
         method: "GET",
@@ -45,11 +44,13 @@ export default class InventoryService {
       const data = await response.json()
 
       const rawItems: ApiGiftItem[] = data.items || []
-      const total = data.total || 0 // Если бек не вернет total, будет 0
 
+      // Используем данные с бекенда, если они есть, иначе fallback значения
       return {
         items: rawItems.map(this.mapDtoToModel),
-        total: total,
+        total: data.total || 0,
+        limit: data.limit || limit,
+        offset: data.offset || offset,
       }
     } catch (error) {
       console.error("InventoryService Error:", error)

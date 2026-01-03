@@ -4,12 +4,14 @@ import InventoryService from "@services/inventory"
 import { GiftItem } from "../../../types/inventory"
 import { useCustomToast } from "@helpers/toastUtil"
 
-const PAGE_LIMIT = 1
+const PAGE_LIMIT = 10
 
 export const useInventory = () => {
   const [items, setItems] = useState<GiftItem[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [limit, setLimit] = useState<number>(PAGE_LIMIT)
+  const [offset, setOffset] = useState<number>(0)
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isError, setIsError] = useState<boolean>(false)
@@ -21,12 +23,24 @@ export const useInventory = () => {
     setIsError(false)
 
     // Рассчитываем offset
-    const offset = (page - 1) * PAGE_LIMIT
+    const newOffset = (page - 1) * PAGE_LIMIT
 
     try {
-      const data = await InventoryService.getItems(PAGE_LIMIT, offset)
+      const data = await InventoryService.getItems(PAGE_LIMIT, newOffset)
+
       setItems(data.items)
       setTotalCount(data.total)
+      setLimit(data.limit)
+      setOffset(data.offset)
+
+      // Для отладки - можно посмотреть, что приходит с бекенда
+      console.log("Inventory data received:", {
+        itemsCount: data.items.length,
+        total: data.total,
+        limit: data.limit,
+        offset: data.offset,
+        page,
+      })
     } catch (error) {
       console.error(error)
       setIsError(true)
@@ -37,7 +51,7 @@ export const useInventory = () => {
     } finally {
       setIsLoading(false)
     }
-  }, []) // Зависимости пусты, так как offset считается внутри
+  }, [])
 
   // Эффект срабатывает при изменении currentPage
   useEffect(() => {
@@ -54,7 +68,8 @@ export const useInventory = () => {
     items,
     totalCount,
     currentPage,
-    limit: PAGE_LIMIT,
+    limit,
+    offset,
     isLoading,
     isError,
     refetch: () => fetchInventory(currentPage),

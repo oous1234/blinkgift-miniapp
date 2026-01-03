@@ -9,4 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 public class InventoryResponse {
     private List<PosoGiftItem> items;
+    private int total;
+    private int limit;
+    private int offset;
 }

@@ -2,7 +2,7 @@ package com.blinkgift.core.service.impl;
 
 import com.blinkgift.core.client.PosoApiClient;
 import com.blinkgift.core.dto.external.PosoApiResponse;
-import com.blinkgift.core.dto.resp.InventoryResponse; // Обратите внимание на ваш пакет
+import com.blinkgift.core.dto.resp.InventoryResponse;
 import com.blinkgift.core.service.InventoryService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +23,20 @@ public class InventoryServiceImpl implements InventoryService {
         log.info("Requesting external inventory: ownerId={}, limit={}, offset={}", ownerId, limit, offset);
 
         try {
-            // Передаем лимит и смещение в Feign клиент
             PosoApiResponse response = posoApiClient.getGifts(ownerId, tgAuth, limit, offset, null);
 
             if (response != null && response.getGifts() != null) {
-                return new InventoryResponse(response.getGifts());
+                // Передаем gifts, total, limit и offset из ответа API
+                return new InventoryResponse(
+                        response.getGifts(),
+                        response.getTotal(),
+                        response.getLimit(),
+                        response.getOffset()
+                );
             }
 
-            return new InventoryResponse(Collections.emptyList());
+            // Если ничего не найдено, возвращаем пустой список и нули (или запрошенные лимиты)
+            return new InventoryResponse(Collections.emptyList(), 0, limit, offset);
 
         } catch (FeignException e) {
             log.error("Feign Client Error: status={} message={}", e.status(), e.getMessage());

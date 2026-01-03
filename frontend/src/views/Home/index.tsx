@@ -1,4 +1,3 @@
-// frontend/src/views/Home/index.tsx
 import React, { useState, useMemo } from "react"
 import {
   Box,
@@ -10,7 +9,9 @@ import {
   Button,
   Collapse,
   useDisclosure,
-  Icon
+  Icon,
+  Badge,
+  VStack,
 } from "@chakra-ui/react"
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons"
 import { useInventory } from "./hooks/useInventory"
@@ -23,30 +24,13 @@ import { PortfolioChart } from "@components/Home/PortfolioChart"
 import { PortfolioHistory } from "../../types/owner"
 
 const ProfilePage: React.FC = () => {
-  // Состояние для периода графика
   const [chartPeriod, setChartPeriod] = useState<keyof PortfolioHistory>("24h")
-
-  // Хук для управления сворачиванием статистики
   const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
 
-  const {
-    items,
-    totalCount,
-    currentPage,
-    limit,
-    isError: isInventoryError,
-    refetch: refetchInventory,
-    setPage
-  } = useInventory()
+  const { items, totalCount, currentPage, limit, isError, setPage } = useInventory()
+  const { ownerData, isLoading } = useOwnerProfile()
 
-  const {
-    ownerData,
-    isLoading: isOwnerLoading,
-    isError: isOwnerError,
-    refetch: refetchOwner
-  } = useOwnerProfile()
-
-  const portalsValue = ownerData?.portfolio_value?.average?.ton || ownerData?.portfolio_value?.portals?.ton || 0
+  const portalsValue = ownerData?.portfolio_value?.average?.ton || 0
 
   const pnlData = useMemo(() => {
     if (!ownerData?.portfolio_history?.[chartPeriod]) return { pnl: 0, percent: 0 }
@@ -59,53 +43,41 @@ const ProfilePage: React.FC = () => {
     return { pnl, percent }
   }, [ownerData, chartPeriod, portalsValue])
 
-  if (isOwnerLoading) {
+  if (isLoading) {
     return (
-      <Center minH="100vh" bg="#0F1115" flexDirection="column" gap={4}>
-        <Spinner size="xl" color="blue.400" thickness="4px" speed="0.65s" />
-        <Text color="gray.500" fontSize="sm">Loading profile...</Text>
-      </Center>
-    )
-  }
-
-  if ((isInventoryError && items.length === 0) || isOwnerError) {
-    return (
-      <Center minH="100vh" bg="#0F1115" flexDirection="column" gap={4}>
-        <Text color="red.400">Connection failed</Text>
-        <Button onClick={() => { refetchInventory(); refetchOwner(); }} size="sm" colorScheme="blue" variant="outline">
-          Try Again
-        </Button>
+      <Center minH="100vh" bg="#0F1115">
+        <Spinner size="lg" color="#e8d7fd" thickness="3px" />
       </Center>
     )
   }
 
   return (
-    <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="16px" pt="16px">
-      {/* 1. Главная карточка баланса */}
-      <NetWorthCard
-        totalValue={portalsValue}
-        totalPnL={pnlData.pnl}
-        pnlPercent={pnlData.percent}
-        bestPerformer={{ name: "Total Portfolio", profit: pnlData.pnl }}
-      />
+    <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="16px" pt="8px">
+      <NetWorthCard totalValue={portalsValue} pnlPercent={pnlData.percent} />
 
-      {/* 2. Кнопка для развертывания графиков и статистики */}
-      <Flex justify="center" mb={4}>
-        <Button
-          onClick={onToggleStats}
-          variant="ghost"
-          size="sm"
-          color="gray.400"
-          _hover={{ color: "white", bg: "whiteAlpha.100" }}
-          rightIcon={isStatsOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        >
-          {isStatsOpen ? "Hide Analytics" : "Show Analytics"}
-        </Button>
-      </Flex>
+      <Box
+        as="button"
+        onClick={onToggleStats}
+        w="100%"
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        bg="rgba(255, 255, 255, 0.04)"
+        py="14px"
+        px="20px"
+        borderRadius="16px"
+        mb={6}
+        transition="all 0.2s"
+        _active={{ bg: "rgba(255, 255, 255, 0.08)" }}
+      >
+        <Text fontSize="14px" fontWeight="600" color="white">
+          Аналитика
+        </Text>
+        <Icon as={isStatsOpen ? ChevronUpIcon : ChevronDownIcon} color="gray.500" w={5} h={5} />
+      </Box>
 
-      {/* 3. Сворачиваемая секция аналитики */}
       <Collapse in={isStatsOpen} animateOpacity>
-        <Box mb={6}>
+        <Box mb={8}>
           <StatisticsView
             totalValue={portalsValue}
             itemCount={ownerData?.gifts_count || totalCount}
@@ -116,30 +88,36 @@ const ProfilePage: React.FC = () => {
         </Box>
       </Collapse>
 
-      {/* 4. Заголовок секции подарков */}
       <Flex align="center" justify="space-between" mb={4} px={1}>
         <Text fontSize="18px" fontWeight="700">
-          My Gifts
+          Мои подарки
         </Text>
-        <Box bg="whiteAlpha.100" px="8px" py="2px" borderRadius="6px" fontSize="12px" color="gray.400">
-          {ownerData?.gifts_count || totalCount} items
-        </Box>
+
+        {/* Овальный бейдж с темным текстом лавандового цвета */}
+        <Badge
+          bg="#e8d7fd"
+          color="#0F1115"
+          px="12px"
+          py="3px"
+          borderRadius="100px"
+          fontSize="11px"
+          fontWeight="800"
+        >
+          {ownerData?.gifts_count || totalCount} шт.
+        </Badge>
       </Flex>
 
-      {/* 5. Сетка подарков */}
       {items.length === 0 ? (
-        <Center py={10} flexDirection="column" opacity={0.6}>
-          <Text fontSize="40px" mb={2}>🎁</Text>
-          <Text>No gifts found</Text>
+        <Center py={10} opacity={0.5}>
+          <Text fontSize="14px">Пусто</Text>
         </Center>
       ) : (
         <Box>
-          <SimpleGrid columns={2} spacing="12px" mb={6}>
+          <SimpleGrid columns={2} spacing="12px" mb={8}>
             {items.map((item) => (
               <GiftCard key={item.id} item={item} />
             ))}
           </SimpleGrid>
-
           <Pagination
             currentPage={currentPage}
             totalCount={totalCount}
@@ -154,27 +132,18 @@ const ProfilePage: React.FC = () => {
   )
 }
 
-// StatisticsView теперь более компактный
 const StatisticsView = ({
-                          totalValue,
-                          itemCount,
-                          history,
-                          selectedPeriod,
-                          onPeriodChange,
-                        }: {
-  totalValue: number
-  itemCount: number
-  history?: PortfolioHistory
-  selectedPeriod: keyof PortfolioHistory
-  onPeriodChange: (p: keyof PortfolioHistory) => void
-}) => (
+  totalValue,
+  itemCount,
+  history,
+  selectedPeriod,
+  onPeriodChange,
+}: any) => (
   <Box
-    bg="rgba(22, 25, 32, 0.6)"
-    borderRadius="24px"
+    bg="rgba(255, 255, 255, 0.02)"
+    borderRadius="20px"
     p="20px"
-    border="1px solid"
-    borderColor="whiteAlpha.100"
-    backdropFilter="blur(10px)"
+    border="1px solid rgba(255, 255, 255, 0.05)"
   >
     {history && (
       <PortfolioChart
@@ -183,23 +152,27 @@ const StatisticsView = ({
         onPeriodChange={onPeriodChange}
       />
     )}
-
-    <Flex direction="column" gap="0" mt={2}>
-      <StatRow
-        label="Est. Value"
-        value={`${totalValue.toLocaleString()} TON`}
-        highlight
-      />
-      <StatRow label="Items" value={itemCount} />
-      <StatRow label="Sources" value="Fragment / GetGems" />
-    </Flex>
+    <VStack align="stretch" spacing={0} mt={2}>
+      <StatRow label="Оценочная стоимость" value={`${totalValue.toLocaleString()} TON`} isAccent />
+      <StatRow label="Всего предметов" value={`${itemCount} шт.`} />
+    </VStack>
   </Box>
 )
 
-const StatRow = ({ label, value, highlight }: any) => (
-  <Flex justify="space-between" py="10px" borderBottom="1px solid" borderColor="whiteAlpha.50" _last={{ border: "none" }}>
-    <Text color="gray.400" fontSize="12px">{label}</Text>
-    <Text fontSize="13px" fontWeight="600" color={highlight ? "blue.400" : "white"}>{value}</Text>
+const StatRow = ({ label, value, isAccent }: any) => (
+  <Flex
+    justify="space-between"
+    py="12px"
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.50"
+    _last={{ border: "none" }}
+  >
+    <Text color="gray.500" fontSize="11px" fontWeight="600" textTransform="uppercase">
+      {label}
+    </Text>
+    <Text fontSize="13px" fontWeight="700" color={isAccent ? "#e8d7fd" : "white"}>
+      {value}
+    </Text>
   </Flex>
 )
 

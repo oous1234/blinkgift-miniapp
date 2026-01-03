@@ -10,5 +10,5 @@ public interface InventoryService {
      * @param tgAuth Строка авторизации Telegram (JSON string)
      * @return Ответ с списком подарков
      */
-    InventoryResponse getUserInventory(String ownerId, String tgAuth);
+    InventoryResponse getUserInventory(String ownerId, String tgAuth, int limit, int offset);
 }

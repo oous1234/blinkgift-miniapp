@@ -19,12 +19,12 @@ public class InventoryServiceImpl implements InventoryService {
     private final PosoApiClient posoApiClient;
 
     @Override
-    public InventoryResponse getUserInventory(String ownerId, String tgAuth) {
-        log.info("Requesting external inventory via Feign for ownerId: {}", ownerId);
+    public InventoryResponse getUserInventory(String ownerId, String tgAuth, int limit, int offset) {
+        log.info("Requesting external inventory: ownerId={}, limit={}, offset={}", ownerId, limit, offset);
 
         try {
-            // Вызов выглядит как обычный метод java
-            PosoApiResponse response = posoApiClient.getGifts(ownerId, tgAuth);
+            // Передаем лимит и смещение в Feign клиент
+            PosoApiResponse response = posoApiClient.getGifts(ownerId, tgAuth, limit, offset);
 
             if (response != null && response.getGifts() != null) {
                 return new InventoryResponse(response.getGifts());
@@ -33,10 +33,7 @@ public class InventoryServiceImpl implements InventoryService {
             return new InventoryResponse(Collections.emptyList());
 
         } catch (FeignException e) {
-            // Feign выбрасывает исключения при 4xx и 5xx ошибках
             log.error("Feign Client Error: status={} message={}", e.status(), e.getMessage());
-
-            // Можно пробросить дальше или вернуть пустой список/ошибку
             throw new RuntimeException("External API error", e);
         } catch (Exception e) {
             log.error("Unexpected error during external API call", e);

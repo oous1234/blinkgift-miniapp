@@ -14,7 +14,6 @@ import {
   Skeleton,
 } from "@chakra-ui/react"
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons"
-import { motion, AnimatePresence } from "framer-motion"
 
 import { useInventory } from "./hooks/useInventory"
 import { useOwnerProfile } from "./hooks/useOwnerProfile"
@@ -24,14 +23,14 @@ import { Pagination } from "@components/Home/Pagination"
 import { PortfolioChart } from "@components/Home/PortfolioChart"
 import BottomNavigation from "@components/navigation/BottomNavigation"
 import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
-import SearchOverlay from "@components/overlay/SearchOverlay"
 import { GiftItem } from "../../types/inventory"
 
 const ProfilePage: React.FC = () => {
   const [chartPeriod, setChartPeriod] = useState<string>("30d")
   const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure()
-  const { isOpen: isSearchOpen, onOpen: onSearchOpen, onClose: onSearchClose } = useDisclosure()
+
+  // Удалено: стейт для поиска (isSearchOpen)
 
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
   const { items, totalCount, currentPage, limit, setPage } = useInventory()
@@ -55,7 +54,6 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="16px" pt="8px">
-      {/* Исправлено: фиксированная высота Skeleton убирает прыжок при загрузке */}
       <Box minH="160px" mb={2}>
         <Skeleton
           isLoaded={!isChartLoading}
@@ -64,7 +62,6 @@ const ProfilePage: React.FC = () => {
           startColor="whiteAlpha.50"
           endColor="whiteAlpha.200"
         >
-          {/* 👇 ВОТ ЗДЕСЬ ИСПОЛЬЗУЕТСЯ КАРТОЧКА, ДОБАВИЛ КУРС 1.86 */}
           <NetWorthCard
             totalValue={analytics.current}
             pnlPercent={analytics.percent}
@@ -154,11 +151,10 @@ const ProfilePage: React.FC = () => {
 
       <GiftDetailDrawer isOpen={isDetailOpen} onClose={onDetailClose} gift={selectedGift} />
 
-      <AnimatePresence>
-        {isSearchOpen && <SearchOverlay isOpen={isSearchOpen} onClose={onSearchClose} />}
-      </AnimatePresence>
+      {/* Удалено: SearchOverlay и AnimatePresence для него */}
 
-      <BottomNavigation onSearchOpen={onSearchOpen} />
+      {/* Удален пропс onSearchOpen */}
+      <BottomNavigation />
     </Box>
   )
 }

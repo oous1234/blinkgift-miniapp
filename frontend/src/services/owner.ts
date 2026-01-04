@@ -2,7 +2,6 @@ import Settings from "@infrastructure/settings"
 import { OwnerProfile } from "../types/owner"
 
 export default class OwnerService {
-  // Используем те же данные, что и в inventory.ts для совместимости
   private static readonly HARDCODED_TGAUTH = JSON.stringify({
     id: 8241853306,
     first_name: "ЛинкПро",
@@ -11,8 +10,10 @@ export default class OwnerService {
     hash: "f26034faff41934d58242f155c1771d42caf6c753df28d3d61cead61708c6208",
   })
 
-  // В контроллере параметры опциональны, но для теста передадим telegram_id или id
-  private static readonly HARDCODED_TELEGRAM_ID = "1342062477"
+  private static getTelegramUserId(): string {
+    const tgId = window.Telegram.WebApp.initDataUnsafe?.user?.id
+    return tgId ? tgId.toString() : "1342062477" // твой ID для тестов в браузере
+  }
 
   private static getAuthToken(): string {
     return window.Telegram.WebApp.initData
@@ -21,9 +22,9 @@ export default class OwnerService {
   static async getOwnerInfo(): Promise<OwnerProfile> {
     try {
       const queryParams = new URLSearchParams({
-        ownerUuid: this.HARDCODED_TELEGRAM_ID,
+        // ВАЖНО: отправляем ТЕЛЕГРАМ АЙДИ (цифры), а не UUID
+        ownerUuid: this.getTelegramUserId(),
         tgauth: this.HARDCODED_TGAUTH,
-        // range больше не нужен
       })
 
       const url = `${Settings.apiUrl()}/owner?${queryParams.toString()}`

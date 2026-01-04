@@ -37,7 +37,7 @@ Your current balance is available at the top right corner of the web app\\.`,
             inline_keyboard: [
               [
                 {
-                  text: "Open Casino 🎰",
+                  text: "open",
                   web_app: {
                     url: config.frontendEndpoint,
                   },
@@ -50,7 +50,7 @@ Your current balance is available at the top right corner of the web app\\.`,
 
       await ctx.setChatMenuButton({
         type: "web_app",
-        text: "Open Casino 🎰",
+        text: "open",
         web_app: { url: config.frontendEndpoint },
       })
     })

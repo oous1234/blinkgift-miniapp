@@ -14,6 +14,10 @@ export interface HistoryPoint {
   average: PriceDetail
 }
 
+export interface PortfolioHistoryResponse {
+  range: string
+  data: HistoryPoint[]
+}
 
 export interface PortfolioHistory {
   "12h"?: HistoryPoint[]

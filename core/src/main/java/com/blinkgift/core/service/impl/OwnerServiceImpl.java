@@ -2,6 +2,7 @@ package com.blinkgift.core.service.impl;
 
 import com.blinkgift.core.client.OwnerApiClient;
 import com.blinkgift.core.dto.external.OwnerApiResponse;
+import com.blinkgift.core.dto.external.PortfolioHistory;
 import com.blinkgift.core.service.OwnerService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -16,32 +17,16 @@ public class OwnerServiceImpl implements OwnerService {
     private final OwnerApiClient ownerApiClient;
 
     @Override
-    public OwnerApiResponse getOwnerInfo(String id, String telegramId,String tgAuth, String username, String ownerAddress) {
-        log.info("Requesting owner info: id={}, telegramId={}, username={}, ownerAddress={}",
-                id, telegramId, username, ownerAddress);
+    public PortfolioHistory getOwnerInfo(String id, String ownerUuid, String tgAuth, String range, String username, String ownerAddress) {
+        // Тот самый UUID, который тебе нужен
 
-        if (id == null && telegramId == null && username == null && ownerAddress == null) {
-            throw new IllegalArgumentException("At least one search parameter must be provided");
-        }
-        String onwer_id = "08972bac-5100-5807-854e-f5018d41b7f3";
-        String range = "12h";
+        log.info("Requesting history for owner_id: {} with range: {}", ownerUuid, range);
 
         try {
-            OwnerApiResponse response = ownerApiClient.getOwnerInfo(id, onwer_id, tgAuth,range, username, ownerAddress, null);
-
-            if (response == null) {
-                log.warn("Owner not found for given parameters");
-                throw new RuntimeException("Owner not found");
-            }
-
-            return response;
-
-        } catch (FeignException e) {
-            log.error("Feign Client Error: status={} message={}", e.status(), e.getMessage());
-            throw new RuntimeException("External API error: " + e.getMessage(), e);
+            return ownerApiClient.getOwnerHistory(null, ownerUuid, tgAuth, range, null);
         } catch (Exception e) {
-            log.error("Unexpected error during external API call", e);
-            throw new RuntimeException("Service unavailable");
+            log.error("Error calling history API: {}", e.getMessage());
+            throw new RuntimeException("API Error");
         }
     }
 }

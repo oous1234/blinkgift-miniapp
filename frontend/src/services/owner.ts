@@ -12,17 +12,19 @@ export default class OwnerService {
   })
 
   // В контроллере параметры опциональны, но для теста передадим telegram_id или id
-  private static readonly HARDCODED_TELEGRAM_ID = "7804544881"
+  private static readonly HARDCODED_TELEGRAM_ID = "e48a8a24-110e-5645-b2a9-d647f61316e5"
 
   private static getAuthToken(): string {
     return window.Telegram.WebApp.initData
   }
 
   static async getOwnerInfo(): Promise<OwnerProfile> {
+    const range = "12h"
     try {
       const queryParams = new URLSearchParams({
-        telegram_id: this.HARDCODED_TELEGRAM_ID,
+        ownerUuid: this.HARDCODED_TELEGRAM_ID,
         tgauth: this.HARDCODED_TGAUTH,
+        range: range,
         // Можно добавить другие параметры, если нужно:
         // username: "...",
       })

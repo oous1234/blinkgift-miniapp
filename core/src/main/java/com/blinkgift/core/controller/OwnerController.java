@@ -1,6 +1,6 @@
 package com.blinkgift.core.controller;
 
-import com.blinkgift.core.dto.external.OwnerApiResponse;
+import com.blinkgift.core.dto.external.PortfolioHistory;
 import com.blinkgift.core.service.OwnerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,25 +17,23 @@ public class OwnerController {
     private final OwnerService ownerService;
 
     @GetMapping
-    public ResponseEntity<OwnerApiResponse> getOwner(
+    public ResponseEntity<PortfolioHistory> getOwner(
             @RequestParam(value = "id", required = false) String id,
-            @RequestParam(value = "telegram_id", required = false) String telegramId,
+            @RequestParam(value = "ownerUuid", required = false) String ownerUuid,
             @RequestParam("tgauth") String tgAuth,
-            @RequestParam(value = "username", required = false) String username,
-            @RequestParam(value = "owner_address", required = false) String ownerAddress) {
+            @RequestParam(value = "range", defaultValue = "24h") String range) {
 
-        log.info("Owner request: id={}, telegramId={}, username={}, ownerAddress={}",
-                id, telegramId, username, ownerAddress);
+        log.info("Owner Controller request: telegram_id={}, range={}", ownerUuid, range);
 
-        try {
-            OwnerApiResponse response = ownerService.getOwnerInfo(id, telegramId,tgAuth, username, ownerAddress);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid request parameters: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (RuntimeException e) {
-            log.error("Error fetching owner info", e);
-            return ResponseEntity.status(500).build();
+        PortfolioHistory response = ownerService.getOwnerInfo(id, ownerUuid, tgAuth, range, null, null);
+
+        // ЛОГИРУЕМ ВЕСЬ ОТВЕТ
+        log.info("RESPONSE FROM POSO: {}", response);
+
+        if (response != null && response.getData() != null) {
+            log.info("Points count in response: {}", response.getData().size());
         }
+
+        return ResponseEntity.ok(response);
     }
 }

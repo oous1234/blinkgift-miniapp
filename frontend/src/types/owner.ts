@@ -29,10 +29,8 @@ export interface HistoryPoint {
 }
 
 export interface PortfolioHistory {
-    "12h": HistoryPoint[];
-    "24h": HistoryPoint[];
-    "7d": HistoryPoint[];
-    "30d": HistoryPoint[];
+    range: string;
+    data: HistoryPoint[]; // Массив точек
 }
 
 export interface OwnerProfile {

@@ -1,7 +1,8 @@
 package com.blinkgift.core.service;
 
 import com.blinkgift.core.dto.external.OwnerApiResponse;
+import com.blinkgift.core.dto.external.PortfolioHistory;
 
 public interface OwnerService {
-    OwnerApiResponse getOwnerInfo(String id, String telegramId,String tgAuth, String username, String ownerAddress);
+    PortfolioHistory getOwnerInfo(String id, String ownerUuid, String tgAuth, String range, String username, String ownerAddress);
 }

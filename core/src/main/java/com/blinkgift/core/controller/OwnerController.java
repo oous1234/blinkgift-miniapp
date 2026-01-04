@@ -1,5 +1,6 @@
 package com.blinkgift.core.controller;
 
+import com.blinkgift.core.dto.external.GraphicsApiResponse;
 import com.blinkgift.core.dto.external.PortfolioHistory;
 import com.blinkgift.core.service.OwnerService;
 import lombok.RequiredArgsConstructor;
@@ -17,23 +18,11 @@ public class OwnerController {
     private final OwnerService ownerService;
 
     @GetMapping
-    public ResponseEntity<PortfolioHistory> getOwner(
-            @RequestParam(value = "id", required = false) String id,
-            @RequestParam(value = "ownerUuid", required = false) String ownerUuid,
-            @RequestParam("tgauth") String tgAuth,
-            @RequestParam(value = "range", defaultValue = "24h") String range) {
+    public ResponseEntity<GraphicsApiResponse> getOwner(
+            @RequestParam("ownerUuid") String ownerUuid,
+            @RequestParam("tgauth") String tgAuth) {
 
-        log.info("Owner Controller request: telegram_id={}, range={}", ownerUuid, range);
-
-        PortfolioHistory response = ownerService.getOwnerInfo(id, ownerUuid, tgAuth, range, null, null);
-
-        // ЛОГИРУЕМ ВЕСЬ ОТВЕТ
-        log.info("RESPONSE FROM POSO: {}", response);
-
-        if (response != null && response.getData() != null) {
-            log.info("Points count in response: {}", response.getData().size());
-        }
-
-        return ResponseEntity.ok(response);
+        log.info("Fetching full portfolio history for ownerUuid: {}", ownerUuid);
+        return ResponseEntity.ok(ownerService.getOwnerInfo(ownerUuid, tgAuth));
     }
 }

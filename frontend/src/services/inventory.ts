@@ -11,7 +11,7 @@ export default class InventoryService {
     hash: "f26034faff41934d58242f155c1771d42caf6c753df28d3d61cead61708c6208",
   })
 
-  private static readonly HARDCODED_USER_ID = "e48a8a24-110e-5645-b2a9-d647f61316e5"
+  private static readonly HARDCODED_USER_ID = "08972bac-5100-5807-854e-f5018d41b7f3"
   //private static readonly HARDCODED_USER_ID = "08972bac-5100-5807-854e-f5018d41b7f3"
 
   private static getAuthToken(): string {

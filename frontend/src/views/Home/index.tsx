@@ -28,10 +28,11 @@ import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
 
 // Types
 import { GiftItem } from "../../types/inventory"
+import { PortfolioHistory } from "../../types/owner"
 
 const ProfilePage: React.FC = () => {
-  // Период графика
-  const [chartPeriod, setChartPeriod] = useState<string>("24h")
+  // Период графика: по умолчанию 30 дней
+  const [chartPeriod, setChartPeriod] = useState<string>("30d")
   const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
 
   // Деталка подарка
@@ -41,12 +42,27 @@ const ProfilePage: React.FC = () => {
   // Данные инвентаря
   const { items, totalCount, currentPage, limit, setPage } = useInventory()
 
-  // Данные истории (подгружаются при смене chartPeriod)
-  const { ownerData: historyData, isLoading } = useOwnerProfile(chartPeriod)
+  // Загружаем данные профиля ОДИН раз (без передачи range)
+  const { ownerData, isLoading } = useOwnerProfile()
 
-  // Вычисляем аналитику: берем первую и последнюю точку из пришедшего массива
+  // Маппинг ключей из UI в ключи DTO бэкенда
+  const periodMap: Record<string, keyof PortfolioHistory> = {
+    "12h": "h12",
+    "24h": "h24",
+    "7d": "d7",
+    "30d": "d30",
+  }
+
+  // 1. Получаем массив точек конкретно для выбранного периода из общего объекта
+  const currentChartPoints = useMemo(() => {
+    if (!ownerData?.cap) return []
+    const dtoKey = periodMap[chartPeriod]
+    return (ownerData.cap as any)[dtoKey] || []
+  }, [ownerData, chartPeriod])
+
+  // 2. Вычисляем аналитику на основе выбранных точек
   const analytics = useMemo(() => {
-    const points = historyData?.data || []
+    const points = currentChartPoints
     if (points.length === 0) return { current: 0, pnl: 0, percent: 0 }
 
     const firstPoint = points[0].average.ton
@@ -58,17 +74,16 @@ const ProfilePage: React.FC = () => {
     return {
       current: lastPoint,
       pnl: pnl,
-      percent: percent
+      percent: percent,
     }
-  }, [historyData])
+  }, [currentChartPoints])
 
   const handleGiftClick = (gift: GiftItem) => {
     setSelectedGift(gift)
     onDetailOpen()
   }
 
-  // Если данных еще нет совсем, показываем лоадер
-  if (isLoading && !historyData) {
+  if (isLoading && !ownerData) {
     return (
       <Center minH="100vh" bg="#0F1115">
         <Spinner size="lg" color="#e8d7fd" thickness="3px" />
@@ -78,10 +93,10 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="16px" pt="8px">
-      {/* 1. Карточка стоимости (динамически из последней точки истории) */}
+      {/* Карточка стоимости */}
       <NetWorthCard totalValue={analytics.current} pnlPercent={analytics.percent} />
 
-      {/* 2. Кнопка аналитики */}
+      {/* Кнопка аналитики */}
       <Box
         as="button"
         onClick={onToggleStats}
@@ -103,26 +118,33 @@ const ProfilePage: React.FC = () => {
         <Icon as={isStatsOpen ? ChevronUpIcon : ChevronDownIcon} color="gray.500" w={5} h={5} />
       </Box>
 
-      {/* 3. График */}
+      {/* График */}
       <Collapse in={isStatsOpen} animateOpacity>
         <Box mb={8} position="relative">
-          {isLoading && (
-            <Spinner size="xs" position="absolute" top="10px" right="10px" color="#e8d7fd" />
-          )}
           <StatisticsView
             totalValue={analytics.current}
             itemCount={totalCount}
-            history={historyData}
+            historyData={currentChartPoints} // Передаем только нужный массив
             selectedPeriod={chartPeriod}
             onPeriodChange={setChartPeriod}
           />
         </Box>
       </Collapse>
 
-      {/* 4. Инвентарь */}
+      {/* Инвентарь */}
       <Flex align="center" justify="space-between" mb={4} px={1}>
-        <Text fontSize="18px" fontWeight="700">Мои подарки</Text>
-        <Badge bg="#e8d7fd" color="#0F1115" px="12px" py="3px" borderRadius="100px" fontSize="11px" fontWeight="800">
+        <Text fontSize="18px" fontWeight="700">
+          Мои подарки
+        </Text>
+        <Badge
+          bg="#e8d7fd"
+          color="#0F1115"
+          px="12px"
+          py="3px"
+          borderRadius="100px"
+          fontSize="11px"
+          fontWeight="800"
+        >
           {totalCount} шт.
         </Badge>
       </Flex>
@@ -154,10 +176,21 @@ const ProfilePage: React.FC = () => {
   )
 }
 
-const StatisticsView = ({ totalValue, itemCount, history, selectedPeriod, onPeriodChange }: any) => (
-  <Box bg="rgba(255, 255, 255, 0.02)" borderRadius="24px" p="20px" border="1px solid rgba(255, 255, 255, 0.05)">
+const StatisticsView = ({
+  totalValue,
+  itemCount,
+  historyData,
+  selectedPeriod,
+  onPeriodChange,
+}: any) => (
+  <Box
+    bg="rgba(255, 255, 255, 0.02)"
+    borderRadius="24px"
+    p="20px"
+    border="1px solid rgba(255, 255, 255, 0.05)"
+  >
     <PortfolioChart
-      history={history}
+      historyData={historyData}
       selectedPeriod={selectedPeriod}
       onPeriodChange={onPeriodChange}
     />
@@ -173,11 +206,25 @@ const StatisticsView = ({ totalValue, itemCount, history, selectedPeriod, onPeri
 )
 
 const StatRow = ({ label, value, isAccent }: any) => (
-  <Flex justify="space-between" py="12px" borderBottom="1px solid" borderColor="whiteAlpha.50" _last={{ border: "none" }}>
-    <Text color="gray.500" fontSize="11px" fontWeight="600" textTransform="uppercase" letterSpacing="0.5px">
+  <Flex
+    justify="space-between"
+    py="12px"
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.50"
+    _last={{ border: "none" }}
+  >
+    <Text
+      color="gray.500"
+      fontSize="11px"
+      fontWeight="600"
+      textTransform="uppercase"
+      letterSpacing="0.5px"
+    >
       {label}
     </Text>
-    <Text fontSize="13px" fontWeight="700" color={isAccent ? "#e8d7fd" : "white"}>{value}</Text>
+    <Text fontSize="13px" fontWeight="700" color={isAccent ? "#e8d7fd" : "white"}>
+      {value}
+    </Text>
   </Flex>
 )
 

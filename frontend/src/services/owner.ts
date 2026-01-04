@@ -12,25 +12,21 @@ export default class OwnerService {
   })
 
   // В контроллере параметры опциональны, но для теста передадим telegram_id или id
-  private static readonly HARDCODED_TELEGRAM_ID = "e48a8a24-110e-5645-b2a9-d647f61316e5"
+  private static readonly HARDCODED_TELEGRAM_ID = "08972bac-5100-5807-854e-f5018d41b7f3"
 
   private static getAuthToken(): string {
     return window.Telegram.WebApp.initData
   }
 
   static async getOwnerInfo(): Promise<OwnerProfile> {
-    const range = "12h"
     try {
       const queryParams = new URLSearchParams({
         ownerUuid: this.HARDCODED_TELEGRAM_ID,
         tgauth: this.HARDCODED_TGAUTH,
-        range: range,
-        // Можно добавить другие параметры, если нужно:
-        // username: "...",
+        // range больше не нужен
       })
 
       const url = `${Settings.apiUrl()}/owner?${queryParams.toString()}`
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -39,12 +35,8 @@ export default class OwnerService {
         },
       })
 
-      if (!response.ok) {
-        throw new Error(`Error fetching owner info: ${response.statusText}`)
-      }
-
-      const data: OwnerProfile = await response.json()
-      return data
+      if (!response.ok) throw new Error(`Error: ${response.statusText}`)
+      return await response.json()
     } catch (error) {
       console.error("OwnerService Error:", error)
       throw error

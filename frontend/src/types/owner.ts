@@ -29,8 +29,10 @@ export interface HistoryPoint {
 }
 
 export interface PortfolioHistory {
-    range: string;
-    data: HistoryPoint[]; // Массив точек
+  h12: HistoryPoint[]
+  h24: HistoryPoint[]
+  d7: HistoryPoint[]
+  d30: HistoryPoint[]
 }
 
 export interface OwnerProfile {
@@ -48,4 +50,5 @@ export interface OwnerProfile {
     gifts_count: number;
     portfolio_value: PortfolioValue;
     portfolio_history: PortfolioHistory;
+    cap: PortfolioHistory;
 }

@@ -1,28 +1,25 @@
 import React, { useMemo } from "react"
 import { Box, Button, HStack, Text } from "@chakra-ui/react"
-import { PortfolioHistory } from "../../types/owner"
+import { HistoryPoint } from "../../types/owner"
 
 interface PortfolioChartProps {
-  history: PortfolioHistory | null
+  historyData: HistoryPoint[]
   selectedPeriod: string
   onPeriodChange: (period: string) => void
 }
 
 export const PortfolioChart: React.FC<PortfolioChartProps> = ({
-  history,
+  historyData,
   selectedPeriod,
   onPeriodChange,
 }) => {
-  const chartData = useMemo(() => history?.data || [], [history])
-
-  // Константы дизайна
-  const ACCENT_COLOR = "#e8d7fd" // Фирменный лавандовый
-  const ACCENT_GLOW = "rgba(232, 215, 253, 0.4)"
+  // Дизайн
+  const ACCENT_COLOR = "#e8d7fd"
 
   const chartParams = useMemo(() => {
-    if (chartData.length < 2) return null
+    if (!historyData || historyData.length < 2) return null
 
-    const values = chartData.map((p) => p.average.ton)
+    const values = historyData.map((p) => p.average.ton)
     const min = Math.min(...values)
     const max = Math.max(...values)
     const range = max - min || 1
@@ -35,9 +32,9 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
     const width = 300
     const height = 120
 
-    const points = chartData
+    const points = historyData
       .map((p, i) => {
-        const x = (i / (chartData.length - 1)) * width
+        const x = (i / (historyData.length - 1)) * width
         const y = height - ((p.average.ton - displayMin) / displayRange) * height
         return `${x},${y}`
       })
@@ -45,19 +42,14 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
 
     const areaPoints = `${points} ${width},${height} 0,${height}`
 
-    return {
-      points,
-      areaPoints,
-      width,
-      height,
-    }
-  }, [chartData])
+    return { points, areaPoints, width, height }
+  }, [historyData])
 
   if (!chartParams) {
     return (
-      <Box h="180px" display="flex" alignItems="center" justifyContent="center">
+      <Box h="140px" display="flex" alignItems="center" justifyContent="center">
         <Text color="gray.500" fontSize="xs">
-          Загрузка аналитики...
+          Нет данных для этого периода
         </Text>
       </Box>
     )
@@ -65,7 +57,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
 
   return (
     <Box>
-      {/* Кнопки переключения периодов в стиле "стеклянного" меню */}
+      {/* Селектор периодов */}
       <HStack
         spacing={1}
         mb={8}
@@ -98,26 +90,8 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
         ))}
       </HStack>
 
-      {/* Контейнер графика с мягким свечением */}
-      <Box
-        position="relative"
-        w="100%"
-        h="140px"
-        mb={2}
-        _before={{
-          content: '""',
-          position: "absolute",
-          top: "10%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "80%",
-          height: "60%",
-          background: ACCENT_COLOR,
-          filter: "blur(40px)",
-          opacity: 0.1,
-          pointerEvents: "none",
-        }}
-      >
+      {/* SVG График */}
+      <Box position="relative" w="100%" h="140px" mb={2}>
         <svg
           viewBox={`0 0 ${chartParams.width} ${chartParams.height}`}
           width="100%"
@@ -126,38 +100,22 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
           style={{ overflow: "visible" }}
         >
           <defs>
-            {/* Градиент заливки под графиком */}
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={ACCENT_COLOR} stopOpacity="0.25" />
               <stop offset="100%" stopColor={ACCENT_COLOR} stopOpacity="0" />
             </linearGradient>
-
-            {/* Фильтр свечения самой линии */}
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="2" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
 
-          {/* Заливка (Area) */}
           <polyline
             fill="url(#areaGradient)"
             points={chartParams.areaPoints}
-            style={{ transition: "all 0.5s ease" }}
+            style={{ transition: "all 0.4s ease-in-out" }}
           />
 
-          {/* Теневая/фоновая линия для объема */}
-          <polyline
-            fill="none"
-            stroke={ACCENT_COLOR}
-            strokeWidth="4"
-            strokeOpacity="0.1"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            points={chartParams.points}
-          />
-
-          {/* Основная линия графика */}
           <polyline
             fill="none"
             stroke={ACCENT_COLOR}
@@ -166,7 +124,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
             strokeLinecap="round"
             points={chartParams.points}
             filter="url(#glow)"
-            style={{ transition: "all 0.5s ease" }}
+            style={{ transition: "all 0.4s ease-in-out" }}
           />
         </svg>
       </Box>

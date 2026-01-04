@@ -1,6 +1,7 @@
 package com.blinkgift.core.service.impl;
 
 import com.blinkgift.core.client.OwnerApiClient;
+import com.blinkgift.core.dto.external.GraphicsApiResponse;
 import com.blinkgift.core.dto.external.OwnerApiResponse;
 import com.blinkgift.core.dto.external.PortfolioHistory;
 import com.blinkgift.core.service.OwnerService;
@@ -16,17 +17,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     private final OwnerApiClient ownerApiClient;
 
-    @Override
-    public PortfolioHistory getOwnerInfo(String id, String ownerUuid, String tgAuth, String range, String username, String ownerAddress) {
-        // Тот самый UUID, который тебе нужен
-
-        log.info("Requesting history for owner_id: {} with range: {}", ownerUuid, range);
-
-        try {
-            return ownerApiClient.getOwnerHistory(null, ownerUuid, tgAuth, range, null);
-        } catch (Exception e) {
-            log.error("Error calling history API: {}", e.getMessage());
-            throw new RuntimeException("API Error");
-        }
+    public GraphicsApiResponse getOwnerInfo(String ownerUuid, String tgAuth) {
+        return ownerApiClient.getOwnerGraphics(ownerUuid, tgAuth, null);
     }
 }

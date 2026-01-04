@@ -1,19 +1,5 @@
 import { JSONRecord } from "../infrastructure/superFetch";
 
-export interface PriceData {
-    nanoton: number;
-    ton: number;
-    usd: number;
-}
-
-export interface PortfolioValue {
-    portals: PriceData;
-    tonnel: PriceData;
-    getgems: PriceData;
-    telegram: PriceData;
-    average: PriceData;
-}
-
 export interface PriceDetail {
     ton: number;
     usd: number;
@@ -28,6 +14,7 @@ export interface HistoryPoint {
   average: PriceDetail
 }
 
+
 export interface PortfolioHistory {
   "12h"?: HistoryPoint[]
   "24h"?: HistoryPoint[]
@@ -38,7 +25,21 @@ export interface PortfolioHistory {
 export interface OwnerProfile {
   id?: string
   name?: string
-  cap: PortfolioHistory
-  updated_at: string
+  history?: HistoryPoint[]
+  updated_at?: string
   portfolio_value?: PortfolioValue
+}
+
+export interface PriceData {
+  nanoton: number
+  ton: number
+  usd: number
+}
+
+export interface PortfolioValue {
+  portals: PriceData
+  tonnel: PriceData
+  getgems: PriceData
+  telegram: PriceData
+  average: PriceData
 }

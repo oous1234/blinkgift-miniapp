@@ -1,17 +1,18 @@
 import React from "react"
 import { Box, Text, AspectRatio } from "@chakra-ui/react"
-import { GiftItem } from "../data"
+import { GiftItem } from "../../types/inventory" // Исправлен путь к типам
 import { GiftRibbon } from "./GiftRibbon"
 
-export const GiftCard: React.FC<{ item: GiftItem }> = ({ item }) => {
-  // Если фон пришел с бека (через маппер) - берем его, иначе дефолтный серый
-  const bgStyle =
-    item.background || "radial-gradient(circle at center, rgb(60, 60, 60) 0%, rgb(20, 20, 20) 100%)"
+interface GiftCardProps {
+  item: GiftItem
+  onClick: (item: GiftItem) => void
+}
 
+export const GiftCard: React.FC<GiftCardProps> = ({ item, onClick }) => {
   const titleColor = "rgb(235, 212, 200)"
 
   return (
-    <Box position="relative">
+    <Box position="relative" onClick={() => onClick(item)} cursor="pointer">
       <AspectRatio ratio={1}>
         <Box
           borderRadius="16px"
@@ -19,8 +20,8 @@ export const GiftCard: React.FC<{ item: GiftItem }> = ({ item }) => {
           border="1px solid"
           borderColor="whiteAlpha.100"
           overflow="hidden"
-          transition="all 0.3s cubic-bezier(.25,.8,.25,1)"
-          _hover={{ borderColor: "purple.500", transform: "translateY(-2px)" }}
+          transition="all 0.2s cubic-bezier(.25,.8,.25,1)"
+          _active={{ transform: "scale(0.95)", borderColor: "purple.500" }}
         >
           <Box
             w="100%"
@@ -38,7 +39,7 @@ export const GiftCard: React.FC<{ item: GiftItem }> = ({ item }) => {
               fontSize="14px"
               fontWeight="600"
               color={titleColor}
-              textShadow="0px 4px 10px rgba(0,0,0,0.5)"
+              textShadow="0px 2px 8px rgba(0,0,0,0.8)"
             >
               {item.name}
             </Text>
@@ -46,7 +47,6 @@ export const GiftCard: React.FC<{ item: GiftItem }> = ({ item }) => {
         </Box>
       </AspectRatio>
 
-      {/* --- ИСПРАВЛЕНИЕ: Передаем item.num вместо item.quantity --- */}
       <GiftRibbon num={item.num} id={item.id} />
     </Box>
   )

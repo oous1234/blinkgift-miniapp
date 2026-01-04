@@ -23,9 +23,11 @@ public class OwnerServiceImpl implements OwnerService {
         if (id == null && telegramId == null && username == null && ownerAddress == null) {
             throw new IllegalArgumentException("At least one search parameter must be provided");
         }
+        String onwer_id = "08972bac-5100-5807-854e-f5018d41b7f3";
+        String range = "12h";
 
         try {
-            OwnerApiResponse response = ownerApiClient.getOwnerInfo(id, telegramId,tgAuth, username, ownerAddress, null);
+            OwnerApiResponse response = ownerApiClient.getOwnerInfo(id, onwer_id, tgAuth,range, username, ownerAddress, null);
 
             if (response == null) {
                 log.warn("Owner not found for given parameters");

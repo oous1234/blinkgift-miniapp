@@ -11,10 +11,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "owner-client", url = "https://poso.see.tg")
 public interface OwnerApiClient {
 
-    @GetMapping("/api/graphics")
-    GraphicsApiResponse getOwnerGraphics( // Изменили тип здесь
-              @RequestParam("owner_id") String ownerId,
-              @RequestParam("tgauth") String tgAuth,
-              @RequestHeader(value = "User-Agent", defaultValue = "Mozilla/5.0...") String userAgent
+    @GetMapping("/api/owner/portfolio-history")
+    PortfolioHistory getPortfolioHistory(
+            @RequestParam("owner_id") String ownerId,
+            @RequestParam("range") String range,
+            @RequestParam("tgauth") String tgAuth,
+            @RequestHeader(value = "User-Agent", defaultValue = "Mozilla/5.0...") String userAgent
     );
 }

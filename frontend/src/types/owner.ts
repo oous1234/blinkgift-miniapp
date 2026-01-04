@@ -20,20 +20,19 @@ export interface PriceDetail {
 }
 
 export interface HistoryPoint {
-    date: string;
-    getgems: PriceDetail;
-    portals: PriceDetail;
-    telegram: PriceDetail;
-    tonnel: PriceDetail;
-    average: PriceDetail;
+  date: string
+  getgems: PriceDetail
+  portals: PriceDetail
+  telegram: PriceDetail
+  tonnel: PriceDetail
+  average: PriceDetail
 }
 
 export interface PortfolioHistory {
-  // Ключи в кавычках, потому что они начинаются с цифр
-  "12h": HistoryPoint[]
-  "24h": HistoryPoint[]
-  "7d": HistoryPoint[]
-  "30d": HistoryPoint[]
+  "12h"?: HistoryPoint[]
+  "24h"?: HistoryPoint[]
+  "7d"?: HistoryPoint[]
+  "30d"?: HistoryPoint[]
 }
 
 export interface OwnerProfile {

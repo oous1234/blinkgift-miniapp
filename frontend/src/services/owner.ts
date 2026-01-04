@@ -19,11 +19,12 @@ export default class OwnerService {
     return window.Telegram.WebApp.initData
   }
 
-  static async getOwnerInfo(): Promise<OwnerProfile> {
+
+  static async getOwnerInfo(range: string = "30d"): Promise<PortfolioHistory> {
     try {
       const queryParams = new URLSearchParams({
-        // ВАЖНО: отправляем ТЕЛЕГРАМ АЙДИ (цифры), а не UUID
         ownerUuid: this.getTelegramUserId(),
+        range: range, // Добавляем range
         tgauth: this.HARDCODED_TGAUTH,
       })
 

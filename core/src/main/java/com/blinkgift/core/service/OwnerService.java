@@ -4,5 +4,5 @@ import com.blinkgift.core.dto.external.GraphicsApiResponse;
 import com.blinkgift.core.dto.external.PortfolioHistory;
 
 public interface OwnerService {
-    GraphicsApiResponse getOwnerInfo(String ownerUuid, String tgAuth);
+    PortfolioHistory getOwnerInfo(String ownerUuid, String range, String tgAuth);
 }

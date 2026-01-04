@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import {
   Box,
   SimpleGrid,
@@ -11,6 +11,7 @@ import {
   VStack,
   Collapse,
   useDisclosure,
+  Skeleton,
 } from "@chakra-ui/react"
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons"
 
@@ -30,31 +31,42 @@ import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
 import { GiftItem } from "../../types/inventory"
 
 const ProfilePage: React.FC = () => {
-  // Значения должны совпадать с ключами JSON: "12h", "24h", "7d", "30d"
+  // 1. Состояние периода (по умолчанию 30 дней)
   const [chartPeriod, setChartPeriod] = useState<string>("30d")
-  const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
 
+  // 2. Управление открытием детальной инфы подарка
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure()
 
-  const { items, totalCount, currentPage, limit, setPage } = useInventory()
-  const { ownerData, isLoading } = useOwnerProfile()
+  // 3. Управление секцией статистики
+  const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
 
-  // ИСПРАВЛЕНИЕ: Берем данные напрямую из cap по ключу периода
+  // 4. Загрузка инвентаря
+  const {
+    items,
+    totalCount,
+    currentPage,
+    limit,
+    setPage,
+    isLoading: isInventoryLoading,
+  } = useInventory()
+
+  // 5. Загрузка данных профиля/графика (хук теперь принимает период)
+  const { historyData, isLoading: isChartLoading } = useOwnerProfile(chartPeriod)
+
+  // Получаем точки именно для выбранного периода из пришедшего объекта
   const currentChartPoints = useMemo(() => {
-    if (!ownerData?.cap) return []
-    // ownerData.cap["30d"] и т.д.
-    const points = (ownerData.cap as any)[chartPeriod]
-    return points || []
-  }, [ownerData, chartPeriod])
+    if (!historyData) return []
+    return (historyData as any)[chartPeriod] || []
+  }, [historyData, chartPeriod])
 
+  // Расчет аналитики (текущая цена и PnL) на основе данных графика
   const analytics = useMemo(() => {
     const points = currentChartPoints
     if (points.length === 0) return { current: 0, pnl: 0, percent: 0 }
 
     const firstPoint = points[0].average.ton
     const lastPoint = points[points.length - 1].average.ton
-
     const pnl = lastPoint - firstPoint
     const percent = firstPoint > 0 ? (pnl / firstPoint) * 100 : 0
 
@@ -70,18 +82,14 @@ const ProfilePage: React.FC = () => {
     onDetailOpen()
   }
 
-  if (isLoading && !ownerData) {
-    return (
-      <Center minH="100vh" bg="#0F1115">
-        <Spinner size="lg" color="#e8d7fd" thickness="3px" />
-      </Center>
-    )
-  }
-
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="16px" pt="8px">
-      <NetWorthCard totalValue={analytics.current} pnlPercent={analytics.percent} />
+      {/* Карточка баланса (общая стоимость) */}
+      <Skeleton isLoaded={!isChartLoading} borderRadius="24px" fadeDuration={1}>
+        <NetWorthCard totalValue={analytics.current} pnlPercent={analytics.percent} />
+      </Skeleton>
 
+      {/* Кнопка раскрытия аналитики */}
       <Box
         as="button"
         onClick={onToggleStats}
@@ -102,18 +110,50 @@ const ProfilePage: React.FC = () => {
         <Icon as={isStatsOpen ? ChevronUpIcon : ChevronDownIcon} color="gray.500" w={5} h={5} />
       </Box>
 
+      {/* Секция с графиком */}
       <Collapse in={isStatsOpen} animateOpacity>
         <Box mb={8}>
-          <StatisticsView
-            totalValue={analytics.current}
-            itemCount={totalCount}
-            historyData={currentChartPoints}
-            selectedPeriod={chartPeriod}
-            onPeriodChange={setChartPeriod}
-          />
+          <Box
+            bg="rgba(255, 255, 255, 0.02)"
+            borderRadius="24px"
+            p="20px"
+            border="1px solid rgba(255, 255, 255, 0.05)"
+            position="relative"
+          >
+            {/* Если данные загружаются, поверх графика можно показать спиннер или использовать Skeleton */}
+            {isChartLoading && (
+              <Center
+                position="absolute"
+                inset={0}
+                zIndex={10}
+                bg="rgba(15,17,21,0.6)"
+                borderRadius="24px"
+              >
+                <Spinner color="#e8d7fd" />
+              </Center>
+            )}
+
+            <PortfolioChart
+              historyData={currentChartPoints}
+              selectedPeriod={chartPeriod}
+              onPeriodChange={setChartPeriod} // Смена периода здесь триггерит перезагрузку в хуке
+            />
+
+            <VStack align="stretch" spacing={0} mt={4}>
+              <StatRow
+                label="Текущая оценка"
+                value={`${analytics.current.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })} TON`}
+                isAccent
+              />
+              <StatRow label="Всего предметов" value={`${totalCount} шт.`} />
+            </VStack>
+          </Box>
         </Box>
       </Collapse>
 
+      {/* Заголовок инвентаря */}
       <Flex align="center" justify="space-between" mb={4} px={1}>
         <Text fontSize="18px" fontWeight="700">
           Мои подарки
@@ -131,7 +171,12 @@ const ProfilePage: React.FC = () => {
         </Badge>
       </Flex>
 
-      {items.length === 0 ? (
+      {/* Сетка подарков */}
+      {isInventoryLoading && items.length === 0 ? (
+        <Center py={10}>
+          <Spinner color="#e8d7fd" />
+        </Center>
+      ) : items.length === 0 ? (
         <Center py={20} opacity={0.5}>
           <Text fontSize="14px">В вашем инвентаре пока нет подарков</Text>
         </Center>
@@ -142,6 +187,7 @@ const ProfilePage: React.FC = () => {
               <GiftCard key={item.id} item={item} onClick={() => handleGiftClick(item)} />
             ))}
           </SimpleGrid>
+
           <Pagination
             currentPage={currentPage}
             totalCount={totalCount}
@@ -151,42 +197,23 @@ const ProfilePage: React.FC = () => {
         </Box>
       )}
 
+      {/* Оверлеи */}
       <GiftDetailDrawer isOpen={isDetailOpen} onClose={onDetailClose} gift={selectedGift} />
       <BottomNavigation />
     </Box>
   )
 }
 
-const StatisticsView = ({
-  totalValue,
-  itemCount,
-  historyData,
-  selectedPeriod,
-  onPeriodChange,
-}: any) => (
-  <Box
-    bg="rgba(255, 255, 255, 0.02)"
-    borderRadius="24px"
-    p="20px"
-    border="1px solid rgba(255, 255, 255, 0.05)"
-  >
-    <PortfolioChart
-      historyData={historyData}
-      selectedPeriod={selectedPeriod}
-      onPeriodChange={onPeriodChange}
-    />
-    <VStack align="stretch" spacing={0} mt={2}>
-      <StatRow
-        label="Текущая оценка"
-        value={`${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })} TON`}
-        isAccent
-      />
-      <StatRow label="Количество предметов" value={`${itemCount} шт.`} />
-    </VStack>
-  </Box>
-)
-
-const StatRow = ({ label, value, isAccent }: any) => (
+// Вспомогательный компонент для строк статистики
+const StatRow = ({
+  label,
+  value,
+  isAccent,
+}: {
+  label: string
+  value: string
+  isAccent?: boolean
+}) => (
   <Flex
     justify="space-between"
     py="12px"

@@ -10,19 +10,17 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/owner")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
-@Slf4j
 public class OwnerController {
 
     private final OwnerService ownerService;
 
     @GetMapping
-    public ResponseEntity<GraphicsApiResponse> getOwner(
+    public ResponseEntity<PortfolioHistory> getOwner(
             @RequestParam("ownerUuid") String ownerUuid,
+            @RequestParam(value = "range", defaultValue = "30d") String range,
             @RequestParam("tgauth") String tgAuth) {
 
-        log.info("Fetching full portfolio history for ownerUuid: {}", ownerUuid);
-        return ResponseEntity.ok(ownerService.getOwnerInfo(ownerUuid, tgAuth));
+        return ResponseEntity.ok(ownerService.getOwnerInfo(ownerUuid, range, tgAuth));
     }
 }

@@ -3,6 +3,7 @@ import Settings from "@infrastructure/settings"
 import { GiftItem, ApiGiftItem, InventoryServiceResponse } from "../../src/types/inventory"
 
 export default class InventoryService {
+  // Оставляем хардкод tgauth как и просили
   private static readonly HARDCODED_TGAUTH = JSON.stringify({
     id: 8241853306,
     first_name: "ЛинкПро",
@@ -11,18 +12,24 @@ export default class InventoryService {
     hash: "f26034faff41934d58242f155c1771d42caf6c753df28d3d61cead61708c6208",
   })
 
-  private static readonly HARDCODED_USER_ID = "08972bac-5100-5807-854e-f5018d41b7f3"
-  //private static readonly HARDCODED_USER_ID = "08972bac-5100-5807-854e-f5018d41b7f3"
-
   private static getAuthToken(): string {
     return window.Telegram.WebApp.initData
   }
 
-  // Обновленный метод с новыми полями в ответе
+  /**
+   * Получаем реальный ID пользователя из Telegram WebApp
+   */
+  private static getTelegramUserId(): string {
+    // Пытаемся взять ID текущего пользователя, зашедшего в приложение
+    const tgId = window.Telegram.WebApp.initDataUnsafe?.user?.id
+    return tgId ? tgId.toString() : ""
+  }
+
   static async getItems(limit: number = 10, offset: number = 0): Promise<InventoryServiceResponse> {
     try {
       const queryParams = new URLSearchParams({
-        current_owner_id: this.HARDCODED_USER_ID,
+        // Теперь здесь реальный ID пользователя из Телеграма
+        current_owner_id: this.getTelegramUserId(),
         tgauth: this.HARDCODED_TGAUTH,
         limit: limit.toString(),
         offset: offset.toString(),
@@ -43,10 +50,8 @@ export default class InventoryService {
       }
 
       const data = await response.json()
-
       const rawItems: ApiGiftItem[] = data.items || []
 
-      // Используем данные с бекенда, если они есть, иначе fallback значения
       return {
         items: rawItems.map(this.mapDtoToModel),
         total: data.total || 0,

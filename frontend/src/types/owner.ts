@@ -29,26 +29,17 @@ export interface HistoryPoint {
 }
 
 export interface PortfolioHistory {
-  h12: HistoryPoint[]
-  h24: HistoryPoint[]
-  d7: HistoryPoint[]
-  d30: HistoryPoint[]
+  // Ключи в кавычках, потому что они начинаются с цифр
+  "12h": HistoryPoint[]
+  "24h": HistoryPoint[]
+  "7d": HistoryPoint[]
+  "30d": HistoryPoint[]
 }
 
 export interface OwnerProfile {
-    id: string;
-    owner_type: string;
-    telegram_type: string;
-    telegram_id: number;
-    username: string;
-    usernames: string[];
-    name: string;
-    owner_address: string;
-    updated_at: string;
-    verified: boolean;
-    pidorased: boolean;
-    gifts_count: number;
-    portfolio_value: PortfolioValue;
-    portfolio_history: PortfolioHistory;
-    cap: PortfolioHistory;
+  id?: string
+  name?: string
+  cap: PortfolioHistory
+  updated_at: string
+  portfolio_value?: PortfolioValue
 }

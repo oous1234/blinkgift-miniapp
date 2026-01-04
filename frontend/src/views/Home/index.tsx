@@ -28,39 +28,26 @@ import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
 
 // Types
 import { GiftItem } from "../../types/inventory"
-import { PortfolioHistory } from "../../types/owner"
 
 const ProfilePage: React.FC = () => {
-  // Период графика: по умолчанию 30 дней
+  // Значения должны совпадать с ключами JSON: "12h", "24h", "7d", "30d"
   const [chartPeriod, setChartPeriod] = useState<string>("30d")
   const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
 
-  // Деталка подарка
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure()
 
-  // Данные инвентаря
   const { items, totalCount, currentPage, limit, setPage } = useInventory()
-
-  // Загружаем данные профиля ОДИН раз (без передачи range)
   const { ownerData, isLoading } = useOwnerProfile()
 
-  // Маппинг ключей из UI в ключи DTO бэкенда
-  const periodMap: Record<string, keyof PortfolioHistory> = {
-    "12h": "h12",
-    "24h": "h24",
-    "7d": "d7",
-    "30d": "d30",
-  }
-
-  // 1. Получаем массив точек конкретно для выбранного периода из общего объекта
+  // ИСПРАВЛЕНИЕ: Берем данные напрямую из cap по ключу периода
   const currentChartPoints = useMemo(() => {
     if (!ownerData?.cap) return []
-    const dtoKey = periodMap[chartPeriod]
-    return (ownerData.cap as any)[dtoKey] || []
+    // ownerData.cap["30d"] и т.д.
+    const points = (ownerData.cap as any)[chartPeriod]
+    return points || []
   }, [ownerData, chartPeriod])
 
-  // 2. Вычисляем аналитику на основе выбранных точек
   const analytics = useMemo(() => {
     const points = currentChartPoints
     if (points.length === 0) return { current: 0, pnl: 0, percent: 0 }
@@ -93,10 +80,8 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="16px" pt="8px">
-      {/* Карточка стоимости */}
       <NetWorthCard totalValue={analytics.current} pnlPercent={analytics.percent} />
 
-      {/* Кнопка аналитики */}
       <Box
         as="button"
         onClick={onToggleStats}
@@ -109,29 +94,26 @@ const ProfilePage: React.FC = () => {
         px="20px"
         borderRadius="16px"
         mb={6}
-        transition="all 0.2s"
         _active={{ bg: "rgba(255, 255, 255, 0.08)", transform: "scale(0.98)" }}
       >
-        <Text fontSize="14px" fontWeight="600" color="white">
+        <Text fontSize="14px" fontWeight="600">
           Аналитика портфеля ({chartPeriod})
         </Text>
         <Icon as={isStatsOpen ? ChevronUpIcon : ChevronDownIcon} color="gray.500" w={5} h={5} />
       </Box>
 
-      {/* График */}
       <Collapse in={isStatsOpen} animateOpacity>
-        <Box mb={8} position="relative">
+        <Box mb={8}>
           <StatisticsView
             totalValue={analytics.current}
             itemCount={totalCount}
-            historyData={currentChartPoints} // Передаем только нужный массив
+            historyData={currentChartPoints}
             selectedPeriod={chartPeriod}
             onPeriodChange={setChartPeriod}
           />
         </Box>
       </Collapse>
 
-      {/* Инвентарь */}
       <Flex align="center" justify="space-between" mb={4} px={1}>
         <Text fontSize="18px" fontWeight="700">
           Мои подарки
@@ -150,7 +132,7 @@ const ProfilePage: React.FC = () => {
       </Flex>
 
       {items.length === 0 ? (
-        <Center py={20} opacity={0.5} flexDirection="column">
+        <Center py={20} opacity={0.5}>
           <Text fontSize="14px">В вашем инвентаре пока нет подарков</Text>
         </Center>
       ) : (
@@ -160,7 +142,6 @@ const ProfilePage: React.FC = () => {
               <GiftCard key={item.id} item={item} onClick={() => handleGiftClick(item)} />
             ))}
           </SimpleGrid>
-
           <Pagination
             currentPage={currentPage}
             totalCount={totalCount}
@@ -213,13 +194,7 @@ const StatRow = ({ label, value, isAccent }: any) => (
     borderColor="whiteAlpha.50"
     _last={{ border: "none" }}
   >
-    <Text
-      color="gray.500"
-      fontSize="11px"
-      fontWeight="600"
-      textTransform="uppercase"
-      letterSpacing="0.5px"
-    >
+    <Text color="gray.500" fontSize="11px" fontWeight="600" textTransform="uppercase">
       {label}
     </Text>
     <Text fontSize="13px" fontWeight="700" color={isAccent ? "#e8d7fd" : "white"}>

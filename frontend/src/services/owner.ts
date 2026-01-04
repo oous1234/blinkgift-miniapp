@@ -12,7 +12,7 @@ export default class OwnerService {
   })
 
   // В контроллере параметры опциональны, но для теста передадим telegram_id или id
-  private static readonly HARDCODED_TELEGRAM_ID = "08972bac-5100-5807-854e-f5018d41b7f3"
+  private static readonly HARDCODED_TELEGRAM_ID = "1342062477"
 
   private static getAuthToken(): string {
     return window.Telegram.WebApp.initData

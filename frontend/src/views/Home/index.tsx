@@ -23,6 +23,7 @@ import { Pagination } from "@components/Home/Pagination"
 import { PortfolioChart } from "@components/Home/PortfolioChart"
 import BottomNavigation from "@components/navigation/BottomNavigation"
 import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
+import SearchDrawer from "@components/overlay/SearchDrawer" // Импортируем новый компонент
 import { GiftItem } from "../../types/inventory"
 
 const ProfilePage: React.FC = () => {
@@ -30,7 +31,8 @@ const ProfilePage: React.FC = () => {
   const { isOpen: isStatsOpen, onToggle: onToggleStats } = useDisclosure()
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure()
 
-  // Удалено: стейт для поиска (isSearchOpen)
+  // Состояние для поиска
+  const { isOpen: isSearchOpen, onOpen: onSearchOpen, onClose: onSearchClose } = useDisclosure()
 
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
   const { items, totalCount, currentPage, limit, setPage } = useInventory()
@@ -70,6 +72,7 @@ const ProfilePage: React.FC = () => {
         </Skeleton>
       </Box>
 
+      {/* ... Остальной код статистики ... */}
       <Box
         as="button"
         onClick={onToggleStats}
@@ -113,6 +116,7 @@ const ProfilePage: React.FC = () => {
               selectedPeriod={chartPeriod}
               onPeriodChange={setChartPeriod}
             />
+            {/* Статистика */}
             <VStack align="stretch" spacing={0} mt={4}>
               <StatRow
                 label="Текущая оценка"
@@ -127,6 +131,7 @@ const ProfilePage: React.FC = () => {
         </Box>
       </Collapse>
 
+      {/* Заголовок коллекции */}
       <Flex align="center" justify="space-between" mb={4}>
         <Text fontSize="18px" fontWeight="700">
           Мои подарки
@@ -136,6 +141,7 @@ const ProfilePage: React.FC = () => {
         </Badge>
       </Flex>
 
+      {/* Грид инвентаря */}
       <SimpleGrid columns={2} spacing="12px" mb={8}>
         {items.map((item) => (
           <GiftCard key={item.id} item={item} onClick={() => handleGiftClick(item)} />
@@ -149,12 +155,14 @@ const ProfilePage: React.FC = () => {
         onPageChange={setPage}
       />
 
+      {/* Дроверы */}
       <GiftDetailDrawer isOpen={isDetailOpen} onClose={onDetailClose} gift={selectedGift} />
 
-      {/* Удалено: SearchOverlay и AnimatePresence для него */}
+      {/* Подключаем новый SearchDrawer */}
+      <SearchDrawer isOpen={isSearchOpen} onClose={onSearchClose} />
 
-      {/* Удален пропс onSearchOpen */}
-      <BottomNavigation />
+      {/* Навигация */}
+      <BottomNavigation onSearchOpen={onSearchOpen} />
     </Box>
   )
 }

@@ -11,12 +11,13 @@ import {
   ActiveIndicatorStyle,
 } from "../styles"
 
+// Обновляем интерфейс пропсов
 interface BottomNavigationProps {
   onSearchOpen: () => void
 }
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => {
-  const [activeIndex, setActiveIndex] = useState(0) // Profile по дефолту
+  const [activeIndex, setActiveIndex] = useState(0)
 
   const navItems = [
     {
@@ -69,6 +70,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => 
         ))}
       </Box>
 
+      {/* Кнопка поиска с обработчиком */}
       <button
         style={NavSearchButtonStyle}
         onClick={onSearchOpen}

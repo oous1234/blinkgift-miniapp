@@ -3,6 +3,7 @@ package com.blinkgift.core.service.impl;
 import com.blinkgift.core.client.OwnerApiClient;
 import com.blinkgift.core.client.PosoApiClient;
 import com.blinkgift.core.dto.external.OwnerHistoryResponse;
+import com.blinkgift.core.dto.external.OwnerSearchResponse; // Импорт
 import com.blinkgift.core.dto.external.PosoOwnerProfileResponse;
 import com.blinkgift.core.service.OwnerService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,13 @@ public class OwnerServiceImpl implements OwnerService {
     public OwnerHistoryResponse getOwnerInfo(String ownerUuid, String range, String tgAuth) {
         String internalUuid = resolveInternalUuid(ownerUuid, tgAuth);
         return ownerApiClient.getPortfolioHistory(internalUuid, range, tgAuth, null);
+    }
+
+    // Реализация поиска
+    @Override
+    public OwnerSearchResponse searchOwners(String query, String order, int limit, int offset, String tgAuth) {
+        // Пробрасываем запрос в Feign Client
+        return posoApiClient.searchOwners(tgAuth, limit, order, query, offset);
     }
 
     private String resolveInternalUuid(String telegramId, String tgAuth) {

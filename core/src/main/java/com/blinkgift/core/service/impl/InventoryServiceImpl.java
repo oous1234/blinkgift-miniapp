@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -18,16 +19,25 @@ import java.util.Collections;
 public class InventoryServiceImpl implements InventoryService {
 
     private final PosoApiClient posoApiClient;
+    // Простой паттерн для проверки UUID
+    private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F-]{36}$");
 
     @Override
-    public InventoryResponse getUserInventory(String telegramId, String tgAuth, int limit, int offset) {
-        log.info("Starting inventory flow for telegramId={}", telegramId);
+    public InventoryResponse getUserInventory(String inputId, String tgAuth, int limit, int offset) {
+        log.info("Starting inventory flow for id={}", inputId);
 
         try {
-            String internalUuid = resolveInternalUuid(telegramId, tgAuth);
-            log.info("Resolved UUID: {}", internalUuid);
+            String internalUuid;
 
-            // Теперь вызываем без лишнего пятого параметра
+            // Проверяем: если это UUID, используем его сразу. Если нет (цифры) - резолвим.
+            if (isUuid(inputId)) {
+                internalUuid = inputId;
+                log.info("Input is UUID, using directly: {}", internalUuid);
+            } else {
+                internalUuid = resolveInternalUuid(inputId, tgAuth);
+                log.info("Input is Telegram ID, resolved to UUID: {}", internalUuid);
+            }
+
             PosoApiResponse response = posoApiClient.getGifts(internalUuid, tgAuth, limit, offset);
 
             if (response != null && response.getGifts() != null) {
@@ -40,15 +50,15 @@ public class InventoryServiceImpl implements InventoryService {
             }
             return new InventoryResponse(Collections.emptyList(), 0, limit, offset);
         } catch (FeignException e) {
-            // Логируем детально, что именно ответил сервер
             log.error("Feign Error! Status: {}, Body: {}", e.status(), e.contentUTF8());
             throw new RuntimeException("Error communicating with external provider", e);
         }
     }
 
-    /**
-     * Вспомогательный метод для конвертации Telegram ID в UUID профиля
-     */
+    private boolean isUuid(String id) {
+        return id != null && UUID_PATTERN.matcher(id).matches();
+    }
+
     private String resolveInternalUuid(String telegramId, String tgAuth) {
         try {
             PosoOwnerProfileResponse profile = posoApiClient.getOwnerProfile(telegramId, tgAuth);

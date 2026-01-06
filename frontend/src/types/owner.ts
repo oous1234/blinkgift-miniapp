@@ -26,10 +26,10 @@ export interface PortfolioHistory {
   "30d"?: HistoryPoint[]
 }
 
-// Обновленный интерфейс профиля, соответствующий ответу поиска
 export interface OwnerProfile {
   id: string
   telegram_id?: number
+  telegram_type?: string // <--- Добавили поле типа (user, channel, bot и т.д.)
   username?: string
   name?: string
   gifts_count?: number

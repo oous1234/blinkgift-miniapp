@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
 
                         // Все остальные запросы требуют аутентификации
+                        .requestMatchers("/api/parsing/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

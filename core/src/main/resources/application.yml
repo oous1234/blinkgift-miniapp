@@ -3,7 +3,7 @@ spring:
     name: core
   data:
     mongodb:
-      uri: mongodb://root:example@localhost:27017/main?authSource=admin
+      uri: mongodb://localhost:27017/main
   cloud:
     openfeign:
       okhttp:

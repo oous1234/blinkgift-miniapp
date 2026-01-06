@@ -1,4 +1,3 @@
-// frontend/src/views/Home/hooks/useInventory.ts
 import { useState, useEffect, useCallback } from "react"
 import InventoryService from "@services/inventory"
 import { GiftItem } from "../../../types/inventory"
@@ -6,7 +5,8 @@ import { useCustomToast } from "@helpers/toastUtil"
 
 const PAGE_LIMIT = 10
 
-export const useInventory = () => {
+// Добавляем аргумент customOwnerId
+export const useInventory = (customOwnerId?: string) => {
   const [items, setItems] = useState<GiftItem[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState<number>(1)
@@ -18,49 +18,46 @@ export const useInventory = () => {
 
   const showToast = useCustomToast()
 
-  const fetchInventory = useCallback(async (page: number) => {
-    setIsLoading(true)
-    setIsError(false)
+  const fetchInventory = useCallback(
+    async (page: number) => {
+      setIsLoading(true)
+      setIsError(false)
 
-    // Рассчитываем offset
-    const newOffset = (page - 1) * PAGE_LIMIT
+      const newOffset = (page - 1) * PAGE_LIMIT
 
-    try {
-      const data = await InventoryService.getItems(PAGE_LIMIT, newOffset)
+      try {
+        // Передаем customOwnerId в сервис
+        const data = await InventoryService.getItems(PAGE_LIMIT, newOffset, customOwnerId)
 
-      setItems(data.items)
-      setTotalCount(data.total)
-      setLimit(data.limit)
-      setOffset(data.offset)
+        setItems(data.items)
+        setTotalCount(data.total)
+        setLimit(data.limit)
+        setOffset(data.offset)
+      } catch (error) {
+        console.error(error)
+        setIsError(true)
+        showToast({
+          title: "Failed to load inventory",
+          status: "error",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [customOwnerId, showToast]
+  ) // Добавляем customOwnerId в зависимости
 
-      // Для отладки - можно посмотреть, что приходит с бекенда
-      console.log("Inventory data received:", {
-        itemsCount: data.items.length,
-        total: data.total,
-        limit: data.limit,
-        offset: data.offset,
-        page,
-      })
-    } catch (error) {
-      console.error(error)
-      setIsError(true)
-      showToast({
-        title: "Failed to load inventory",
-        status: "error",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // Эффект срабатывает при изменении currentPage
   useEffect(() => {
     fetchInventory(currentPage)
   }, [fetchInventory, currentPage])
 
+  // Сброс страницы при смене пользователя
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [customOwnerId])
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    // Скролл наверх при смене страницы
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 

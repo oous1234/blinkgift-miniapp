@@ -1,9 +1,7 @@
-// frontend/src/services/inventory.ts
 import Settings from "@infrastructure/settings"
 import { GiftItem, ApiGiftItem, InventoryServiceResponse } from "../../src/types/inventory"
 
 export default class InventoryService {
-  // Оставляем хардкод tgauth как и просили
   private static readonly HARDCODED_TGAUTH = JSON.stringify({
     id: 8241853306,
     first_name: "ЛинкПро",
@@ -16,20 +14,23 @@ export default class InventoryService {
     return window.Telegram.WebApp.initData
   }
 
-  /**
-   * Получаем реальный ID пользователя из Telegram WebApp
-   */
   private static getTelegramUserId(): string {
-    // Пытаемся взять ID текущего пользователя, зашедшего в приложение
     const tgId = window.Telegram.WebApp.initDataUnsafe?.user?.id
     return tgId ? tgId.toString() : ""
   }
 
-  static async getItems(limit: number = 10, offset: number = 0): Promise<InventoryServiceResponse> {
+  // Добавили аргумент customOwnerId
+  static async getItems(
+    limit: number = 10,
+    offset: number = 0,
+    customOwnerId?: string
+  ): Promise<InventoryServiceResponse> {
     try {
+      // Если передан customOwnerId, используем его, иначе берем текущего юзера
+      const targetId = customOwnerId || this.getTelegramUserId()
+
       const queryParams = new URLSearchParams({
-        // Теперь здесь реальный ID пользователя из Телеграма
-        current_owner_id: this.getTelegramUserId(),
+        current_owner_id: targetId,
         tgauth: this.HARDCODED_TGAUTH,
         limit: limit.toString(),
         offset: offset.toString(),

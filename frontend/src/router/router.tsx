@@ -18,6 +18,10 @@ const Router = createBrowserRouter(
           path: HOME,
           element: <HomeView />,
         },
+        {
+          path: "/user/:id",
+          element: <HomeView />,
+        },
       ],
     },
     {

@@ -3,8 +3,8 @@ package com.blinkgift.core.config;
 import feign.Client;
 import feign.RequestInterceptor;
 import feign.okhttp.OkHttpClient;
-import okhttp3.ConnectionPool; // Импорт важен!
 import org.springframework.context.annotation.Bean;
+import okhttp3.ConnectionPool; // Импорт важен!
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;

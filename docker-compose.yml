@@ -32,7 +32,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      VITE_API_URL: "https://backblink.of44.fun"
+      VITE_API_URL: "https://blinkback.of44.fun"
     command: npm run dev -- --host 0.0.0.0 --port 4000
 
 volumes:

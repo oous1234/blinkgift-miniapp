@@ -1,7 +1,9 @@
+// frontend/src/router/router.tsx
 import { createBrowserRouter } from "react-router-dom"
-import { COIN_GAME, HOME, DICE_GAME } from "./paths"
+import { HOME, MARKET } from "./paths"
 import PublicRoute from "./PublicRoute"
 import HomeView from "@views/Home"
+import MarketView from "@views/Market" // Импорт нового вида
 import MainLayout from "@layouts/MainLayout"
 
 const Router = createBrowserRouter(
@@ -22,6 +24,10 @@ const Router = createBrowserRouter(
           path: "/user/:id",
           element: <HomeView />,
         },
+        {
+          path: MARKET,
+          element: <MarketView />,
+        },
       ],
     },
     {
@@ -31,6 +37,9 @@ const Router = createBrowserRouter(
           <PublicRoute />
         </MainLayout>
       ),
+      children: [
+        // Здесь можно добавить игровые роуты, если они понадобятся внутри лейаута
+      ],
     },
   ],
   {

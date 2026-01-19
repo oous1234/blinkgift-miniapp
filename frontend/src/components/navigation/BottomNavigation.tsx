@@ -1,13 +1,8 @@
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import { Box } from "@chakra-ui/react"
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  animate,
-  PanInfo,
-  TapInfo
-} from "framer-motion"
+import { useNavigate, useLocation } from "react-router-dom"
+import { motion, useMotionValue, useTransform, animate, PanInfo, TapInfo } from "framer-motion"
+import { HOME, MARKET } from "@router/paths" // Убедитесь, что MARKET добавлен в paths.ts
 import {
   BottomNavWrapperStyle,
   NavSearchButtonStyle,
@@ -15,7 +10,7 @@ import {
   IconsLayerStyle,
   NavItemBoxStyle,
   NavItemIconBox,
-  NavTextStyle
+  NavTextStyle,
 } from "../styles"
 
 interface BottomNavigationProps {
@@ -26,21 +21,24 @@ const navItems = [
   {
     id: 0,
     label: "Profile",
+    path: HOME,
     icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   },
   {
     id: 1,
     label: "Market",
+    path: "/market", // MARKET path
     icon: "M3 3v18h18 M18 9l-5 5-4-4-5 5",
   },
   {
     id: 2,
     label: "More",
+    path: "/more",
     icon: "M12 12h.01 M8 12h.01 M16 12h.01",
   },
 ]
 
-// Компонент ряда иконок
+// Компонент ряда иконок (Слой)
 const IconsRow = ({ color }: { color: string }) => (
   <div style={IconsLayerStyle}>
     {navItems.map((item) => (
@@ -66,31 +64,55 @@ const IconsRow = ({ color }: { color: string }) => (
 )
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => {
-  const [activeIndex, setActiveIndex] = useState(0)
+  const navigate = useNavigate()
+  const location = useLocation()
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // X координата маски (плашки)
-  const maskX = useMotionValue(0)
-  // Обратная X координата для контента
-  const contentX = useTransform(maskX, (x) => -x)
-
   const [menuWidth, setMenuWidth] = useState(0)
-  // Вычисляем ширину одного элемента только когда известна ширина меню
   const itemWidth = menuWidth > 0 ? menuWidth / 3 : 0
 
-  useEffect(() => {
-    if (menuRef.current) {
-      setMenuWidth(menuRef.current.offsetWidth)
-    }
+  // Текущий индекс на основе URL
+  const getIndexFromPath = useCallback((path: string) => {
+    if (path === MARKET) return 1
+    if (path.startsWith("/more")) return 2
+    return 0 // По умолчанию Profile
   }, [])
 
-  // Анимация перехода (Snap)
+  const [activeIndex, setActiveIndex] = useState(getIndexFromPath(location.pathname))
+
+  // X координата маски (плашки)
+  const maskX = useMotionValue(activeIndex * itemWidth)
+  // Обратная X координата для контента внутри маски
+  const contentX = useTransform(maskX, (x) => -x)
+
+  // Обновляем ширину меню при монтировании
+  useEffect(() => {
+    if (menuRef.current) {
+      const width = menuRef.current.offsetWidth
+      setMenuWidth(width)
+      // Сразу ставим маску в нужное место после получения ширины
+      maskX.set(activeIndex * (width / 3))
+    }
+  }, [activeIndex, maskX])
+
+  // Синхронизация слайдера, если путь изменился извне (например, кнопкой назад)
+  useEffect(() => {
+    const newIndex = getIndexFromPath(location.pathname)
+    if (newIndex !== activeIndex && itemWidth > 0) {
+      setActiveIndex(newIndex)
+      animate(maskX, newIndex * itemWidth, {
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      })
+    }
+  }, [location.pathname, activeIndex, itemWidth, maskX, getIndexFromPath])
+
   const snapTo = (index: number) => {
     if (!itemWidth) return
 
     const targetX = index * itemWidth
 
-    // Запускаем плавную анимацию перемещения
     animate(maskX, targetX, {
       type: "spring",
       stiffness: 300,
@@ -99,7 +121,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => 
 
     setActiveIndex(index)
 
-    // Haptic feedback
+    // Выполняем переход по роуту
+    const targetPath = navItems[index].path
+    if (location.pathname !== targetPath) {
+      navigate(targetPath)
+    }
+
+    // Haptic feedback Telegram
     if (window.Telegram?.WebApp?.HapticFeedback) {
       window.Telegram.WebApp.HapticFeedback.selectionChanged()
     }
@@ -119,7 +147,6 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => 
     if (!itemWidth) return
     const currentX = maskX.get()
     const velocity = info.velocity.x
-    // Предсказание остановки
     const predictedX = currentX + velocity * 0.2
 
     const nextIndex = Math.round(predictedX / itemWidth)
@@ -128,15 +155,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => 
     snapTo(clampedIndex)
   }
 
-  // --- НОВОЕ: Обработка клика (Tap) ---
+  // Обработка клика (Tap)
   const handleTap = (event: MouseEvent, info: TapInfo) => {
     if (!menuRef.current || !itemWidth) return
 
     const rect = menuRef.current.getBoundingClientRect()
-    // Вычисляем, куда именно нажал пользователь относительно левого края меню
     const tapX = info.point.x - rect.left
 
-    // Определяем индекс (0, 1 или 2)
     const clickedIndex = Math.floor(tapX / itemWidth)
     const clampedIndex = Math.max(0, Math.min(clickedIndex, 2))
 
@@ -145,60 +170,63 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => 
 
   return (
     <Box style={BottomNavWrapperStyle}>
-      {/* ОСТРОВОК */}
-      <Box
-        ref={menuRef}
-        style={NavMenuStyle}
-      >
-        {/* СЛОЙ 1: Серые иконки (Фон) */}
+      {/* ОСТРОВОК НАВИГАЦИИ */}
+      <Box ref={menuRef} style={NavMenuStyle}>
+        {/* СЛОЙ 1: Неактивные (серые) иконки */}
         <IconsRow color="rgba(255, 255, 255, 0.4)" />
 
-        {/* СЛОЙ 2: Маска (Плашка) */}
+        {/* СЛОЙ 2: Маска (Активная плашка) */}
         <motion.div
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
-            width: '33.333%',
-            height: '100%',
+            width: "33.333%",
+            height: "100%",
             x: maskX,
-            overflow: 'hidden',
-            borderRadius: '34px',
+            overflow: "hidden",
+            borderRadius: "34px",
             zIndex: 5,
-            pointerEvents: 'none'
+            pointerEvents: "none",
           }}
         >
-          {/* Полупрозрачный фон плашки */}
-          <div style={{
-            position: 'absolute', inset: '4px', borderRadius: '30px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-          }} />
+          {/* Фон плашки */}
+          <div
+            style={{
+              position: "absolute",
+              inset: "4px",
+              borderRadius: "30px",
+              backgroundColor: "rgba(255, 255, 255, 0.15)",
+              boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+            }}
+          />
 
-          {/* СЛОЙ 3: Сиреневые иконки (внутри маски) */}
+          {/* СЛОЙ 3: Активные (сиреневые) иконки, движущиеся в противофазе */}
           <motion.div
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
-              width: '300%', // 300% ширины, так как родитель 1/3
-              height: '100%',
-              x: contentX // Движение в противофазе
+              width: "300%",
+              height: "100%",
+              x: contentX,
             }}
           >
             <IconsRow color="#e8d7fd" />
           </motion.div>
         </motion.div>
 
-        {/* СЛОЙ 4: Сенсорный слой (Жесты + Клики) */}
-        {/* Он лежит поверх всего и ловит все касания */}
+        {/* СЛОЙ 4: Сенсорная панель */}
         <motion.div
           style={{
-            position: 'absolute', inset: 0, zIndex: 20, cursor: 'pointer'
+            position: "absolute",
+            inset: 0,
+            zIndex: 20,
+            cursor: "pointer",
           }}
           onPan={handlePan}
           onPanEnd={handlePanEnd}
-          onTap={handleTap} // Добавили обработчик тапа
+          onTap={handleTap}
         />
       </Box>
 

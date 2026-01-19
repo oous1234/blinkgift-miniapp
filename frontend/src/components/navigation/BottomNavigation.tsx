@@ -1,130 +1,131 @@
-// src/components/navigation/BottomNavigation.tsx
 import React from "react"
-import { Box, Flex, Icon, Text, Pressable, HStack } from "@chakra-ui/react"
+import { Box, Flex } from "@chakra-ui/react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { HOME, MARKET } from "../../router/paths"
+import { UserIcon, MarketIcon, TradeIcon, SearchIconSolid } from "../Shared/Icons"
 
-const navItems = [
-  {
-    id: 0,
-    label: "Profile",
-    path: HOME,
-    icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-  },
-  { id: 1, label: "Market", path: MARKET, icon: "M3 3v18h18 M18 9l-5 5-4-4-5 5" },
-  { id: 2, label: "More", path: "/more", icon: "M12 12h.01 M8 12h.01 M16 12h.01" },
-]
+interface BottomNavigationProps {
+  onSearchOpen: () => void
+}
 
-const MotionBox = motion(Box)
-
-const BottomNavigation: React.FC<{ onSearchOpen: () => void }> = ({ onSearchOpen }) => {
+const BottomNavigation: React.FC<BottomNavigationProps> = ({ onSearchOpen }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const activeIndex = navItems.findIndex((item) =>
-    item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path)
+  const navItems = [
+    { id: 0, path: HOME, icon: UserIcon, type: "link" },
+    { id: 1, path: MARKET, icon: MarketIcon, type: "link" },
+    { id: 2, path: "/trade", icon: TradeIcon, type: "link" },
+    { id: 3, path: "search", icon: SearchIconSolid, type: "action" },
+  ]
+
+  const activeIndex = navItems.findIndex(
+    (item) =>
+      item.type === "link" &&
+      (item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path))
   )
 
-  const handleNav = (path: string) => {
-    navigate(path)
+  const handleItemClick = (item: (typeof navItems)[0]) => {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       window.Telegram.WebApp.HapticFeedback.selectionChanged()
+    }
+    if (item.type === "action" && item.id === 3) {
+      onSearchOpen()
+    } else if (item.path) {
+      navigate(item.path)
     }
   }
 
   return (
     <Box
       position="fixed"
-      bottom="30px"
-      left={0}
-      right={0}
-      px={5}
+      bottom="0"
+      left="0"
+      right="0"
       zIndex={1000}
-      pointerEvents="none"
+      bg="rgba(24, 26, 30, 0.7)"
+      backdropFilter="blur(20px) saturate(160%)"
+      borderTopRadius="28px"
+      borderTop="1px solid"
+      borderColor="whiteAlpha.100"
+      boxShadow="0 -8px 32px rgba(0,0,0,0.4)"
+      pb="safe-area-inset-bottom"
     >
-      <HStack spacing={3} pointerEvents="auto">
-        {/* Главное меню */}
-        <Flex
-          flex={1}
-          bg="rgba(22, 25, 32, 0.85)"
-          backdropFilter="blur(20px)"
-          borderRadius="34px"
-          height="68px"
-          p={1}
-          position="relative"
-          border="1px solid"
-          borderColor="whiteAlpha.100"
-        >
-          {/* Активная плашка (двигается за индексом) */}
-          <MotionBox
-            position="absolute"
-            top="4px"
-            bottom="4px"
-            left="4px"
-            width="calc(33.33% - 4px)"
-            bg="whiteAlpha.200"
-            borderRadius="30px"
-            animate={{ x: `${activeIndex * 100}%` }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          />
+      <Flex height="75px" align="center" justify="space-around" px={2}>
+        {navItems.map((item) => {
+          const isActive = item.type === "link" && activeIndex === item.id
+          const IconComp = item.icon
 
-          {navItems.map((item) => {
-            const isActive = activeIndex === item.id
-            return (
-              <Flex
-                key={item.id}
-                flex={1}
-                direction="column"
-                align="center"
-                justify="center"
-                zIndex={1}
-                cursor="pointer"
-                onClick={() => handleNav(item.path)}
-              >
-                <Icon viewBox="0 0 24 24" boxSize="22px" mb="2px">
-                  <path
-                    d={item.icon}
-                    fill="none"
-                    stroke={isActive ? "#e8d7fd" : "whiteAlpha.400"}
-                    strokeWidth="2"
-                    strokeLinecap="round"
+          return (
+            <Flex
+              key={item.id}
+              flex={1}
+              direction="column"
+              align="center"
+              justify="center"
+              position="relative"
+              cursor="pointer"
+              height="100%"
+              onClick={() => handleItemClick(item)}
+              _active={{ transform: "scale(0.95)" }}
+              transition="transform 0.1s ease"
+            >
+              {/* Эффект свечения под иконкой (опционально, для усиления яркости) */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    style={{
+                      position: "absolute",
+                      width: "40px",
+                      height: "40px",
+                      background: "rgba(255, 255, 255, 0.15)",
+                      filter: "blur(15px)",
+                      borderRadius: "50%",
+                      zIndex: 0,
+                    }}
                   />
-                </Icon>
-                <Text
-                  fontSize="10px"
-                  fontWeight="bold"
-                  color={isActive ? "#e8d7fd" : "whiteAlpha.400"}
-                >
-                  {item.label}
-                </Text>
-              </Flex>
-            )
-          })}
-        </Flex>
+                )}
+              </AnimatePresence>
 
-        {/* Кнопка поиска */}
-        <Flex
-          as="button"
-          onClick={onSearchOpen}
-          w="68px"
-          h="68px"
-          bg="rgba(22, 25, 32, 0.85)"
-          backdropFilter="blur(20px)"
-          borderRadius="34px"
-          align="center"
-          justify="center"
-          border="1px solid"
-          borderColor="whiteAlpha.100"
-          _active={{ transform: "scale(0.92)" }}
-          transition="0.2s"
-        >
-          <Icon viewBox="0 0 24 24" boxSize="24px" color="white">
-            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2.5" fill="none" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2.5" />
-          </Icon>
-        </Flex>
-      </HStack>
+              <IconComp
+                boxSize="26px"
+                zIndex={1}
+                transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                // Когда иконка активна: чисто белый цвет, когда нет — тусклый
+                color={isActive ? "#FFFFFF" : "whiteAlpha.400"}
+                // Главный эффект: свечение за края иконки
+                filter={
+                  isActive
+                    ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.4))"
+                    : "none"
+                }
+                // Небольшое увеличение активной иконки
+                transform={isActive ? "scale(1.15)" : "scale(1)"}
+              />
+
+              {/* Маленькая точка под активной иконкой для акцента */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeDot"
+                  style={{
+                    position: "absolute",
+                    bottom: "12px",
+                    width: "4px",
+                    height: "4px",
+                    backgroundColor: "white",
+                    borderRadius: "50%",
+                    boxShadow: "0 0 10px white",
+                  }}
+                />
+              )}
+            </Flex>
+          )
+        })}
+      </Flex>
     </Box>
   )
 }

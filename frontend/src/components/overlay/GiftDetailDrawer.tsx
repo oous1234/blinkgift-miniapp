@@ -1,145 +1,131 @@
+// src/components/overlay/GiftDetailDrawer.tsx
 import React from "react"
 import {
-    Drawer,
-    DrawerBody,
-    DrawerOverlay,
-    DrawerContent,
-    DrawerCloseButton,
-    Box,
-    Image,
-    Text,
-    VStack,
-    HStack,
-    Badge,
-    Divider,
-    Button,
-    Flex,
+  Drawer,
+  DrawerBody,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  Box,
+  Image,
+  Text,
+  VStack,
+  HStack,
+  Badge,
+  Divider,
+  Button,
+  Flex,
 } from "@chakra-ui/react"
 import { GiftItem } from "../../types/inventory"
 
 interface GiftDetailDrawerProps {
-    isOpen: boolean
-    onClose: () => void
-    gift: GiftItem | null
+  isOpen: boolean
+  onClose: () => void
+  gift: GiftItem | null
 }
+
+// Вспомогательный компонент для строк (чтобы не дублировать код)
+const InfoRow = ({
+  label,
+  value,
+  valueColor = "white",
+}: {
+  label: string
+  value: string
+  valueColor?: string
+}) => (
+  <HStack justify="space-between" w="100%">
+    <Text color="gray.500" fontSize="12px" fontWeight="700" textTransform="uppercase">
+      {label}
+    </Text>
+    <Text color={valueColor} fontSize="14px" fontWeight="700">
+      {value}
+    </Text>
+  </HStack>
+)
 
 const GiftDetailDrawer: React.FC<GiftDetailDrawerProps> = ({ isOpen, onClose, gift }) => {
-    if (!gift) return null
+  if (!gift) return null
 
-    // Определяем цвет редкости
-    const getRarityColor = (rarity: string) => {
-        switch (rarity) {
-            case "Legendary": return "#FFD700"
-            case "Rare": return "#AD82FF"
-            default: return "#A0AEC0"
-        }
-    }
+  const handleOpenFragment = () => {
+    const slug = gift.name.toLowerCase().replace(/\s+/g, "")
+    const url = `https://fragment.com/gift/${slug}-${gift.num}`
+    window.Telegram?.WebApp?.openLink(url)
+  }
 
-    return (
-        <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} variant="alwaysOpen">
-            <DrawerOverlay backdropFilter="blur(10px)" bg="rgba(0, 0, 0, 0.7)" />
-            <DrawerContent
-                borderTopRadius="32px"
-                bg="#161920" // Темный фон как в профиле
-                maxH="85vh" // Примерно 3/4 экрана
-                color="white"
+  return (
+    <Drawer isOpen={isOpen} placement="bottom" onClose={onClose}>
+      <DrawerOverlay backdropFilter="blur(10px)" bg="blackAlpha.700" />
+      <DrawerContent borderTopRadius="32px" bg="#161920" color="white" p={2}>
+        <Box w="40px" h="4px" bg="whiteAlpha.300" borderRadius="full" mx="auto" mt={3} mb={2} />
+        <DrawerCloseButton />
+
+        <DrawerBody px={6} pt={4} pb={10}>
+          <VStack spacing={6}>
+            {/* Изображение с красивым свечением */}
+            <Flex
+              w="100%"
+              justify="center"
+              align="center"
+              py={8}
+              borderRadius="24px"
+              bg="radial-gradient(circle, rgba(232, 215, 253, 0.1) 0%, transparent 70%)"
             >
-                <Box w="40px" h="4px" bg="whiteAlpha.300" borderRadius="full" mx="auto" mt={3} />
-                <DrawerCloseButton top="20px" right="20px" />
+              <Image
+                src={gift.image}
+                alt={gift.name}
+                w="180px"
+                h="180px"
+                filter="drop-shadow(0 10px 20px rgba(0,0,0,0.5))"
+              />
+            </Flex>
 
-                <DrawerBody px={6} pt={4} pb={10}>
-                    <VStack spacing={6} align="stretch">
-                        {/* Изображение подарка */}
-                        <Flex
-                            justify="center"
-                            align="center"
-                            bg="radial-gradient(circle at center, rgba(232, 215, 253, 0.15) 0%, transparent 70%)"
-                            borderRadius="24px"
-                            py={8}
-                        >
-                            <Image
-                                src={gift.image}
-                                alt={gift.name}
-                                w="200px"
-                                h="200px"
-                                objectFit="contain"
-                                filter="drop-shadow(0 10px 20px rgba(0,0,0,0.5))"
-                            />
-                        </Flex>
+            {/* Заголовок */}
+            <VStack align="start" w="100%" spacing={1}>
+              <HStack justify="space-between" w="100%">
+                <Text fontSize="22px" fontWeight="800">
+                  {gift.name}
+                </Text>
+                <Badge colorScheme="purple" borderRadius="lg" px={3}>
+                  #{gift.num}
+                </Badge>
+              </HStack>
+              <Text color="gray.400" fontWeight="600">
+                {gift.collection}
+              </Text>
+            </VStack>
 
-                        {/* Заголовок и Редкость */}
-                        <VStack align="flex-start" spacing={1}>
-                            <HStack w="100%" justify="space-between" align="center">
-                                <Text fontSize="24px" fontWeight="800" color="white">
-                                    {gift.name}
-                                </Text>
-                                <Badge
-                                    bg="#e8d7fd"
-                                    color="#0F1115"
-                                    px={3}
-                                    py={1}
-                                    borderRadius="12px"
-                                    fontSize="12px"
-                                    fontWeight="800"
-                                >
-                                    #{gift.num}
-                                </Badge>
-                            </HStack>
-                            <Text fontSize="16px" color="gray.400" fontWeight="500">
-                                {gift.collection}
-                            </Text>
-                        </VStack>
+            <Divider borderColor="whiteAlpha.100" />
 
-                        <Divider borderColor="whiteAlpha.100" />
+            {/* Таблица инфо */}
+            <VStack w="100%" spacing={3}>
+              <InfoRow label="Редкость" value={gift.rarity} valueColor="brand.500" />
+              <InfoRow
+                label="Рыночная цена"
+                value={`${gift.floorPrice} ${gift.currency}`}
+                valueColor="brand.500"
+              />
+              <InfoRow label="Статус" value="В коллекции" />
+            </VStack>
 
-                        {/* Детальная информация */}
-                        <VStack align="stretch" spacing={4}>
-                            <InfoRow label="Редкость" value={gift.rarity} valueColor={getRarityColor(gift.rarity)} />
-                            <InfoRow
-                                label="Рыночная цена"
-                                value={`${gift.floorPrice} ${gift.currency}`}
-                                valueColor="#e8d7fd"
-                            />
-                            <InfoRow label="ID предмета" value={gift.id.substring(0, 12) + "..."} />
-                            <InfoRow label="Статус" value="В коллекции" />
-                        </VStack>
-
-                        {/* Кнопки действий */}
-                        <HStack spacing={4} pt={4}>
-                            <Button
-                                flex={1}
-                                h="56px"
-                                bg="#e8d7fd"
-                                color="#0F1115"
-                                borderRadius="18px"
-                                fontWeight="800"
-                                _hover={{ opacity: 0.9 }}
-                                _active={{ transform: "scale(0.98)" }}
-                                onClick={() => {
-                                    const slug = gift.name.toLowerCase().replace(/\s+/g, '')
-                                    window.Telegram.WebApp.openLink(`https://fragment.com/gift/${slug}-${gift.num}`)
-                                }}
-                            >
-                                Открыть на Fragment
-                            </Button>
-                        </HStack>
-                    </VStack>
-                </DrawerBody>
-            </DrawerContent>
-        </Drawer>
-    )
+            <Button
+              w="100%"
+              h="56px"
+              bg="brand.500"
+              color="gray.900"
+              borderRadius="18px"
+              fontWeight="800"
+              fontSize="16px"
+              _active={{ transform: "scale(0.98)" }}
+              onClick={handleOpenFragment}
+            >
+              Открыть на Fragment
+            </Button>
+          </VStack>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  )
 }
-
-// Вспомогательный компонент для строк инфо
-const InfoRow = ({ label, value, valueColor = "white" }: { label: string; value: string; valueColor?: string }) => (
-    <HStack justify="space-between">
-        <Text color="gray.500" fontSize="14px" fontWeight="600" textTransform="uppercase" letterSpacing="0.5px">
-            {label}
-        </Text>
-        <Text color={valueColor} fontSize="15px" fontWeight="700">
-            {value}
-        </Text>
-    </HStack>
-)
 
 export default GiftDetailDrawer

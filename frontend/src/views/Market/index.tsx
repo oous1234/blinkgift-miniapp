@@ -1,6 +1,6 @@
-// frontend/src/views/Market/index.tsx
+// src/views/Market/index.tsx
 import React, { useEffect, useState } from "react"
-import { Box, SimpleGrid, Text, Spinner, Center, Heading } from "@chakra-ui/react"
+import { Box, SimpleGrid, Spinner, Center, Heading, Text, VStack } from "@chakra-ui/react"
 import MarketplaceService from "../../services/marketplace"
 import { MarketplaceItem } from "../../types/marketplace"
 import { MarketGiftCard } from "../../components/Market/MarketGiftCard"
@@ -17,23 +17,24 @@ const MarketView: React.FC = () => {
   }, [])
 
   return (
-    <Box pb="120px" px="16px" pt="8px">
-      <Heading size="lg" mb={6} fontWeight="900" letterSpacing="-0.5px">
-        Marketplace
-      </Heading>
+      <Box pb="120px" px="4" pt="4">
+        <VStack align="start" spacing={1} mb={6}>
+          <Heading size="lg" fontWeight="900">Marketplace</Heading>
+          <Text color="gray.500" fontSize="sm">Лучшие подарки из коллекции Fragment</Text>
+        </VStack>
 
-      {isLoading ? (
-        <Center h="50vh">
-          <Spinner color="#e8d7fd" size="xl" thickness="4px" />
-        </Center>
-      ) : (
-        <SimpleGrid columns={2} spacing="16px">
-          {items.map((item) => (
-            <MarketGiftCard key={item.id} item={item} />
-          ))}
-        </SimpleGrid>
-      )}
-    </Box>
+        {isLoading ? (
+            <Center h="50vh">
+              <Spinner color="brand.500" size="xl" thickness="4px" />
+            </Center>
+        ) : (
+            <SimpleGrid columns={2} spacing="16px">
+              {items.map((item) => (
+                  <MarketGiftCard key={item.id} item={item} />
+              ))}
+            </SimpleGrid>
+        )}
+      </Box>
   )
 }
 

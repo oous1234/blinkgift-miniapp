@@ -1,27 +1,45 @@
-import { extendTheme } from "@chakra-ui/react";
-import isDarkMode from "./helpers/isDarkMode";
-import { WebApp } from "@grammyjs/web-app";
+// src/customTheme.ts
+import { extendTheme } from "@chakra-ui/react"
 
 export const customTheme = extendTheme({
+  config: {
+    initialColorMode: "dark",
+    useSystemColorMode: false,
+  },
+  fonts: {
+    heading: "'Montserrat', sans-serif",
+    body: "'Montserrat', sans-serif",
+  },
   styles: {
-    global: () => ({
+    global: {
       body: {
-        bg: isDarkMode ? WebApp.themeParams.bg_color : "#ffffff",
+        bg: "#0F1115",
+        color: "white",
+        margin: 0,
+        padding: 0,
+        WebkitFontSmoothing: "antialiased",
       },
-    }),
+      // Убираем синие контуры при клике (для мобилок)
+      "*:focus": {
+        boxShadow: "none !important",
+      },
+    },
   },
   colors: {
     brand: {
-      100: "#ffffff", // lightest
-      200: "#30cccc",
-      300: "#30cccc",
-      400: "#ED2A4A",
-      500: "#ED2A4A",
-      600: "#33084F",
-      700: "#33084F",
-      800: "#33084F",
-      900: "#000000", // darkest
+      500: "#e8d7fd",
+      600: "#d1b3ff",
     },
-    background: isDarkMode ? WebApp.themeParams.bg_color : "#ffffff",
+    dark: {
+      100: "#161920",
+      200: "#1F232E",
+    },
+  },
+  components: {
+    Button: {
+      baseStyle: {
+        _active: { transform: "scale(0.98)" },
+      },
+    },
   },
 })

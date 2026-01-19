@@ -1,19 +1,16 @@
-// frontend/src/components/Market/MarketGiftCard.tsx
+// src/components/Market/MarketGiftCard.tsx
 import React from "react"
-import { Box, Text, AspectRatio, VStack, Flex, Image } from "@chakra-ui/react"
+import { Box, Text, AspectRatio, VStack, Flex, Image, Badge } from "@chakra-ui/react"
 import { MarketplaceItem } from "../../types/marketplace"
 
-interface MarketGiftCardProps {
-  item: MarketplaceItem
-}
-
-export const MarketGiftCard: React.FC<MarketGiftCardProps> = ({ item }) => {
+export const MarketGiftCard: React.FC<{ item: MarketplaceItem }> = ({ item }) => {
   return (
     <Box
       position="relative"
       cursor="pointer"
-      transition="transform 0.2s"
+      transition="all 0.2s"
       _active={{ transform: "scale(0.96)" }}
+      role="group"
     >
       <AspectRatio ratio={1}>
         <Box
@@ -23,8 +20,9 @@ export const MarketGiftCard: React.FC<MarketGiftCardProps> = ({ item }) => {
           borderColor="whiteAlpha.100"
           overflow="hidden"
           position="relative"
+          _groupHover={{ borderColor: "brand.500" }}
         >
-          {/* Фон-градиент на основе backdrop (опционально) */}
+          {/* Декоративное свечение на фоне */}
           <Box
             position="absolute"
             inset={0}
@@ -39,25 +37,25 @@ export const MarketGiftCard: React.FC<MarketGiftCardProps> = ({ item }) => {
             objectFit="contain"
             p={4}
             zIndex={1}
+            transition="0.3s"
+            _groupHover={{ transform: "scale(1.1)" }}
           />
 
-          {/* "Чёлка" с ценой снизу */}
+          {/* Плашка с ценой */}
           <Flex
             position="absolute"
             bottom="0"
             left="50%"
             transform="translateX(-50%)"
-            bg="#e8d7fd"
+            bg="brand.500" // Наш сиреневый
             px={4}
             py={1}
             borderTopRadius="12px"
             minW="80px"
             justify="center"
-            align="center"
-            zIndex={2}
             boxShadow="0 -4px 10px rgba(0,0,0,0.3)"
           >
-            <Text color="#0F1115" fontWeight="900" fontSize="13px">
+            <Text color="gray.900" fontWeight="900" fontSize="13px">
               {item.price} TON
             </Text>
           </Flex>
@@ -68,7 +66,13 @@ export const MarketGiftCard: React.FC<MarketGiftCardProps> = ({ item }) => {
         <Text fontSize="14px" fontWeight="700" isTruncated w="100%" textAlign="center">
           {item.name}
         </Text>
-        <Text fontSize="11px" color="gray.500" fontWeight="600" textTransform="uppercase">
+        <Text
+          fontSize="10px"
+          color="gray.500"
+          fontWeight="800"
+          textTransform="uppercase"
+          letterSpacing="0.5px"
+        >
           {item.model}
         </Text>
       </VStack>

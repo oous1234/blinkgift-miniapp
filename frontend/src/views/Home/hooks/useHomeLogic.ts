@@ -1,4 +1,3 @@
-// frontend/src/views/Home/hooks/useHomeLogic.ts
 import { useState, useMemo } from "react"
 import { useParams } from "react-router-dom"
 import { useDisclosure } from "@chakra-ui/react"
@@ -13,14 +12,22 @@ export const useHomeLogic = () => {
 
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false)
-  const [isDetailError, setIsDetailError] = useState<boolean>(false) // Новое состояние ошибки
+  const [isDetailError, setIsDetailError] = useState<boolean>(false)
+  const [chartPeriod, setChartPeriod] = useState<string>("30d")
 
   const detailDisclosure = useDisclosure()
   const statsDisclosure = useDisclosure()
   const searchDisclosure = useDisclosure()
 
-  const { items, totalCount, currentPage, limit, setPage, isLoading: isInvLoading } = useInventory(ownerId)
-  const { historyData, isLoading: isChartLoading } = useOwnerProfile("30d", ownerId)
+  const {
+    items,
+    totalCount,
+    currentPage,
+    limit,
+    setPage,
+    isLoading: isInvLoading,
+  } = useInventory(ownerId)
+  const { historyData, isLoading: isChartLoading } = useOwnerProfile(chartPeriod, ownerId)
 
   const analytics = useMemo(() => {
     const points = historyData?.data || []
@@ -31,21 +38,22 @@ export const useHomeLogic = () => {
     return { current: last, pnl, percent: first > 0 ? (pnl / first) * 100 : 0, tonPrice: 5.4 }
   }, [historyData])
 
-  const handleGiftClick = async (gift: GiftItem) => {
-    // Сброс состояний перед новым запросом
+  const handleGiftClick = async (gift: any) => {
     setSelectedGift(null)
     setIsDetailError(false)
     setIsDetailLoading(true)
-
-    // Открываем шторку сразу
     detailDisclosure.onOpen()
 
     try {
-      const detailedGift = await InventoryService.getGiftDetail(gift.id)
+      // Генерируем slug из имени и номера: Trapped Heart #8442 -> TrappedHeart-8442
+      const slugBase = gift.name.replace(/\s+/g, "")
+      const fullSlug = `${slugBase}-${gift.num}`
+
+      const detailedGift = await InventoryService.getGiftDetail(fullSlug)
       setSelectedGift(detailedGift)
     } catch (error) {
       console.error("API Fetch Error:", error)
-      setIsDetailError(true) // Фиксируем ошибку
+      setIsDetailError(true)
     } finally {
       setIsDetailLoading(false)
     }
@@ -60,7 +68,7 @@ export const useHomeLogic = () => {
     analytics,
     selectedGift,
     isDetailLoading,
-    isDetailError, // Пробрасываем ошибку в UI
+    isDetailError,
     handleGiftClick,
     detailDisclosure,
     statsDisclosure,
@@ -68,6 +76,8 @@ export const useHomeLogic = () => {
     historyData,
     isChartLoading,
     isInvLoading,
-    isVisitorMode: !!routeUserId
+    chartPeriod,
+    setChartPeriod,
+    isVisitorMode: !!routeUserId,
   }
 }

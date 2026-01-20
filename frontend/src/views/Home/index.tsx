@@ -1,6 +1,15 @@
-// src/views/Home/index.tsx (упрощенная версия)
 import React from "react"
-import { Box, SimpleGrid, Flex, Skeleton, Text, Badge, Collapse, VStack, IconButton, HStack, Avatar } from "@chakra-ui/react"
+import {
+  Box,
+  SimpleGrid,
+  Skeleton,
+  Text,
+  Collapse,
+  VStack,
+  IconButton,
+  HStack,
+  Avatar,
+} from "@chakra-ui/react"
 import { ChevronDownIcon, ChevronUpIcon, ArrowBackIcon } from "@chakra-ui/icons"
 import { useNavigate, useLocation } from "react-router-dom"
 
@@ -9,7 +18,7 @@ import { NetWorthCard } from "@components/Home/NetWorthCard"
 import { GiftCard } from "@components/Home/GiftCard"
 import { Pagination } from "@components/Home/Pagination"
 import { PortfolioChart } from "@components/Home/PortfolioChart"
-import { StatRow } from "@components/StatRow" // Новый компонент
+import { StatRow } from "@components/StatRow"
 import BottomNavigation from "@components/navigation/BottomNavigation"
 import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
 import SearchDrawer from "@components/overlay/SearchDrawer"
@@ -22,7 +31,8 @@ const ProfilePage: React.FC = () => {
   const locationState = location.state as { name?: string; username?: string; avatarUrl?: string }
 
   return (
-    <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="4" pt="2">
+    <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="4" pt="4">
+      {/* Режим просмотра чужого профиля */}
       {logic.isVisitorMode && (
         <HStack justify="space-between" mb={6}>
           <HStack spacing={3}>
@@ -49,6 +59,7 @@ const ProfilePage: React.FC = () => {
         </HStack>
       )}
 
+      {/* Карточка стоимости */}
       <Skeleton isLoaded={!logic.isChartLoading} borderRadius="24px" mb={2}>
         <NetWorthCard
           totalValue={logic.analytics.current}
@@ -69,7 +80,7 @@ const ProfilePage: React.FC = () => {
         justifyContent="space-between"
       >
         <Text fontSize="sm" fontWeight="600">
-          Аналитика портфеля ({logic.chartPeriod})
+          Аналитика портфеля
         </Text>
         {logic.statsDisclosure.isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
       </Box>
@@ -92,7 +103,6 @@ const ProfilePage: React.FC = () => {
         </Box>
       </Collapse>
 
-      {/* Grid с подарками */}
       <SimpleGrid columns={2} spacing={3} mb={8}>
         {logic.items.map((item) => (
           <GiftCard key={item.id} item={item} onClick={logic.handleGiftClick} />
@@ -106,7 +116,6 @@ const ProfilePage: React.FC = () => {
         onPageChange={logic.setPage}
       />
 
-      {/* Оверлеи */}
       <GiftDetailDrawer
         isOpen={logic.detailDisclosure.isOpen}
         onClose={logic.detailDisclosure.onClose}

@@ -1,4 +1,33 @@
-// Тип данных, приходящий с бекенда (Raw DTO)
+export interface GiftAttribute {
+  rarity_percent: number
+  trait_type: string
+  value: string
+}
+
+export interface MarketStat {
+  avg_price_30d: number
+  deals_count_30d: number
+  floor_price: number | null
+  items_count: number
+  label: string
+  type: string
+}
+
+export interface DetailedGiftResponse {
+  attributes: GiftAttribute[]
+  gift: {
+    currency: string
+    estimated_price_ton: number
+    id: number
+    name: string
+    owner: {
+      username: string
+    }
+    slug: string
+  }
+  market_stats: MarketStat[]
+}
+
 export interface ApiGiftItem {
   id: string
   gift_id: string
@@ -16,19 +45,21 @@ export interface ApiGiftItem {
   }
 }
 
-// Тип данных для использования в UI (адаптированный)
 export interface GiftItem {
   id: string
   giftId: string
   name: string
   collection: string
   image: string
-  rarity: "Common" | "Rare" | "Legendary" | "Limited"
+  rarity: string
   floorPrice: number
-  quantity: number
-  currency: "TON" | "USD"
+  currency: string
   num: number
-  background?: string
+  // Поля для детальной информации
+  attributes?: GiftAttribute[]
+  marketStats?: MarketStat[]
+  estimatedPrice?: number
+  ownerUsername?: string
 }
 
 export interface InventoryResponse {

@@ -3,6 +3,7 @@ import { Box, Flex, Text, Avatar, useDisclosure, IconButton, HStack } from "@cha
 import { useNavigate, useLocation } from "react-router-dom"
 import { HOME } from "../../router/paths"
 import SettingsDrawer from "../../components/overlay/SettingsDrawer"
+import AdBanner from "../../components/Home/AdBanner" // Импортируем баннер
 import { ShareIcon, SettingsIcon } from "../../components/Shared/Icons"
 
 interface MainLayoutProps {
@@ -14,7 +15,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation()
   const { isOpen, onOpen, onClose } = useDisclosure()
 
-  // Безопасный доступ к Telegram WebApp
   const WebApp = window.Telegram?.WebApp
   const user = WebApp?.initDataUnsafe?.user
 
@@ -34,7 +34,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white">
-      {/* Header */}
+      {/* 1. БАННЕР ТЕПЕРЬ САМЫЙ ПЕРВЫЙ И НАД ШАПКОЙ */}
+      <AdBanner />
+
+      {/* 2. ШАПКА (Header) */}
       <Flex
         as="header"
         align="center"
@@ -83,6 +86,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </HStack>
       </Flex>
 
+      {/* Контент страницы */}
       <Box pb="100px">{children}</Box>
 
       <SettingsDrawer isOpen={isOpen} onClose={onClose} />

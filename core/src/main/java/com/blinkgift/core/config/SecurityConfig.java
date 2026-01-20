@@ -44,6 +44,7 @@ public class SecurityConfig {
 
                         // Все остальные запросы требуют аутентификации
                         .requestMatchers("/api/parsing/**").permitAll()
+                        .requestMatchers("/api/v1/gifts/**").permitAll()
                         .requestMatchers("/api/v1/marketplace/**").permitAll()
                         .anyRequest().authenticated()
                 )

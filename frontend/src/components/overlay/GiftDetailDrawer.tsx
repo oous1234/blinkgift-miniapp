@@ -1,4 +1,3 @@
-// frontend/src/components/overlay/GiftDetailDrawer.tsx
 import React from "react"
 import {
   Drawer,
@@ -17,8 +16,10 @@ import {
   Flex,
   Spinner,
   Center,
+  Avatar,
+  Icon,
 } from "@chakra-ui/react"
-import { GiftItem } from "../../types/inventory"
+import { GiftItem, GiftAttribute, MarketStat } from "../../types/inventory"
 
 interface GiftDetailDrawerProps {
   isOpen: boolean
@@ -28,23 +29,94 @@ interface GiftDetailDrawerProps {
   isError: boolean
 }
 
-const InfoRow = ({
+// 1. Компонент для отображения ключевых метрик цены (P/L)
+const PriceStat = ({
   label,
   value,
-  valueColor = "white",
+  percent,
+  isTon = false,
 }: {
   label: string
   value: string
-  valueColor?: string
+  percent?: string
+  isTon?: boolean
 }) => (
-  <HStack justify="space-between" w="100%">
-    <Text color="gray.500" fontSize="12px" fontWeight="700" textTransform="uppercase">
+  <Flex justify="space-between" align="center" w="100%" py={1}>
+    <Text color="gray.500" fontSize="13px" fontWeight="600">
       {label}
     </Text>
-    <Text color={valueColor} fontSize="14px" fontWeight="700">
-      {value}
+    <HStack spacing={2}>
+      <HStack spacing={1}>
+        {isTon && (
+          <Text color="brand.500" fontWeight="900" fontSize="14px">
+            💎
+          </Text>
+        )}
+        <Text
+          fontWeight="800"
+          fontSize="15px"
+          color={percent?.startsWith("+") ? "green.300" : "white"}
+        >
+          {value}
+        </Text>
+      </HStack>
+      {percent && (
+        <Badge
+          variant="subtle"
+          colorScheme={percent.startsWith("+") ? "green" : "red"}
+          fontSize="11px"
+          borderRadius="6px"
+        >
+          {percent}
+        </Badge>
+      )}
+    </HStack>
+  </Flex>
+)
+
+// 2. Строка атрибута рядом с картинкой
+const AttributeRow = ({ attr }: { attr: GiftAttribute }) => (
+  <Flex justify="space-between" align="center" w="100%">
+    <Text color="gray.500" fontSize="12px" fontWeight="600">
+      {attr.trait_type}
     </Text>
-  </HStack>
+    <HStack spacing={2}>
+      <Text fontSize="13px" fontWeight="700" color="white">
+        {attr.value}
+      </Text>
+      <Badge bg="whiteAlpha.200" color="whiteAlpha.700" fontSize="9px" borderRadius="4px">
+        {attr.rarity_percent}%
+      </Badge>
+    </HStack>
+  </Flex>
+)
+
+// 3. Строка таблицы рынка
+const MarketTableRow = ({ stat, currency }: { stat: MarketStat; currency: string }) => (
+  <Flex
+    justify="space-between"
+    align="center"
+    py="10px"
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.50"
+  >
+    <Text fontSize="13px" fontWeight="600" color="gray.300" flex={1}>
+      {stat.label}
+    </Text>
+    <Text fontSize="13px" fontWeight="700" color="white" w="60px" textAlign="center">
+      {stat.items_count}
+    </Text>
+    <HStack w="80px" justify="flex-end" spacing={1}>
+      {stat.floor_price && (
+        <Text color="brand.500" fontSize="12px">
+          💎
+        </Text>
+      )}
+      <Text fontSize="13px" fontWeight="800" color={stat.floor_price ? "white" : "gray.600"}>
+        {stat.floor_price ? stat.floor_price : "N/A"}
+      </Text>
+    </HStack>
+  </Flex>
 )
 
 const GiftDetailDrawer: React.FC<GiftDetailDrawerProps> = ({
@@ -56,152 +128,159 @@ const GiftDetailDrawer: React.FC<GiftDetailDrawerProps> = ({
 }) => {
   const handleOpenFragment = () => {
     if (!gift) return
-    const slug = gift.name.toLowerCase().replace(/\s+/g, "")
-    const url = `https://fragment.com/gift/${slug}-${gift.num}`
-    window.Telegram?.WebApp?.openLink(url)
+    window.Telegram?.WebApp?.openLink(`https://fragment.com/gift/${gift.id}`)
   }
 
+  // Заглушка для профита (так как в JSON пока нет цены покупки, выводим из расчетных данных или мокаем)
+  // В будущем сюда можно прокинуть реальный purchasePrice
+  const mockPL = { ton: "6.55", tonPercent: "+62.42%", usd: "$10.62", usdPercent: "+67.34%" }
+
   return (
-    <Drawer isOpen={isOpen} placement="bottom" onClose={onClose}>
-      {/*
-          Добавляем текст в DrawerOverlay.
-          pointerEvents="none" нужен, чтобы клик по надписи
-          все равно закрывал окно (пропускал клик к оверлею).
-      */}
-      <DrawerOverlay backdropFilter="blur(10px)" bg="blackAlpha.700">
-        <Flex
-          justify="center"
-          align="start"
-          pt="12vh" // Отступ сверху, чтобы надпись была в пустом пространстве
-          w="100%"
-          pointerEvents="none"
-        >
-          <Text
-            fontSize="42px"
-            fontWeight="900"
-            color="whiteAlpha.200" // Полупрозрачный белый
-            letterSpacing="4px"
-            userSelect="none" // Чтобы текст нельзя было выделить
-          >
-            IN'SNAP
-          </Text>
-        </Flex>
-      </DrawerOverlay>
+    <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} scrollBehavior="inside">
+      <DrawerOverlay backdropFilter="blur(15px)" bg="blackAlpha.800" />
+      <DrawerContent borderTopRadius="32px" bg="#161920" color="white" maxH="95vh">
+        <Box w="36px" h="4px" bg="whiteAlpha.400" borderRadius="full" mx="auto" mt={3} mb={1} />
+        <DrawerCloseButton color="whiteAlpha.500" />
 
-      <DrawerContent borderTopRadius="32px" bg="#161920" color="white" p={2} minH="480px">
-        <Box w="40px" h="4px" bg="whiteAlpha.300" borderRadius="full" mx="auto" mt={3} mb={2} />
-        <DrawerCloseButton />
-
-        <DrawerBody px={6} pt={4} pb={10}>
-          {/* СОСТОЯНИЕ 1: ЗАГРУЗКА */}
-          {isLoading && (
-            <Center h="380px">
-              <VStack spacing={4}>
-                <Spinner size="xl" color="brand.500" thickness="4px" />
-                <Text color="gray.400" fontWeight="600">
-                  Спрашиваем у блокчейна...
-                </Text>
-              </VStack>
-            </Center>
-          )}
-
-          {/* СОСТОЯНИЕ 2: ОШИБКА */}
-          {!isLoading && isError && (
+        <DrawerBody px={5} pt={2} pb={8}>
+          {isLoading ? (
             <Center h="400px">
-              <VStack spacing={6} textAlign="center">
-                <Box borderRadius="24px" overflow="hidden" boxShadow="0 10px 30px rgba(0,0,0,0.5)">
-                  <Image
-                    src="/502.gif"
-                    alt="Error occurred"
-                    w="200px"
-                    h="200px"
-                    objectFit="cover"
-                  />
-                </Box>
-
-                <VStack spacing={2}>
-                  <Text fontSize="18px" fontWeight="800" color="brand.500">
-                    Ошибка получения данных
-                  </Text>
-                  <Text fontSize="14px" color="gray.400" px={4} fontWeight="500" lineHeight="1.5">
-                    Информация о подарке как бы есть, но мы её как бы не можем вывести. Попробуйте
-                    снова чуть позже.
-                  </Text>
-                </VStack>
-
-                <Button
-                  size="md"
-                  bg="whiteAlpha.200"
-                  _active={{ bg: "whiteAlpha.300" }}
-                  color="white"
-                  borderRadius="14px"
-                  onClick={() => window.location.reload()}
-                >
-                  Перезагрузить
-                </Button>
-              </VStack>
+              <Spinner color="brand.500" size="xl" thickness="3px" />
             </Center>
-          )}
-
-          {/* СОСТОЯНИЕ 3: УСПЕХ */}
-          {!isLoading && !isError && gift && (
-            <VStack spacing={6}>
-              <Flex
-                w="100%"
-                justify="center"
-                align="center"
-                py={8}
-                borderRadius="24px"
-                bg="radial-gradient(circle, rgba(232, 215, 253, 0.1) 0%, transparent 70%)"
-              >
-                <Image
-                  src={gift.image}
-                  alt={gift.name}
-                  w="180px"
-                  h="180px"
-                  filter="drop-shadow(0 10px 20px rgba(0,0,0,0.5))"
-                />
-              </Flex>
-
-              <VStack align="start" w="100%" spacing={1}>
-                <HStack justify="space-between" w="100%">
-                  <Text fontSize="22px" fontWeight="800">
+          ) : isError ? (
+            <Center h="300px">
+              <Text color="red.400">Ошибка загрузки</Text>
+            </Center>
+          ) : (
+            gift && (
+              <VStack spacing={5} align="stretch">
+                {/* HEADER: Title & Basic Info */}
+                <Box mt={2}>
+                  <Text fontSize="22px" fontWeight="900" lineHeight="1.2">
                     {gift.name}
                   </Text>
-                  <Badge colorScheme="purple" borderRadius="lg" px={3}>
-                    #{gift.num}
-                  </Badge>
+                  <HStack color="gray.500" fontSize="13px" mt={1} spacing={2}>
+                    <Text fontWeight="700">#{gift.num}</Text>
+                    <Text>•</Text>
+                    <HStack spacing={3}>
+                      <Text cursor="pointer" _active={{ opacity: 0.5 }}>
+                        📤
+                      </Text>
+                      <Text cursor="pointer" _active={{ opacity: 0.5 }}>
+                        📋
+                      </Text>
+                      <Text cursor="pointer" _active={{ opacity: 0.5 }}>
+                        ⭐
+                      </Text>
+                    </HStack>
+                  </HStack>
+                </Box>
+
+                {/* SECTION 1: PRICE & P/L */}
+                <VStack align="stretch" spacing={1} bg="whiteAlpha.50" p={4} borderRadius="20px">
+                  <PriceStat label="Примерная цена" value={`${gift.estimatedPrice}`} isTon />
+                  <PriceStat
+                    label="P/L (TON)"
+                    value={mockPL.ton}
+                    percent={mockPL.tonPercent}
+                    isTon
+                  />
+                  <PriceStat label="P/L ($)" value={mockPL.usd} percent={mockPL.usdPercent} />
+                </VStack>
+
+                {/* SECTION 2: VISUAL & TRAITS */}
+                <HStack spacing={4} align="center">
+                  <Box
+                    boxSize="100px"
+                    borderRadius="20px"
+                    overflow="hidden"
+                    bg="whiteAlpha.100"
+                    flexShrink={0}
+                  >
+                    <Image src={gift.image} w="100%" h="100%" objectFit="cover" />
+                  </Box>
+                  <VStack flex={1} spacing={2}>
+                    {gift.attributes?.map((attr, i) => (
+                      <AttributeRow key={i} attr={attr} />
+                    ))}
+                  </VStack>
                 </HStack>
-                <Text color="gray.400" fontWeight="600">
-                  {gift.collection}
-                </Text>
+
+                {/* SECTION 3: OWNER INFO */}
+                <Flex align="center" justify="space-between">
+                  <Text fontSize="15px" fontWeight="800">
+                    Владелец
+                  </Text>
+                  <HStack
+                    bg="whiteAlpha.50"
+                    px={3}
+                    py={1.5}
+                    borderRadius="full"
+                    spacing={2}
+                    cursor="pointer"
+                  >
+                    <Avatar size="xs" name={gift.ownerUsername} bg="brand.500" />
+                    <Text fontSize="13px" fontWeight="700" color="brand.500">
+                      {gift.ownerUsername || "@hidden"}
+                    </Text>
+                  </HStack>
+                </Flex>
+
+                {/* SECTION 4: MARKET DEPTH TABLE */}
+                <Box mt={2}>
+                  <Flex justify="space-between" mb={2} px={1}>
+                    <Text
+                      fontSize="11px"
+                      fontWeight="800"
+                      color="gray.600"
+                      textTransform="uppercase"
+                    >
+                      Параметр
+                    </Text>
+                    <Text
+                      fontSize="11px"
+                      fontWeight="800"
+                      color="gray.600"
+                      textTransform="uppercase"
+                      w="60px"
+                      textAlign="center"
+                    >
+                      Предметы
+                    </Text>
+                    <Text
+                      fontSize="11px"
+                      fontWeight="800"
+                      color="gray.600"
+                      textTransform="uppercase"
+                      w="80px"
+                      textAlign="right"
+                    >
+                      Цена
+                    </Text>
+                  </Flex>
+                  <Box bg="whiteAlpha.50" borderRadius="20px" px={4}>
+                    {gift.marketStats?.map((stat, i) => (
+                      <MarketTableRow key={i} stat={stat} currency={gift.currency} />
+                    ))}
+                  </Box>
+                </Box>
+
+                <Button
+                  w="100%"
+                  h="54px"
+                  bg="brand.500"
+                  color="gray.900"
+                  borderRadius="18px"
+                  fontWeight="900"
+                  fontSize="16px"
+                  onClick={handleOpenFragment}
+                  mt={2}
+                  boxShadow="0 8px 20px rgba(232, 215, 253, 0.2)"
+                >
+                  Открыть на Fragment
+                </Button>
               </VStack>
-
-              <Divider borderColor="whiteAlpha.100" />
-
-              <VStack w="100%" spacing={3}>
-                <InfoRow label="Редкость" value={gift.rarity} valueColor="brand.500" />
-                <InfoRow
-                  label="Рыночная цена"
-                  value={`${gift.floorPrice} ${gift.currency}`}
-                  valueColor="brand.500"
-                />
-                <InfoRow label="Статус" value="В коллекции" />
-              </VStack>
-
-              <Button
-                w="100%"
-                h="56px"
-                bg="brand.500"
-                color="gray.900"
-                borderRadius="18px"
-                fontWeight="800"
-                fontSize="16px"
-                onClick={handleOpenFragment}
-              >
-                Открыть на Fragment
-              </Button>
-            </VStack>
+            )
           )}
         </DrawerBody>
       </DrawerContent>

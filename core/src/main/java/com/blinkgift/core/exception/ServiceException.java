@@ -10,8 +10,13 @@ public class ServiceException extends RuntimeException {
 
     private String description;
 
+    public ServiceException(String description) {
+        super(description);
+        this.description = description;
+    }
+
     public ServiceException(String description, Throwable cause) {
-        super(cause.getMessage(), cause);
+        super(cause != null ? cause.getMessage() : description, cause);
         this.description = description;
     }
 

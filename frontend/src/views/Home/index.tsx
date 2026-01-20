@@ -23,7 +23,6 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="4" pt="2">
-
       {logic.isVisitorMode && (
         <HStack justify="space-between" mb={6}>
           <HStack spacing={3}>
@@ -36,7 +35,9 @@ const ProfilePage: React.FC = () => {
             />
             <VStack align="start" spacing={0}>
               <Text fontWeight="800">{locationState?.name || "User"}</Text>
-              <Text fontSize="xs" color="gray.400">@{locationState?.username}</Text>
+              <Text fontSize="xs" color="gray.400">
+                @{locationState?.username}
+              </Text>
             </VStack>
           </HStack>
           <IconButton
@@ -67,7 +68,9 @@ const ProfilePage: React.FC = () => {
         display="flex"
         justifyContent="space-between"
       >
-        <Text fontSize="sm" fontWeight="600">Аналитика портфеля ({logic.chartPeriod})</Text>
+        <Text fontSize="sm" fontWeight="600">
+          Аналитика портфеля ({logic.chartPeriod})
+        </Text>
         {logic.statsDisclosure.isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
       </Box>
 
@@ -79,7 +82,11 @@ const ProfilePage: React.FC = () => {
             onPeriodChange={logic.setChartPeriod}
           />
           <VStack align="stretch" mt={4}>
-            <StatRow label="Текущая оценка" value={`${logic.analytics.current.toFixed(2)} TON`} isAccent />
+            <StatRow
+              label="Текущая оценка"
+              value={`${logic.analytics.current.toFixed(2)} TON`}
+              isAccent
+            />
             <StatRow label="Количество подарков" value={`${logic.totalCount} шт.`} />
           </VStack>
         </Box>
@@ -104,6 +111,8 @@ const ProfilePage: React.FC = () => {
         isOpen={logic.detailDisclosure.isOpen}
         onClose={logic.detailDisclosure.onClose}
         gift={logic.selectedGift}
+        isLoading={logic.isDetailLoading}
+        isError={logic.isDetailError}
       />
       <SearchDrawer
         isOpen={logic.searchDisclosure.isOpen}

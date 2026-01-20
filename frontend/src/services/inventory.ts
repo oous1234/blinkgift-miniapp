@@ -1,4 +1,4 @@
-// src/services/inventory.ts
+// frontend/src/services/inventory.ts
 import { apiRequest } from "../infrastructure/apiClient"
 import {
   InventoryResponse,
@@ -9,14 +9,13 @@ import {
 
 export default class InventoryService {
   static async getItems(
-    limit: number,
-    offset: number,
-    ownerId?: string
+      limit: number,
+      offset: number,
+      ownerId?: string
   ): Promise<InventoryServiceResponse> {
     const targetId =
-      ownerId || window.Telegram.WebApp.initDataUnsafe?.user?.id?.toString() || "8241853306"
+        ownerId || window.Telegram.WebApp.initDataUnsafe?.user?.id?.toString() || "8241853306"
 
-    // Просто передаем чистые данные, apiClient сам добавит tgauth
     const data = await apiRequest<InventoryResponse>("/inventory", "GET", null, {
       current_owner_id: targetId,
       limit: limit.toString(),
@@ -29,6 +28,11 @@ export default class InventoryService {
       limit: data.limit,
       offset: data.offset,
     }
+  }
+
+  static async getGiftDetail(id: string): Promise<GiftItem> {
+    const data = await apiRequest<ApiGiftItem>(`/inventory/item/${id}`, "GET")
+    return this.mapDtoToModel(data)
   }
 
   private static mapDtoToModel(dto: ApiGiftItem): GiftItem {

@@ -18,7 +18,16 @@ export default class MarketplaceService {
   }
 
   private static generateImageUrl(name: string): string {
-    const slug = name.toLowerCase().replace(/#/g, "").replace(/\s+/g, "")
-    return `https://nft.fragment.com/gift/${slug}.webp`
+    if (name.includes('#')) {
+      const parts = name.split('#');
+
+      const titlePart = parts[0].toLowerCase().replace(/\s+/g, ""); // "plushpepe"
+      const numberPart = parts[1].trim(); // "1515"
+
+      return `https://nft.fragment.com/gift/${titlePart}-${numberPart}.webp`;
+    }
+
+    const slug = name.toLowerCase().replace(/\s+/g, "");
+    return `https://nft.fragment.com/gift/${slug}.webp`;
   }
 }

@@ -13,6 +13,18 @@ export interface MarketStat {
   type: string
 }
 
+export interface RecentSale {
+  avatar_url: string
+  currency: string
+  date: string
+  filter_category: "model" | "backdrop" | "pattern" | "model_backdrop"
+  id: string
+  name: string
+  platform: string
+  price: number
+  trait_value: string
+}
+
 export interface DetailedGiftResponse {
   attributes: GiftAttribute[]
   gift: {
@@ -26,6 +38,7 @@ export interface DetailedGiftResponse {
     slug: string
   }
   market_stats: MarketStat[]
+  recent_sales: RecentSale[]
 }
 
 export interface ApiGiftItem {
@@ -55,9 +68,9 @@ export interface GiftItem {
   floorPrice: number
   currency: string
   num: number
-  // Поля для детальной информации
   attributes?: GiftAttribute[]
   marketStats?: MarketStat[]
+  recentSales?: RecentSale[]
   estimatedPrice?: number
   ownerUsername?: string
 }

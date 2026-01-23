@@ -12,6 +12,8 @@ public class GiftDetailsResponse {
     private List<AttributeDto> attributes;
     @JsonProperty("market_stats")
     private List<MarketStatDto> marketStats;
+    @JsonProperty("recent_sales")
+    private List<RecentSaleDto> recentSales;
 
     @Data
     @Builder
@@ -54,5 +56,22 @@ public class GiftDetailsResponse {
         private Double avgPrice30d;
         @JsonProperty("deals_count_30d")
         private Integer dealsCount30d;
+    }
+
+    @Data
+    @Builder
+    public static class RecentSaleDto {
+        private String id;
+        private String name;
+        @JsonProperty("avatar_url")
+        private String avatarUrl;
+        private Double price;
+        private String currency;
+        private String platform;
+        private String date;
+        @JsonProperty("filter_category")
+        private String filterCategory; // Имя поля в Java
+        @JsonProperty("trait_value")
+        private String traitValue;
     }
 }

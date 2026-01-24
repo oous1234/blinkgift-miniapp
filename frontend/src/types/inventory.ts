@@ -36,6 +36,7 @@ export interface DetailedGiftResponse {
       username: string
     }
     slug: string
+    is_offchain: boolean // НОВОЕ ПОЛЕ
   }
   market_stats: MarketStat[]
   recent_sales: RecentSale[]
@@ -49,6 +50,7 @@ export interface ApiGiftItem {
   num: number
   model_name: string
   url: string
+  is_offchain?: boolean // НОВОЕ ПОЛЕ
   gift_value?: {
     model_floor?: {
       average?: {
@@ -68,6 +70,7 @@ export interface GiftItem {
   floorPrice: number
   currency: string
   num: number
+  isOffchain: boolean // НОВОЕ ПОЛЕ
   attributes?: GiftAttribute[]
   marketStats?: MarketStat[]
   recentSales?: RecentSale[]

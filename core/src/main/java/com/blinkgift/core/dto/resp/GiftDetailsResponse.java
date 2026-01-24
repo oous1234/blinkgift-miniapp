@@ -24,6 +24,10 @@ public class GiftDetailsResponse {
         @JsonProperty("estimated_price_ton")
         private Double estimatedPriceTon;
         private String currency;
+
+        @JsonProperty("is_offchain")
+        private Boolean isOffchain;
+
         private OwnerDto owner;
     }
 
@@ -70,7 +74,7 @@ public class GiftDetailsResponse {
         private String platform;
         private String date;
         @JsonProperty("filter_category")
-        private String filterCategory; // Имя поля в Java
+        private String filterCategory;
         @JsonProperty("trait_value")
         private String traitValue;
     }

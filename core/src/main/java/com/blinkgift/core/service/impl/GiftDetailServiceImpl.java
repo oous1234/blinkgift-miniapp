@@ -87,14 +87,10 @@ public class GiftDetailServiceImpl implements GiftDetailService {
     }
 
     private GiftDetailsResponse.RecentSaleDto mapHistoryToDto(GiftHistoryDocument h, String category, String traitValue) {
-        // h.getName() к примеру: "Trapped Heart #8442 (Model: Patched Up)"
-        // 1. Берем часть до скобок: "Trapped Heart #8442"
         String cleanName = h.getName().split("\\(")[0].trim();
-
-        // 2. Превращаем в "trappedheart-8442"
         String slugForLink = cleanName.toLowerCase()
-                .replace(" ", "")   // убираем пробелы: "trappedheart#8442"
-                .replace("#", "-");  // меняем решетку на дефис: "trappedheart-8442"
+                .replace(" ", "")
+                .replace("#", "-");
 
         return GiftDetailsResponse.RecentSaleDto.builder()
                 .id(h.getAddress())
@@ -103,7 +99,7 @@ public class GiftDetailServiceImpl implements GiftDetailService {
                 .currency(h.getCurrency() != null ? h.getCurrency() : "TON")
                 .platform(h.getIsOffchain() != null && h.getIsOffchain() ? "PORTALS" : "GETGEMS")
                 .date(DATE_FORMATTER.format(Instant.ofEpochSecond(h.getTimestamp())))
-                .avatarUrl("https://fragment.com/gift/" + slugForLink) // Теперь будет trappedheart-8442
+                .avatarUrl("https://fragment.com/gift/" + slugForLink)
                 .filterCategory(category)
                 .traitValue(traitValue)
                 .build();
@@ -130,6 +126,7 @@ public class GiftDetailServiceImpl implements GiftDetailService {
                 .slug(doc.getSlug())
                 .estimatedPriceTon(doc.getEstimatedPriceTon())
                 .currency(doc.getCurrency())
+                .isOffchain(doc.getIsOffchain()) // Заполняем поле из документа
                 .owner(GiftDetailsResponse.OwnerDto.builder()
                         .username(doc.getOwner().getUsername())
                         .build())

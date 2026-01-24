@@ -20,6 +20,9 @@ public class GiftMetadataDocument {
     private Double estimatedPriceTon;
     private String currency;
 
+    // Новое поле для хранения статуса оффчейн-транзакции
+    private Boolean isOffchain;
+
     private OwnerInfo owner;
     private List<Attribute> attributes;
 

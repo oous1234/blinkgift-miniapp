@@ -6,6 +6,7 @@ import {
   GiftItem,
   DetailedGiftResponse,
 } from "../types/inventory"
+import { NftExplorerDetails } from "../types/explorer"
 
 export default class InventoryService {
   static async getItems(
@@ -32,7 +33,6 @@ export default class InventoryService {
 
   static async getGiftDetail(slugWithNum: string): Promise<GiftItem> {
     const data = await apiRequest<DetailedGiftResponse>(`/api/v1/gifts/${slugWithNum}`, "GET")
-
     return {
       id: data.gift.slug,
       giftId: data.gift.id.toString(),
@@ -49,6 +49,13 @@ export default class InventoryService {
       estimatedPrice: data.gift.estimated_price_ton,
       ownerUsername: data.gift.owner.username,
     }
+  }
+
+  // НОВЫЙ МЕТОД: Исследователь блокчейна
+  static async getNftBlockchainDetails(address: string): Promise<NftExplorerDetails> {
+    // Временно используем хардкод адреса для теста
+    const testAddr = "EQAlCt5luoSZ9ihvGarDP5T89hycr2AY-WXDWnUVMWPtryPx"
+    return await apiRequest<NftExplorerDetails>(`/api/v1/nft-explorer/details/${testAddr}`, "GET")
   }
 
   private static mapDtoToModel(dto: ApiGiftItem): GiftItem {

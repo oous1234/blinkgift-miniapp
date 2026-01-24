@@ -1,9 +1,12 @@
+// frontend/src/layouts/MainLayout/index.tsx
+
 import React, { useEffect } from "react"
 import { Box, Flex, Text, Avatar, useDisclosure, IconButton, HStack } from "@chakra-ui/react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { HOME } from "../../router/paths"
 import SettingsDrawer from "../../components/overlay/SettingsDrawer"
-import AdBanner from "../../components/Home/AdBanner" // Импортируем баннер
+import SnappySubscriptionDrawer from "../../components/overlay/SnappySubscriptionDrawer" // Импорт новой шторки
+import AdBanner from "../../components/Home/AdBanner"
 import { ShareIcon, SettingsIcon } from "../../components/Shared/Icons"
 
 interface MainLayoutProps {
@@ -13,20 +16,22 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { isOpen, onOpen, onClose } = useDisclosure()
+
+  // Disclosure для настроек
+  const settingsDisclosure = useDisclosure()
+  // Disclosure для подписки
+  const subDisclosure = useDisclosure()
 
   const WebApp = window.Telegram?.WebApp
   const user = WebApp?.initDataUnsafe?.user
 
   useEffect(() => {
     if (!WebApp) return
-
     if (location.pathname !== HOME) {
       WebApp.BackButton.show()
     } else {
       WebApp.BackButton.hide()
     }
-
     const handleBack = () => navigate(-1)
     WebApp.BackButton.onClick(handleBack)
     return () => WebApp.BackButton.offClick(handleBack)
@@ -34,10 +39,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white">
-      {/* 1. БАННЕР ТЕПЕРЬ САМЫЙ ПЕРВЫЙ И НАД ШАПКОЙ */}
       <AdBanner />
 
-      {/* 2. ШАПКА (Header) */}
+      {/* HEADER */}
       <Flex
         as="header"
         align="center"
@@ -59,14 +63,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           />
         </Box>
 
-        <Flex bg="#e8d7fd" px={4} py={1} borderRadius="full" justify="center" align="center">
-          <Text fontSize="xs" fontWeight="800" color="#0F1115" letterSpacing="0.8px">
-            WALLET
+        {/* НОВАЯ КНОПКА ПОДПИСКИ ВМЕСТО WALLET */}
+        <Flex
+          as="button"
+          onClick={subDisclosure.onOpen}
+          bg="whiteAlpha.100"
+          px={3}
+          py={1.5}
+          borderRadius="full"
+          justify="center"
+          align="center"
+          border="1px solid"
+          borderColor="whiteAlpha.100"
+          transition="all 0.2s"
+          _active={{ transform: "scale(0.95)", bg: "whiteAlpha.200" }}
+        >
+          <Text fontSize="11px" fontWeight="900" color="brand.500" letterSpacing="0.5px">
+            ✨ SNAPPY<Text as="span" color="white">+</Text>
           </Text>
         </Flex>
 
         <HStack flex={1} justify="flex-end" spacing={0}>
-          <HStack bg="rgba(255, 255, 255, 0.05)" p="2px" borderRadius="14px" spacing={0}>
+          <HStack bg="whiteAlpha.50" p="2px" borderRadius="14px" spacing={0}>
             <IconButton
               aria-label="Share"
               variant="ghost"
@@ -80,16 +98,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               variant="ghost"
               size="sm"
               icon={<SettingsIcon color="white" boxSize="18px" />}
-              onClick={onOpen}
+              onClick={settingsDisclosure.onOpen}
             />
           </HStack>
         </HStack>
       </Flex>
 
-      {/* Контент страницы */}
       <Box pb="100px">{children}</Box>
 
-      <SettingsDrawer isOpen={isOpen} onClose={onClose} />
+      {/* ОВЕРЛЕИ */}
+      <SettingsDrawer isOpen={settingsDisclosure.isOpen} onClose={settingsDisclosure.onClose} />
+      <SnappySubscriptionDrawer isOpen={subDisclosure.isOpen} onClose={subDisclosure.onClose} />
     </Box>
   )
 }

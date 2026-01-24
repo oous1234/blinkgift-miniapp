@@ -2,6 +2,7 @@ package com.blinkgift.core.client;
 
 import com.blinkgift.core.config.GetGemsProxyConfig;
 import com.blinkgift.core.dto.getgems.GetGemsHistoryResponse;
+import com.blinkgift.core.dto.getgems.GetGemsNftInfoResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +24,17 @@ public interface GetGemsApiClient {
             @RequestParam("limit") int limit,
             @RequestParam("types") List<String> types,
             @RequestParam("reverse") boolean reverse,
+            @RequestParam(value = "after", required = false) String cursor
+    );
+
+    @GetMapping("/v1/nft/{nftAddress}")
+    GetGemsNftInfoResponse getNftInfo(@PathVariable("nftAddress") String nftAddress);
+
+    // Получение истории конкретной NFT
+    @GetMapping("/v1/nft/history/{nftAddress}")
+    GetGemsHistoryResponse getNftHistory(
+            @PathVariable("nftAddress") String nftAddress,
+            @RequestParam("limit") int limit,
             @RequestParam(value = "after", required = false) String cursor
     );
 }

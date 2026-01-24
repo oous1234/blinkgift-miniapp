@@ -1,221 +1,394 @@
 import React, { useState, useMemo, useEffect } from "react"
 import {
-    Drawer,
-    DrawerBody,
-    DrawerOverlay,
-    DrawerContent,
-    DrawerCloseButton,
-    Box,
-    Image,
-    Text,
-    VStack,
-    HStack,
-    Badge,
-    Button,
-    Flex,
-    Spinner,
-    Center,
-    Tabs,
-    TabList,
-    TabPanels,
-    Tab,
-    TabPanel,
+  Drawer,
+  DrawerBody,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  Box,
+  Image,
+  Text,
+  VStack,
+  HStack,
+  Badge,
+  Button,
+  Flex,
+  Spinner,
+  Center,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Avatar,
 } from "@chakra-ui/react"
 import { GiftItem, GiftAttribute, MarketStat, RecentSale } from "../../types/inventory"
 import { NftExplorerDetails } from "../../types/explorer"
 import InventoryService from "../../services/inventory"
 import { BlockchainHistory } from "./BlockchainHistory"
 
-interface GiftDetailDrawerProps {
-    isOpen: boolean
-    onClose: () => void
-    gift: GiftItem | null
-    isLoading: boolean
-    isError: boolean
-}
+// Фирменная иконка TON
+const TonIcon = ({ size = 14, color = "white" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+    <path
+      d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z"
+      fill="#0088CC"
+    />
+    <path
+      d="M37.5603 15.6277H18.4386C14.9228 15.6277 12.6621 19.424 14.42 22.4673L25.9814 42.4834C26.9205 44.1091 29.0791 44.1091 30.0182 42.4834L41.5807 22.4673C43.3375 19.424 41.0772 15.6277 37.5603 15.6277ZM26.043 35.5398L19.5447 24.2882C18.8471 23.08 19.7188 21.5544 21.1127 21.5544H34.8851C36.279 21.5544 37.1507 23.08 36.4531 24.2882L29.9548 35.5398C29.0638 37.0833 26.8797 37.0833 26.043 35.5398Z"
+      fill={color}
+    />
+  </svg>
+)
 
 const PriceStat = ({ label, value, percent, isTon = false }: any) => (
-    <Flex justify="space-between" align="center" w="100%" py={1}>
-        <Text color="gray.500" fontSize="13px" fontWeight="600">{label}</Text>
-        <HStack spacing={2}>
-            <HStack spacing={1}>
-                {isTon && <Text color="brand.500" fontWeight="900" fontSize="14px">💎</Text>}
-                <Text fontWeight="800" fontSize="15px" color={percent?.startsWith("+") ? "green.300" : "white"}>{value}</Text>
-            </HStack>
-            {percent && (
-                <Badge variant="subtle" colorScheme={percent.startsWith("+") ? "green" : "red"} fontSize="11px" borderRadius="6px">
-                    {percent}
-                </Badge>
-            )}
-        </HStack>
-    </Flex>
+  <Flex justify="space-between" align="center" w="100%" py={2}>
+    <Text
+      color="gray.500"
+      fontSize="13px"
+      fontWeight="700"
+      textTransform="uppercase"
+      letterSpacing="0.5px"
+    >
+      {label}
+    </Text>
+    <HStack spacing={3}>
+      <HStack spacing={1.5}>
+        <Text
+          fontWeight="900"
+          fontSize="18px"
+          color={percent?.startsWith("+") ? "green.300" : "white"}
+        >
+          {value}
+        </Text>
+        {isTon && <TonIcon size={16} />}
+      </HStack>
+      {percent && (
+        <Badge
+          variant="solid"
+          bg={percent.startsWith("+") ? "green.500" : "red.500"}
+          color="white"
+          fontSize="10px"
+          borderRadius="6px"
+          px={2}
+        >
+          {percent}
+        </Badge>
+      )}
+    </HStack>
+  </Flex>
 )
 
 const AttributeRow = ({ attr }: { attr: GiftAttribute }) => (
-    <Flex justify="space-between" align="center" w="100%">
-        <Text color="gray.500" fontSize="12px" fontWeight="600">{attr.trait_type}</Text>
-        <HStack spacing={2}>
-            <Text fontSize="13px" fontWeight="700" color="white">{attr.value}</Text>
-            <Badge bg="whiteAlpha.200" color="whiteAlpha.700" fontSize="9px" borderRadius="4px">{attr.rarity_percent}%</Badge>
-        </HStack>
-    </Flex>
+  <Flex
+    justify="space-between"
+    align="center"
+    w="100%"
+    bg="whiteAlpha.50"
+    p={2}
+    borderRadius="10px"
+  >
+    <Text color="gray.500" fontSize="11px" fontWeight="800" textTransform="uppercase">
+      {attr.trait_type}
+    </Text>
+    <HStack spacing={2}>
+      <Text fontSize="12px" fontWeight="800" color="white">
+        {attr.value}
+      </Text>
+      <Text color="brand.500" fontSize="10px" fontWeight="900">
+        {attr.rarity_percent}%
+      </Text>
+    </HStack>
+  </Flex>
 )
 
 const MarketTableRow = ({ stat }: { stat: MarketStat }) => (
-    <Flex justify="space-between" align="center" py="10px" borderBottom="1px solid" borderColor="whiteAlpha.50">
-        <Text fontSize="13px" fontWeight="600" color="gray.300" flex={1}>{stat.label}</Text>
-        <Text fontSize="13px" fontWeight="700" color="white" w="60px" textAlign="center">{stat.items_count}</Text>
-        <HStack w="80px" justify="flex-end" spacing={1}>
-            {stat.floor_price && <Text color="brand.500" fontSize="12px">💎</Text>}
-            <Text fontSize="13px" fontWeight="800" color={stat.floor_price ? "white" : "gray.600"}>{stat.floor_price || "N/A"}</Text>
-        </HStack>
-    </Flex>
+  <Flex
+    justify="space-between"
+    align="center"
+    py="12px"
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.50"
+  >
+    <Text fontSize="13px" fontWeight="700" color="gray.300" flex={1}>
+      {stat.label}
+    </Text>
+    <Text fontSize="13px" fontWeight="800" color="whiteAlpha.600" w="60px" textAlign="center">
+      {stat.items_count}
+    </Text>
+    <HStack w="90px" justify="flex-end" spacing={1.5}>
+      <Text fontSize="14px" fontWeight="900" color={stat.floor_price ? "white" : "gray.600"}>
+        {stat.floor_price || "—"}
+      </Text>
+      {stat.floor_price && <TonIcon size={12} />}
+    </HStack>
+  </Flex>
 )
 
+// ИСПРАВЛЕННЫЙ SaleRow с аватарками
 const SaleRow = ({ sale }: { sale: RecentSale }) => (
-    <Flex justify="space-between" align="center" py="12px" borderBottom="1px solid" borderColor="whiteAlpha.50">
-        <VStack align="start" spacing={0}>
-            <Text fontSize="13px" fontWeight="800" color="white" noOfLines={1} maxW="180px">{sale.trait_value}</Text>
-            <Text fontSize="11px" color="gray.500" fontWeight="600">{sale.date.split(" ")[0]} • {sale.platform}</Text>
-        </VStack>
-        <HStack spacing={1}>
-            <Text color="brand.500" fontSize="11px">💎</Text>
-            <Text fontSize="15px" fontWeight="900" color="white">{sale.price}</Text>
-        </HStack>
-    </Flex>
+  <Flex
+    justify="space-between"
+    align="center"
+    py="14px"
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.50"
+  >
+    <HStack spacing={3} flex={1}>
+      <Avatar
+        src={sale.avatar_url}
+        size="sm"
+        borderRadius="8px"
+        bg="whiteAlpha.100"
+        icon={<Spinner size="xs" />}
+      />
+      <VStack align="start" spacing={0} overflow="hidden">
+        <Text fontSize="14px" fontWeight="800" color="white" noOfLines={1}>
+          {sale.trait_value}
+        </Text>
+        <Text fontSize="11px" color="gray.500" fontWeight="700">
+          {sale.date.split(" ")[0]} • {sale.platform.toUpperCase()}
+        </Text>
+      </VStack>
+    </HStack>
+
+    <HStack bg="whiteAlpha.100" px={3} py={1.5} borderRadius="12px" spacing={1.5} ml={2}>
+      <Text fontSize="15px" fontWeight="900" color="brand.500">
+        {sale.price}
+      </Text>
+      <TonIcon size={12} />
+    </HStack>
+  </Flex>
 )
 
-const GiftDetailDrawer: React.FC<GiftDetailDrawerProps> = ({ isOpen, onClose, gift, isLoading, isError }) => {
-    const [activeSaleFilter, setActiveSaleFilter] = useState<string>("model")
-    const [explorerData, setExplorerData] = useState<NftExplorerDetails | null>(null)
-    const [isExplorerLoading, setIsExplorerLoading] = useState(false)
+const GiftDetailDrawer: React.FC<GiftDetailDrawerProps> = ({
+  isOpen,
+  onClose,
+  gift,
+  isLoading,
+  isError,
+}) => {
+  const [activeSaleFilter, setActiveSaleFilter] = useState<string>("model")
+  const [explorerData, setExplorerData] = useState<NftExplorerDetails | null>(null)
+  const [isExplorerLoading, setIsExplorerLoading] = useState(false)
 
-    // Загружаем данные из блокчейна при открытии модалки
-    useEffect(() => {
-        if (isOpen && gift) {
-            setIsExplorerLoading(true)
-            InventoryService.getNftBlockchainDetails(gift.id)
-                .then(res => setExplorerData(res))
-                .catch(() => setExplorerData(null))
-                .finally(() => setIsExplorerLoading(false))
-        }
-    }, [isOpen, gift])
-
-    const filteredSales = useMemo(() => {
-        if (!gift?.recentSales) return []
-        return gift.recentSales.filter(s => s.filter_category === activeSaleFilter)
-    }, [gift, activeSaleFilter])
-
-    const handleOpenFragment = () => {
-        if (!gift) return
-        window.Telegram?.WebApp?.openLink(`https://fragment.com/gift/${gift.id}`)
+  useEffect(() => {
+    if (isOpen && gift) {
+      setIsExplorerLoading(true)
+      InventoryService.getNftBlockchainDetails(gift.id)
+        .then((res) => setExplorerData(res))
+        .catch(() => setExplorerData(null))
+        .finally(() => setIsExplorerLoading(false))
     }
+  }, [isOpen, gift])
 
-    return (
-        <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} scrollBehavior="inside">
-            <DrawerOverlay backdropFilter="blur(15px)" bg="blackAlpha.800" />
-            <DrawerContent borderTopRadius="32px" bg="#161920" color="white" maxH="95vh">
-                <Box w="36px" h="4px" bg="whiteAlpha.400" borderRadius="full" mx="auto" mt={3} mb={1} />
-                <DrawerCloseButton color="whiteAlpha.500" />
+  const filteredSales = useMemo(() => {
+    if (!gift?.recentSales) return []
+    return gift.recentSales.filter((s) => s.filter_category === activeSaleFilter)
+  }, [gift, activeSaleFilter])
 
-                <DrawerBody px={5} pt={2} pb={8}>
-                    {isLoading ? (
-                        <Center h="400px"><Spinner color="brand.500" size="xl" thickness="3px" /></Center>
-                    ) : isError ? (
-                        <Center h="300px"><Text color="red.400">Ошибка загрузки</Text></Center>
-                    ) : gift && (
-                        <VStack spacing={5} align="stretch">
-                            {/* Шапка с названием */}
-                            <Box mt={2}>
-                                <Text fontSize="22px" fontWeight="900" lineHeight="1.2">{gift.name}</Text>
-                                <Text color="gray.500" fontSize="13px" fontWeight="700" mt={1}>#{gift.num}</Text>
-                            </Box>
+  const handleOpenFragment = () => {
+    if (!gift) return
+    window.Telegram?.WebApp?.openLink(`https://fragment.com/gift/${gift.id}`)
+  }
 
-                            {/* Картинка и атрибуты */}
-                            <HStack spacing={4} align="center">
-                                <Box boxSize="100px" borderRadius="20px" overflow="hidden" bg="whiteAlpha.100" flexShrink={0}>
-                                    <Image src={gift.image} w="100%" h="100%" objectFit="cover" />
-                                </Box>
-                                <VStack flex={1} spacing={2}>
-                                    {gift.attributes?.map((attr, i) => <AttributeRow key={i} attr={attr} />)}
-                                </VStack>
-                            </HStack>
+  return (
+    <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} scrollBehavior="inside">
+      <DrawerOverlay backdropFilter="blur(20px)" bg="blackAlpha.800" />
+      <DrawerContent borderTopRadius="36px" bg="#0F1115" color="white" maxH="92vh">
+        <Box w="40px" h="5px" bg="whiteAlpha.200" borderRadius="full" mx="auto" mt={4} mb={2} />
+        <DrawerCloseButton top={6} right={6} color="whiteAlpha.400" />
 
-                            {/* СИСТЕМА ВКЛАДОК */}
-                            <Tabs variant="soft-rounded" colorScheme="purple" isFitted>
-                                <TabList bg="whiteAlpha.50" p={1} borderRadius="16px">
-                                    <Tab fontWeight="900" fontSize="12px" _selected={{ bg: "brand.500", color: "gray.900" }}>АНАЛИТИКА</Tab>
-                                    <Tab fontWeight="900" fontSize="12px" _selected={{ bg: "brand.500", color: "gray.900" }}>БЛОКЧЕЙН</Tab>
-                                </TabList>
+        <DrawerBody px={6} pt={2} pb={10}>
+          {isLoading ? (
+            <Center h="400px">
+              <Spinner color="brand.500" size="xl" thickness="3px" />
+            </Center>
+          ) : isError ? (
+            <Center h="300px">
+              <Text color="red.400">Ошибка загрузки</Text>
+            </Center>
+          ) : (
+            gift && (
+              <VStack spacing={6} align="stretch">
+                {/* Заголовок */}
+                <Box mt={2}>
+                  <Text fontSize="24px" fontWeight="900" letterSpacing="-0.5px">
+                    {gift.name}
+                  </Text>
+                  <HStack mt={1} spacing={2}>
+                    <Badge colorScheme="purple" variant="subtle" borderRadius="6px" px={2}>
+                      #{gift.num}
+                    </Badge>
+                    <Text color="gray.500" fontSize="13px" fontWeight="700">
+                      Telegram Gift NFT
+                    </Text>
+                  </HStack>
+                </Box>
 
-                                <TabPanels>
-                                    {/* Вкладка 1: Рыночная аналитика */}
-                                    <TabPanel px={0} pt={5}>
-                                        <VStack spacing={5} align="stretch">
-                                            <VStack align="stretch" spacing={1} bg="whiteAlpha.50" p={4} borderRadius="20px">
-                                                <PriceStat label="Примерная цена" value={`${gift.estimatedPrice}`} isTon />
-                                                <PriceStat label="P/L (TON)" value="+6.55" percent="+62.42%" isTon />
-                                            </VStack>
+                {/* Картинка и основные свойства */}
+                <Flex gap={4}>
+                  <Box
+                    boxSize="120px"
+                    borderRadius="24px"
+                    overflow="hidden"
+                    bg="whiteAlpha.50"
+                    flexShrink={0}
+                  >
+                    <Image src={gift.image} w="100%" h="100%" objectFit="cover" />
+                  </Box>
+                  <VStack flex={1} spacing={2} justify="center">
+                    {gift.attributes?.map((attr, i) => (
+                      <AttributeRow key={i} attr={attr} />
+                    ))}
+                  </VStack>
+                </Flex>
 
-                                            <Box>
-                                                <Text fontSize="11px" fontWeight="800" color="gray.600" textTransform="uppercase" mb={2} px={1}>Аналитика рынка</Text>
-                                                <Box bg="whiteAlpha.50" borderRadius="20px" px={4}>
-                                                    {gift.marketStats?.map((stat, i) => <MarketTableRow key={i} stat={stat} />)}
-                                                </Box>
-                                            </Box>
+                <Tabs variant="unstyled" isFitted>
+                  <TabList bg="whiteAlpha.50" p="5px" borderRadius="18px">
+                    {["АНАЛИТИКА", "ИСТОРИЯ"].map((label) => (
+                      <Tab
+                        key={label}
+                        fontSize="12px"
+                        fontWeight="900"
+                        borderRadius="14px"
+                        color="gray.500"
+                        _selected={{ bg: "brand.500", color: "gray.900" }}
+                        py={2}
+                      >
+                        {label}
+                      </Tab>
+                    ))}
+                  </TabList>
 
-                                            <Box>
-                                                <Text fontSize="11px" fontWeight="800" color="gray.600" textTransform="uppercase" mb={3} px={1}>Последние продажи</Text>
-                                                <HStack bg="whiteAlpha.50" p="4px" borderRadius="14px" mb={3} spacing={1}>
-                                                    {[{ id: "model", label: "Модель" }, { id: "backdrop", label: "Фон" }, { id: "model_backdrop", label: "Mix" }].map((btn) => (
-                                                        <Box key={btn.id} as="button" flex={1} py="6px" borderRadius="10px" fontSize="11px" fontWeight="800"
-                                                             bg={activeSaleFilter === btn.id ? "brand.500" : "transparent"}
-                                                             color={activeSaleFilter === btn.id ? "gray.900" : "gray.400"}
-                                                             onClick={() => setActiveSaleFilter(btn.id)}>{btn.label}</Box>
-                                                    ))}
-                                                </HStack>
-                                                <Box bg="whiteAlpha.50" borderRadius="20px" px={4} minH="100px">
-                                                    {filteredSales.length > 0 ? filteredSales.map((sale) => <SaleRow key={sale.id} sale={sale} />) :
-                                                        <Center py={8}><Text fontSize="12px" color="gray.500">Нет данных</Text></Center>}
-                                                </Box>
-                                            </Box>
-                                        </VStack>
-                                    </TabPanel>
-
-                                    {/* Вкладка 2: История в Блокчейне */}
-                                    <TabPanel px={0} pt={5}>
-                                        {isExplorerLoading ? (
-                                            <Center py={10}><Spinner color="brand.500" /></Center>
-                                        ) : explorerData ? (
-                                            <VStack align="stretch" spacing={5}>
-                                                <Box bg="whiteAlpha.50" borderRadius="20px" p={4}>
-                                                    <Text fontSize="10px" color="gray.500" fontWeight="800" mb={1} textTransform="uppercase">NFT Address</Text>
-                                                    <Text fontSize="12px" fontWeight="700" color="brand.500" isTruncated>{explorerData.info.address}</Text>
-                                                </Box>
-                                                <Box>
-                                                    <Text fontSize="11px" fontWeight="800" color="gray.600" textTransform="uppercase" mb={4} px={1}>Blockchain Timeline</Text>
-                                                    <BlockchainHistory history={explorerData.history} />
-                                                </Box>
-                                            </VStack>
-                                        ) : (
-                                            <Center py={10}><Text color="gray.500">Данные блокчейна недоступны</Text></Center>
-                                        )}
-                                    </TabPanel>
-                                </TabPanels>
-                            </Tabs>
-
-                            <Button
-                                w="100%" h="54px" bg="brand.500" color="gray.900" borderRadius="18px"
-                                fontWeight="900" fontSize="16px" onClick={handleOpenFragment} mt={2}
-                            >
-                                Открыть на Fragment
-                            </Button>
+                  <TabPanels>
+                    {/* Аналитика */}
+                    <TabPanel px={0} pt={6}>
+                      <VStack spacing={6} align="stretch">
+                        <VStack
+                          align="stretch"
+                          spacing={0}
+                          bg="whiteAlpha.50"
+                          px={5}
+                          py={2}
+                          borderRadius="24px"
+                        >
+                          <PriceStat label="Оценка" value={gift.estimatedPrice} isTon />
+                          <Box h="1px" bg="whiteAlpha.100" />
+                          <PriceStat label="Доход (P/L)" value="+6.55" percent="+62.4%" isTon />
                         </VStack>
-                    )}
-                </DrawerBody>
-            </DrawerContent>
-        </Drawer>
-    )
+
+                        <Box>
+                          <Text fontSize="11px" fontWeight="900" color="gray.600" mb={3} ml={1}>
+                            РЫНОЧНЫЕ ЦЕНЫ
+                          </Text>
+                          <Box bg="whiteAlpha.50" borderRadius="24px" px={5}>
+                            {gift.marketStats?.map((stat, i) => (
+                              <MarketTableRow key={i} stat={stat} />
+                            ))}
+                          </Box>
+                        </Box>
+
+                        <Box>
+                          <Text fontSize="11px" fontWeight="900" color="gray.600" mb={3} ml={1}>
+                            ПОСЛЕДНИЕ ПРОДАЖИ
+                          </Text>
+                          <HStack bg="whiteAlpha.50" p="4px" borderRadius="16px" mb={4}>
+                            {[
+                              { id: "model", label: "Модель" },
+                              { id: "backdrop", label: "Фон" },
+                              { id: "model_backdrop", label: "Микс" },
+                            ].map((btn) => (
+                              <Box
+                                key={btn.id}
+                                as="button"
+                                flex={1}
+                                py="8px"
+                                borderRadius="12px"
+                                fontSize="11px"
+                                fontWeight="800"
+                                bg={activeSaleFilter === btn.id ? "whiteAlpha.200" : "transparent"}
+                                color={activeSaleFilter === btn.id ? "white" : "gray.500"}
+                                onClick={() => setActiveSaleFilter(btn.id)}
+                              >
+                                {btn.label}
+                              </Box>
+                            ))}
+                          </HStack>
+                          <VStack
+                            align="stretch"
+                            spacing={0}
+                            bg="whiteAlpha.50"
+                            px={5}
+                            borderRadius="24px"
+                          >
+                            {filteredSales.length > 0 ? (
+                              filteredSales.map((sale) => <SaleRow key={sale.id} sale={sale} />)
+                            ) : (
+                              <Center py={10}>
+                                <Text fontSize="13px" color="gray.600" fontWeight="700">
+                                  Нет данных о продажах
+                                </Text>
+                              </Center>
+                            )}
+                          </VStack>
+                        </Box>
+                      </VStack>
+                    </TabPanel>
+
+                    {/* Блокчейн */}
+                    <TabPanel px={0} pt={6}>
+                      {isExplorerLoading ? (
+                        <Center py={10}>
+                          <Spinner color="brand.500" />
+                        </Center>
+                      ) : explorerData ? (
+                        <VStack align="stretch" spacing={6}>
+                          <Box
+                            bg="whiteAlpha.50"
+                            borderRadius="22px"
+                            p={4}
+                            border="1px solid"
+                            borderColor="whiteAlpha.100"
+                          >
+                            <Text fontSize="10px" color="gray.600" fontWeight="900" mb={1}>
+                              NFT ADDRESS
+                            </Text>
+                            <Text fontSize="12px" fontWeight="700" color="blue.300" isTruncated>
+                              {explorerData.info.address}
+                            </Text>
+                          </Box>
+                          <BlockchainHistory history={explorerData.history} />
+                        </VStack>
+                      ) : (
+                        <Center py={10}>
+                          <Text color="gray.500">Данные не найдены</Text>
+                        </Center>
+                      )}
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
+
+                <Button
+                  w="100%"
+                  h="56px"
+                  bg="#0088CC"
+                  color="white"
+                  borderRadius="20px"
+                  fontWeight="900"
+                  fontSize="16px"
+                  onClick={handleOpenFragment}
+                  _active={{ transform: "scale(0.97)" }}
+                >
+                  Купить на Fragment
+                </Button>
+              </VStack>
+            )
+          )}
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  )
 }
 
 export default GiftDetailDrawer

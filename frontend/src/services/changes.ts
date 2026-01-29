@@ -1,4 +1,3 @@
-// frontend/src/services/changes.ts
 const BASE_URL = "https://api.changes.tg"
 
 export default class ChangesService {
@@ -6,26 +5,41 @@ export default class ChangesService {
         const res = await fetch(`${BASE_URL}/gifts`)
         return res.ok ? res.json() : []
     }
+
     static async getModels(gift: string): Promise<string[]> {
-        const res = await fetch(`${BASE_URL}/models/${gift}`)
-        return res.ok ? res.json() : []
-    }
-    static async getBackdrops(gift: string): Promise<string[]> {
-        const res = await fetch(`${BASE_URL}/backdrops/${gift}`)
-        return res.ok ? res.json() : []
-    }
-    static async getPatterns(gift: string): Promise<string[]> {
-        const res = await fetch(`${BASE_URL}/patterns/${gift}`)
+        const res = await fetch(`${BASE_URL}/models/${gift.replace(/\s+/g, "")}`)
         return res.ok ? res.json() : []
     }
 
+    static async getBackdrops(gift: string): Promise<string[]> {
+        const res = await fetch(`${BASE_URL}/backdrops/${gift.replace(/\s+/g, "")}`)
+        return res.ok ? res.json() : []
+    }
+
+    static async getPatterns(gift: string): Promise<string[]> {
+        const res = await fetch(`${BASE_URL}/patterns/${gift.replace(/\s+/g, "")}`)
+        return res.ok ? res.json() : []
+    }
+
+    // Хелперы для иконок
     static getModelImage(gift: string, model: string): string {
-        return `${BASE_URL}/model/${gift}/${model}.png`
+        const g = gift.replace(/\s+/g, "")
+        return `${BASE_URL}/model/${g}/${model}.png`
     }
+
+    static getBackdropInfo(gift: string, backdrop: string): string {
+        // У Changes API для бэкдропов обычно нет прямой картинки в .png через /backdrop/,
+        // поэтому будем использовать плейсхолдер или цвет, если API не отдает картинку.
+        return ""
+    }
+
     static getPatternImage(gift: string, pattern: string): string {
-        return `${BASE_URL}/pattern/${gift}/${pattern}.png`
+        const g = gift.replace(/\s+/g, "")
+        return `${BASE_URL}/pattern/${g}/${pattern}.png`
     }
+
     static getOriginalImage(gift: string): string {
-        return `${BASE_URL}/original/${gift}.png`
+        const g = gift.replace(/\s+/g, "")
+        return `${BASE_URL}/original/${g}.png`
     }
 }

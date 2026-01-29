@@ -60,26 +60,32 @@ export interface ApiGiftItem {
   }
 }
 
-// --- Новые типы для поиска ---
 export interface GiftSearchRequest {
-  collection?: string
-  model?: string
-  pattern?: string
-  backdrop?: string
-  giftId?: number
+  query?: string
+  models?: string[]
+  backdrops?: string[]
+  symbols?: string[]
+  rarities?: string[]
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: string
+  limit?: number
+  offset?: number
 }
 
 export interface GiftShortResponse {
-  backdrop: string
-  estimatedPriceTon: number
-  giftId: number
-  image: string
-  model: string
-  name: string | null
-  pattern: string
+  id: string
+  name: string
   slug: string
+  image: string
+  price: number
+  currency: string
+  is_offchain: boolean
+  is_premarket: boolean
+  model: string
+  backdrop: string
+  rarity: string
 }
-// -----------------------------
 
 export interface GiftItem {
   id: string

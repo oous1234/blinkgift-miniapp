@@ -32,15 +32,8 @@ export default class InventoryService {
   }
 
   static async searchGifts(params: GiftSearchRequest): Promise<GiftShortResponse[]> {
-    // Чистим параметры от пустых значений
-    const queryParams: Record<string, string> = {}
-    if (params.collection && params.collection !== "Все подарки") queryParams.collection = params.collection
-    if (params.model && params.model !== "Любая модель") queryParams.model = params.model
-    if (params.pattern && params.pattern !== "Любой узор") queryParams.pattern = params.pattern
-    if (params.backdrop) queryParams.backdrop = params.backdrop
-    if (params.giftId) queryParams.giftId = params.giftId.toString()
-
-    return await apiRequest<GiftShortResponse[]>("/api/v1/gifts/search", "GET", null, queryParams)
+    // Изменено на POST и новый путь /api/v1/search/gifts
+    return await apiRequest<GiftShortResponse[]>("/api/v1/search/gifts", "POST", params)
   }
 
   static async getGiftDetail(slugWithNum: string): Promise<GiftItem> {

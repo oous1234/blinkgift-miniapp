@@ -5,5 +5,5 @@ import com.blinkgift.core.dto.resp.GiftShortResponse;
 import java.util.List;
 
 public interface GiftSearchService {
-    List<GiftShortResponse> searchGifts(GiftSearchRequest request);
+    List<GiftShortResponse> search(GiftSearchRequest request);
 }

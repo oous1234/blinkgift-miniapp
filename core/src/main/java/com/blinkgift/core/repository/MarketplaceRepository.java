@@ -1,5 +1,7 @@
 package com.blinkgift.core.repository;
 
+import com.blinkgift.core.dto.req.GiftSearchRequest;
+import com.blinkgift.core.dto.resp.GiftShortResponse;
 import com.blinkgift.core.dto.resp.MarketplaceGiftResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -9,32 +11,26 @@ import org.springframework.data.mongodb.core.aggregation.LookupOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class MarketplaceRepository {
-
     private final MongoTemplate mongoTemplate;
 
     public List<MarketplaceGiftResponse> findLatestGifts(int limit) {
-        // Настройка "Джойна" (Lookup)
         LookupOperation lookupUniqueGifts = LookupOperation.newLookup()
-                .from("unique_gifts")      // из какой таблицы берем атрибуты
-                .localField("address")     // поле в current_sales
-                .foreignField("_id")       // поле в unique_gifts (там адрес обычно в _id)
-                .as("details");            // временный массив для результата
+                .from("unique_gifts")
+                .localField("address")
+                .foreignField("_id")
+                .as("details");
 
         Aggregation aggregation = Aggregation.newAggregation(
-                // 1. Сортировка по цене (или дате листинга)
                 Aggregation.sort(Sort.Direction.ASC, "priceNano"),
-                // 2. Ограничение выборки
                 Aggregation.limit(limit),
-                // 3. Соединение таблиц
                 lookupUniqueGifts,
-                // 4. Преобразование массива details в объект (разворачивание)
                 Aggregation.unwind("details", true),
-                // 5. Маппинг полей в финальный DTO
                 Aggregation.project()
                         .and("address").as("address")
                         .and("name").as("name")
@@ -47,7 +43,50 @@ public class MarketplaceRepository {
                         .and("details.attributes.symbol").as("symbol")
                         .and("details.marketData.estimatedPrice").as("estimatedPrice")
         );
-
         return mongoTemplate.aggregate(aggregation, "current_sales", MarketplaceGiftResponse.class).getMappedResults();
+    }
+
+    public List<GiftShortResponse> searchGiftsWithFilters(GiftSearchRequest request) {
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        if (request.getQuery() != null && !request.getQuery().isEmpty()) {
+            criteriaList.add(Criteria.where("name").regex(request.getQuery(), "i"));
+        }
+
+        if (request.getModels() != null && !request.getModels().isEmpty()) {
+            criteriaList.add(Criteria.where("attributes").elemMatch(
+                    Criteria.where("traitType").is("Model").and("value").in(request.getModels())
+            ));
+        }
+
+        if (request.getBackdrops() != null && !request.getBackdrops().isEmpty()) {
+            criteriaList.add(Criteria.where("attributes").elemMatch(
+                    Criteria.where("traitType").is("Backdrop").and("value").in(request.getBackdrops())
+            ));
+        }
+
+        LookupOperation lookupSales = LookupOperation.newLookup()
+                .from("current_sales")
+                .localField("slug")
+                .foreignField("slug")
+                .as("active_sales");
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(criteriaList.isEmpty() ? new Criteria() : new Criteria().andOperator(criteriaList.toArray(new Criteria[0]))),
+                lookupSales,
+                Aggregation.project()
+                        .and("name").as("name")
+                        .and("slug").as("slug")
+                        .and("isOffchain").as("offchain")
+                        .and("estimatedPriceTon").as("price")
+                        .and("currency").as("currency")
+                        // Проверяем, есть ли запись в коллекции продаж прямо сейчас
+                        .andExpression("size(active_sales) > 0").as("premarket")
+                        .and("attributes").as("attributes"),
+                Aggregation.skip((long) request.getOffset()),
+                Aggregation.limit(request.getLimit() > 0 ? request.getLimit() : 20)
+        );
+
+        return mongoTemplate.aggregate(aggregation, "gifts_metadata", GiftShortResponse.class).getMappedResults();
     }
 }

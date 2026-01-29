@@ -45,7 +45,6 @@ export default class ChangesService {
     return data.map((p: any) => p.name)
   }
 
-  // Получаем полные объекты фонов, так как нам нужны HEX-коды
   static async getBackdrops(gift: string): Promise<ApiBackdrop[]> {
     if (!gift || gift === "Все подарки") return []
     const res = await fetch(`${BASE_URL}/backdrops/${this.slugify(gift)}`)
@@ -53,12 +52,12 @@ export default class ChangesService {
     return await res.json()
   }
 
-  static getModelImage(gift: string, model: string): string {
-    return `${BASE_URL}/model/${this.slugify(gift)}/${this.slugify(model)}.png`
+  static getModelUrl(gift: string, model: string, ext: 'png' | 'json' = 'json'): string {
+    return `${BASE_URL}/model/${this.slugify(gift)}/${this.slugify(model)}.${ext}`
   }
 
-  static getOriginalImage(gift: string): string {
-    return `${BASE_URL}/model/${this.slugify(gift)}/Original.png`
+  static getOriginalUrl(gift: string, ext: 'png' | 'json' = 'json'): string {
+    return `${BASE_URL}/model/${this.slugify(gift)}/Original.${ext}`
   }
 
   static getPatternImage(gift: string, pattern: string): string {

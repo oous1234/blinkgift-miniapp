@@ -1,4 +1,3 @@
-// src/views/Market/index.tsx
 import React, { useEffect, useState } from "react"
 import {
   Box,
@@ -8,20 +7,17 @@ import {
   Heading,
   Text,
   VStack,
-  useDisclosure, // Добавили хук
+  useDisclosure,
 } from "@chakra-ui/react"
-import MarketplaceService from "../../services/marketplace"
-import { MarketplaceItem } from "../../types/marketplace"
-import { MarketGiftCard } from "../../components/Market/MarketGiftCard"
-
-// --- ИМПОРТЫ ДЛЯ НАВИГАЦИИ ---
-import BottomNavigation from "../../components/navigation/BottomNavigation"
-import SearchDrawer from "../../components/overlay/SearchDrawer"
+import MarketplaceService from "@services/marketplace"
+import { MarketplaceItem } from "@types/marketplace"
+import { MarketGiftCard } from "@components/Market/MarketGiftCard"
+import BottomNavigation from "@components/navigation/BottomNavigation"
+import SearchDrawer from "@components/overlay/search/SearchDrawer" // ИСПРАВЛЕННЫЙ ПУТЬ
 
 const MarketView: React.FC = () => {
   const [items, setItems] = useState<MarketplaceItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
   const { isOpen: isSearchOpen, onOpen: onSearchOpen, onClose: onSearchClose } = useDisclosure()
 
   useEffect(() => {
@@ -38,7 +34,7 @@ const MarketView: React.FC = () => {
           Marketplace
         </Heading>
         <Text color="gray.500" fontSize="sm">
-          парам пам
+          Самые свежие предложения с рынка
         </Text>
       </VStack>
 
@@ -55,7 +51,6 @@ const MarketView: React.FC = () => {
       )}
 
       <SearchDrawer isOpen={isSearchOpen} onClose={onSearchClose} />
-
       <BottomNavigation onSearchOpen={onSearchOpen} />
     </Box>
   )

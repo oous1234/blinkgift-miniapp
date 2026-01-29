@@ -12,7 +12,6 @@ import {
 } from "@chakra-ui/react"
 import { ChevronDownIcon, ChevronUpIcon, ArrowBackIcon } from "@chakra-ui/icons"
 import { useNavigate, useLocation } from "react-router-dom"
-
 import { useHomeLogic } from "./hooks/useHomeLogic"
 import { NetWorthCard } from "@components/Home/NetWorthCard"
 import { GiftCard } from "@components/Home/GiftCard"
@@ -21,18 +20,16 @@ import { PortfolioChart } from "@components/Home/PortfolioChart"
 import { StatRow } from "@components/StatRow"
 import BottomNavigation from "@components/navigation/BottomNavigation"
 import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
-import SearchDrawer from "@components/overlay/SearchDrawer"
+import SearchDrawer from "@components/overlay/search/SearchDrawer" // ИСПРАВЛЕННЫЙ ПУТЬ
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const logic = useHomeLogic()
-
   const locationState = location.state as { name?: string; username?: string; avatarUrl?: string }
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white" pb="120px" px="4" pt="4">
-      {/* Режим просмотра чужого профиля */}
       {logic.isVisitorMode && (
         <HStack justify="space-between" mb={6}>
           <HStack spacing={3}>
@@ -59,7 +56,6 @@ const ProfilePage: React.FC = () => {
         </HStack>
       )}
 
-      {/* Карточка стоимости */}
       <Skeleton isLoaded={!logic.isChartLoading} borderRadius="24px" mb={2}>
         <NetWorthCard
           totalValue={logic.analytics.current}
@@ -123,6 +119,7 @@ const ProfilePage: React.FC = () => {
         isLoading={logic.isDetailLoading}
         isError={logic.isDetailError}
       />
+
       <SearchDrawer
         isOpen={logic.searchDisclosure.isOpen}
         onClose={logic.searchDisclosure.onClose}

@@ -1,5 +1,19 @@
-// services/changes.ts
 const BASE_URL = "https://api.changes.tg"
+
+export interface ApiBackdrop {
+  name: string
+  centerColor: number
+  edgeColor: number
+  patternColor: number
+  textColor: number
+  rarityPermille: number
+  hex: {
+    centerColor: string
+    edgeColor: string
+    patternColor: string
+    textColor: string
+  }
+}
 
 export default class ChangesService {
   private static slugify(text: string): string {
@@ -7,8 +21,12 @@ export default class ChangesService {
   }
 
   static async getGifts(): Promise<string[]> {
-    const res = await fetch(`${BASE_URL}/gifts`)
-    return res.ok ? res.json() : []
+    try {
+      const res = await fetch(`${BASE_URL}/gifts`)
+      return res.ok ? res.json() : []
+    } catch {
+      return []
+    }
   }
 
   static async getModels(gift: string): Promise<string[]> {
@@ -19,13 +37,20 @@ export default class ChangesService {
     return data.map((m: any) => m.name)
   }
 
-  // Предположим, паттерны получаются так же. Если нет — можно заменить на статический список.
   static async getPatterns(gift: string): Promise<string[]> {
     if (!gift || gift === "Все подарки") return []
     const res = await fetch(`${BASE_URL}/patterns/${this.slugify(gift)}`)
     if (!res.ok) return []
     const data = await res.json()
     return data.map((p: any) => p.name)
+  }
+
+  // Получаем полные объекты фонов, так как нам нужны HEX-коды
+  static async getBackdrops(gift: string): Promise<ApiBackdrop[]> {
+    if (!gift || gift === "Все подарки") return []
+    const res = await fetch(`${BASE_URL}/backdrops/${this.slugify(gift)}`)
+    if (!res.ok) return []
+    return await res.json()
   }
 
   static getModelImage(gift: string, model: string): string {

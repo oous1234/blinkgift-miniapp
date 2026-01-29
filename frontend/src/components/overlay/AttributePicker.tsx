@@ -1,4 +1,3 @@
-// frontend/src/components/overlay/AttributePicker.tsx
 import React, { useState } from "react"
 import {
   Box,
@@ -34,38 +33,44 @@ export const AttributePicker: React.FC<AttributePickerProps> = ({
   isLoading,
 }) => {
   const [search, setSearch] = useState("")
-  const filtered = items.filter((i) => i.toLowerCase().includes(search.toLowerCase()))
+
+  const filtered = items.filter((i) => 
+    i.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <VStack spacing={4} align="stretch" h="100%">
-      <HStack spacing={4}>
+      <HStack spacing={4} px={2}>
         <IconButton
           aria-label="back"
           icon={<ArrowBackIcon />}
           onClick={onBack}
           variant="ghost"
           size="sm"
+          color="white"
         />
-        <Text fontWeight="900" fontSize="18px">
+        <Text fontWeight="900" fontSize="18px" color="white">
           {title}
         </Text>
       </HStack>
 
-      <InputGroup>
-        <InputLeftElement children={<SearchIcon color="gray.500" />} />
+      <InputGroup px={2}>
+        <InputLeftElement ml={2} children={<SearchIcon color="gray.500" />} />
         <Input
           placeholder="Поиск..."
           bg="whiteAlpha.50"
           border="none"
+          borderRadius="14px"
+          color="white"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </InputGroup>
 
-      <Box flex={1} overflowY="auto" pb={10}>
+      <Box flex={1} overflowY="auto" pb={10} px={2}>
         {isLoading ? (
           <Center py={10}>
-            <Spinner color="brand.500" />
+            <Spinner color="brand.500" size="lg" />
           </Center>
         ) : (
           <SimpleGrid columns={3} spacing={3}>
@@ -74,24 +79,29 @@ export const AttributePicker: React.FC<AttributePickerProps> = ({
                 key={item}
                 bg="whiteAlpha.50"
                 p={2}
-                borderRadius="16px"
+                borderRadius="20px"
                 onClick={() => onSelect(item)}
                 cursor="pointer"
-                _active={{ transform: "scale(0.95)" }}
+                transition="all 0.2s"
+                border="1px solid transparent"
+                _active={{ transform: "scale(0.95)", bg: "whiteAlpha.200", borderColor: "brand.500" }}
               >
-                <Center h="60px" mb={1}>
+                <Center h="70px" mb={1}>
                   {getImageUrl ? (
                     <Image
                       src={getImageUrl(item)}
-                      boxSize="50px"
+                      boxSize="60px"
                       objectFit="contain"
-                      fallback={<Spinner size="xs" />}
+                      loading="lazy"
+                      fallback={<Spinner size="xs" color="whiteAlpha.300" />}
+                      onLoad={() => console.log("Loaded:", getImageUrl(item))}
+                      onError={() => console.error("Failed to load:", getImageUrl(item))}
                     />
                   ) : (
                     <Box boxSize="40px" borderRadius="full" bg="whiteAlpha.100" />
                   )}
                 </Center>
-                <Text fontSize="10px" fontWeight="800" textAlign="center" isTruncated>
+                <Text fontSize="10px" fontWeight="800" textAlign="center" color="whiteAlpha.800" isTruncated>
                   {item}
                 </Text>
               </Box>

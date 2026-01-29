@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { VStack, SimpleGrid, Button, Box, Text, Flex, Icon } from "@chakra-ui/react"
-import { RepeatIcon } from "@chakra-ui/icons"
+import { VStack, SimpleGrid, Button, Box, Text, Flex, Icon, Spinner, Center, Image, HStack } from "@chakra-ui/react"
+import { RepeatIcon, ChevronRightIcon } from "@chakra-ui/icons"
 import { SearchField } from "./SearchField"
 import { GiftPreview } from "./GiftPreview"
 import { AttributePicker } from "./AttributePicker"
 import ChangesService, { ApiBackdrop } from "@services/changes"
+import InventoryService from "@services/inventory"
+import { GiftShortResponse } from "@types/inventory"
 
 type ViewState = "FORM" | "PICK_GIFT" | "PICK_MODEL" | "PICK_PATTERN" | "PICK_BACKDROP"
 
@@ -21,6 +23,11 @@ export const NftSearchSection: React.FC = () => {
   const [allGifts, setAllGifts] = useState<string[]>([])
   const [attributes, setAttributes] = useState({ models: [], patterns: [], backdrops: [], loading: false })
   const [form, setForm] = useState(INITIAL_FORM)
+
+  // Состояния для поиска
+  const [searchResults, setSearchResults] = useState<GiftShortResponse[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
     ChangesService.getGifts().then(setAllGifts)
@@ -41,7 +48,30 @@ export const NftSearchSection: React.FC = () => {
     }
   }, [form.gift, isGiftSelected])
 
-  const handleReset = () => setForm(INITIAL_FORM)
+  const handleReset = () => {
+    setForm(INITIAL_FORM)
+    setSearchResults([])
+    setHasSearched(false)
+  }
+
+  const handleSearch = async () => {
+    setIsSearching(true)
+    setHasSearched(true)
+    try {
+      const results = await InventoryService.searchGifts({
+        collection: form.gift,
+        model: form.model,
+        pattern: form.pattern,
+        backdrop: form.backdropObj?.name,
+        giftId: form.number ? parseInt(form.number) : undefined
+      })
+      setSearchResults(results)
+    } catch (error) {
+      console.error("Search error:", error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   const previewData = useMemo(() => {
     if (!isGiftSelected) return null
@@ -64,7 +94,7 @@ export const NftSearchSection: React.FC = () => {
   }, [])
 
   if (view !== "FORM") {
-    let items = view === "PICK_GIFT" ? allGifts : (view === "PICK_MODEL" ? attributes.models : (view === "PICK_PATTERN" ? attributes.patterns : attributes.backdrops))
+    const items = view === "PICK_GIFT" ? allGifts : (view === "PICK_MODEL" ? attributes.models : (view === "PICK_PATTERN" ? attributes.patterns : attributes.backdrops))
     return (
       <AttributePicker
         title={view === "PICK_GIFT" ? "Подарок" : view === "PICK_MODEL" ? "Модель" : view === "PICK_PATTERN" ? "Узор" : "Фон"}
@@ -85,72 +115,137 @@ export const NftSearchSection: React.FC = () => {
   }
 
   return (
-    <VStack spacing={3} align="stretch">
-      <Flex justify="space-between" align="center" px={1}>
-        <Text fontSize="10px" fontWeight="900" color="whiteAlpha.300" letterSpacing="1px">NFT PREVIEW</Text>
-        <Flex as="button" align="center" onClick={handleReset} _active={{ opacity: 0.5 }}>
-           <Icon as={RepeatIcon} boxSize="10px" color="brand.500" mr={1.5} />
-           <Text color="brand.500" fontSize="10px" fontWeight="900">СБРОСИТЬ</Text>
+    <VStack spacing={5} align="stretch" pb={10}>
+      <VStack spacing={3} align="stretch">
+        <Flex justify="space-between" align="center" px={1}>
+          <Text fontSize="10px" fontWeight="900" color="whiteAlpha.300" letterSpacing="1px">NFT PREVIEW</Text>
+          <Flex as="button" align="center" onClick={handleReset} _active={{ opacity: 0.5 }}>
+            <Icon as={RepeatIcon} boxSize="10px" color="brand.500" mr={1.5} />
+            <Text color="brand.500" fontSize="10px" fontWeight="900">СБРОСИТЬ</Text>
+          </Flex>
         </Flex>
-      </Flex>
 
-      <GiftPreview
-        giftName={form.gift}
-        modelUrl={previewData?.modelUrl}
-        patternUrl={previewData?.patternUrl}
-        bg={previewData?.bg}
-        isSelected={isGiftSelected}
-      />
+        <GiftPreview
+          giftName={form.gift}
+          modelUrl={previewData?.modelUrl}
+          patternUrl={previewData?.patternUrl}
+          bg={previewData?.bg}
+          isSelected={isGiftSelected}
+        />
 
-      <VStack spacing={2} align="stretch">
-        <SimpleGrid columns={2} spacing={3}>
-          <Box onClick={() => setView("PICK_GIFT")}>
-            <SearchField label="Подарок" isMenu readOnly>
-              <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.gift}</Text>
-            </SearchField>
-          </Box>
-          <Box onClick={() => isGiftSelected && setView("PICK_MODEL")} opacity={isGiftSelected ? 1 : 0.3}>
-            <SearchField label="Модель" isMenu readOnly>
-              <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.model}</Text>
-            </SearchField>
-          </Box>
-        </SimpleGrid>
+        <VStack spacing={2} align="stretch">
+          <SimpleGrid columns={2} spacing={3}>
+            <Box onClick={() => setView("PICK_GIFT")}>
+              <SearchField label="Подарок" isMenu readOnly>
+                <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.gift}</Text>
+              </SearchField>
+            </Box>
+            <Box onClick={() => isGiftSelected && setView("PICK_MODEL")} opacity={isGiftSelected ? 1 : 0.3}>
+              <SearchField label="Модель" isMenu readOnly>
+                <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.model}</Text>
+              </SearchField>
+            </Box>
+          </SimpleGrid>
 
-        <SimpleGrid columns={2} spacing={3}>
-          <Box onClick={() => setView("PICK_PATTERN")}>
-            <SearchField label="Узор" isMenu readOnly>
-              <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.pattern}</Text>
-            </SearchField>
-          </Box>
-          <Box onClick={() => setView("PICK_BACKDROP")}>
-            <SearchField label="Фон" isMenu readOnly>
-              <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.backdropObj?.name || "Любой"}</Text>
-            </SearchField>
-          </Box>
-        </SimpleGrid>
+          <SimpleGrid columns={2} spacing={3}>
+            <Box onClick={() => setView("PICK_PATTERN")}>
+              <SearchField label="Узор" isMenu readOnly>
+                <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.pattern}</Text>
+              </SearchField>
+            </Box>
+            <Box onClick={() => setView("PICK_BACKDROP")}>
+              <SearchField label="Фон" isMenu readOnly>
+                <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>{form.backdropObj?.name || "Любой"}</Text>
+              </SearchField>
+            </Box>
+          </SimpleGrid>
 
-        <SimpleGrid columns={2} spacing={3} alignItems="flex-end">
-          <SearchField
-            label="Номер #"
-            placeholder="Любой"
-            type="number"
-            value={form.number}
-            onChange={(e) => setForm(p => ({ ...p, number: e.target.value }))}
-          />
-          <Button
-            h="44px"
-            bg="brand.500"
-            color="black"
-            borderRadius="14px"
-            fontWeight="900"
-            fontSize="13px"
-            isDisabled={!isGiftSelected}
-            _active={{ transform: "scale(0.96)" }}
-          >
-            НАЙТИ
-          </Button>
-        </SimpleGrid>
+          <SimpleGrid columns={2} spacing={3} alignItems="flex-end">
+            <SearchField
+              label="Номер #"
+              placeholder="Любой"
+              type="number"
+              value={form.number}
+              onChange={(e) => setForm(p => ({ ...p, number: e.target.value }))}
+            />
+            <Button
+              h="44px"
+              bg="brand.500"
+              color="black"
+              borderRadius="14px"
+              fontWeight="900"
+              fontSize="13px"
+              isLoading={isSearching}
+              isDisabled={!isGiftSelected}
+              onClick={handleSearch}
+              _active={{ transform: "scale(0.96)" }}
+            >
+              НАЙТИ
+            </Button>
+          </SimpleGrid>
+        </VStack>
       </VStack>
+
+      {/* Результаты поиска */}
+      <Box mt={2}>
+        {isSearching ? (
+          <Center py={10}>
+            <Spinner color="brand.500" size="lg" thickness="3px" />
+          </Center>
+        ) : hasSearched ? (
+          <VStack align="stretch" spacing={3}>
+            <Text fontSize="10px" fontWeight="900" color="whiteAlpha.300" letterSpacing="1px" px={1}>
+              РЕЗУЛЬТАТЫ ({searchResults.length})
+            </Text>
+            {searchResults.length > 0 ? (
+              searchResults.map((item) => (
+                <SearchResultNftItem key={item.slug} item={item} />
+              ))
+            ) : (
+              <Center py={10} bg="whiteAlpha.50" borderRadius="20px">
+                <Text color="whiteAlpha.400" fontSize="13px" fontWeight="700">Ничего не найдено</Text>
+              </Center>
+            )}
+          </VStack>
+        ) : null}
+      </Box>
     </VStack>
+  )
+}
+
+// Вспомогательный компонент для элемента результата поиска
+const SearchResultNftItem: React.FC<{ item: GiftShortResponse }> = ({ item }) => {
+  return (
+    <Flex
+      bg="whiteAlpha.50"
+      p={3}
+      borderRadius="20px"
+      align="center"
+      justify="space-between"
+      transition="all 0.2s"
+      cursor="pointer"
+      _active={{ transform: "scale(0.98)", bg: "whiteAlpha.100" }}
+    >
+      <HStack spacing={3}>
+        <Box boxSize="50px" borderRadius="12px" overflow="hidden" bg="blackAlpha.300">
+          <Image src={item.image} w="100%" h="100%" objectFit="cover" />
+        </Box>
+        <VStack align="start" spacing={0}>
+          <Text fontWeight="800" fontSize="14px" color="white">
+            {item.slug.split('-')[0]} <Text as="span" color="brand.500">#{item.giftId}</Text>
+          </Text>
+          <Text fontSize="11px" color="whiteAlpha.500" fontWeight="600">
+            {item.model} • {item.backdrop}
+          </Text>
+        </VStack>
+      </HStack>
+      <VStack align="end" spacing={1}>
+        <HStack spacing={1} bg="brand.500" px={2} py={1} borderRadius="10px">
+           <Text fontSize="12px" fontWeight="900" color="gray.900">{item.estimatedPriceTon}</Text>
+           <Text fontSize="10px" fontWeight="900" color="gray.900">TON</Text>
+        </HStack>
+        <ChevronRightIcon color="whiteAlpha.300" />
+      </VStack>
+    </Flex>
   )
 }

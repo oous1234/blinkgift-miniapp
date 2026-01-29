@@ -36,7 +36,7 @@ export interface DetailedGiftResponse {
       username: string
     }
     slug: string
-    is_offchain: boolean // НОВОЕ ПОЛЕ
+    is_offchain: boolean
   }
   market_stats: MarketStat[]
   recent_sales: RecentSale[]
@@ -50,7 +50,7 @@ export interface ApiGiftItem {
   num: number
   model_name: string
   url: string
-  is_offchain?: boolean // НОВОЕ ПОЛЕ
+  is_offchain?: boolean
   gift_value?: {
     model_floor?: {
       average?: {
@@ -59,6 +59,27 @@ export interface ApiGiftItem {
     }
   }
 }
+
+// --- Новые типы для поиска ---
+export interface GiftSearchRequest {
+  collection?: string
+  model?: string
+  pattern?: string
+  backdrop?: string
+  giftId?: number
+}
+
+export interface GiftShortResponse {
+  backdrop: string
+  estimatedPriceTon: number
+  giftId: number
+  image: string
+  model: string
+  name: string | null
+  pattern: string
+  slug: string
+}
+// -----------------------------
 
 export interface GiftItem {
   id: string
@@ -70,7 +91,7 @@ export interface GiftItem {
   floorPrice: number
   currency: string
   num: number
-  isOffchain: boolean // НОВОЕ ПОЛЕ
+  isOffchain: boolean
   attributes?: GiftAttribute[]
   marketStats?: MarketStat[]
   recentSales?: RecentSale[]

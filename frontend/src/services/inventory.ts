@@ -5,6 +5,8 @@ import {
   ApiGiftItem,
   GiftItem,
   DetailedGiftResponse,
+  GiftSearchRequest,
+  GiftShortResponse,
 } from "../types/inventory"
 import { NftExplorerDetails } from "../types/explorer"
 
@@ -16,19 +18,29 @@ export default class InventoryService {
   ): Promise<InventoryServiceResponse> {
     const targetId =
         ownerId || window.Telegram.WebApp.initDataUnsafe?.user?.id?.toString() || "8241853306"
-
     const data = await apiRequest<InventoryResponse>("/inventory", "GET", null, {
       current_owner_id: targetId,
       limit: limit.toString(),
       offset: offset.toString(),
     })
-
     return {
       items: data.items.map(this.mapDtoToModel),
       total: data.total,
       limit: data.limit,
       offset: data.offset,
     }
+  }
+
+  static async searchGifts(params: GiftSearchRequest): Promise<GiftShortResponse[]> {
+    // Чистим параметры от пустых значений
+    const queryParams: Record<string, string> = {}
+    if (params.collection && params.collection !== "Все подарки") queryParams.collection = params.collection
+    if (params.model && params.model !== "Любая модель") queryParams.model = params.model
+    if (params.pattern && params.pattern !== "Любой узор") queryParams.pattern = params.pattern
+    if (params.backdrop) queryParams.backdrop = params.backdrop
+    if (params.giftId) queryParams.giftId = params.giftId.toString()
+
+    return await apiRequest<GiftShortResponse[]>("/api/v1/gifts/search", "GET", null, queryParams)
   }
 
   static async getGiftDetail(slugWithNum: string): Promise<GiftItem> {
@@ -48,12 +60,11 @@ export default class InventoryService {
       recentSales: data.recent_sales,
       estimatedPrice: data.gift.estimated_price_ton,
       ownerUsername: data.gift.owner.username,
+      isOffchain: data.gift.is_offchain
     }
   }
 
-  // НОВЫЙ МЕТОД: Исследователь блокчейна
   static async getNftBlockchainDetails(address: string): Promise<NftExplorerDetails> {
-    // Временно используем хардкод адреса для теста
     const testAddr = "EQAlCt5luoSZ9ihvGarDP5T89hycr2AY-WXDWnUVMWPtryPx"
     return await apiRequest<NftExplorerDetails>(`/api/v1/nft-explorer/details/${testAddr}`, "GET")
   }
@@ -70,6 +81,7 @@ export default class InventoryService {
       currency: "TON",
       num: dto.num,
       rarity: dto.num < 1000 ? "Legendary" : "Common",
+      isOffchain: dto.is_offchain || false
     }
   }
 }

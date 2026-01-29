@@ -39,7 +39,8 @@ export default class ChangesService {
     }
 
     static getOriginalImage(gift: string): string {
-        const g = gift.replace(/\s+/g, "")
+        // Убираем пробелы и приводим к нижнему регистру
+        const g = gift.replace(/\s+/g, "").toLowerCase()
         return `${BASE_URL}/original/${g}.png`
     }
 }

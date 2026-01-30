@@ -8,13 +8,14 @@ const config: ThemeConfig = {
 export const customTheme = extendTheme({
   config,
   fonts: {
-    heading: "'Montserrat', sans-serif",
-    body: "'Montserrat', sans-serif",
+    // Roboto + системные шрифты как в твоем CSS
+    heading: "Roboto, system-ui, sans-serif",
+    body: "Roboto, system-ui, sans-serif",
   },
   colors: {
     brand: {
       50: "#f5f0ff",
-      100: "#e8d7fd", // Основной светлый акцент
+      100: "#e8d7fd",
       200: "#d1b3ff",
       500: "#e8d7fd",
       bg: "#0F1115",
@@ -29,6 +30,12 @@ export const customTheme = extendTheme({
         bg: "brand.bg",
         color: "white",
         WebkitTapHighlightColor: "transparent",
+        // Настройки из твоего фрагмента
+        fontSize: "14px",
+        lineHeight: "16px",
+        // Оптимизация отображения шрифта
+        textRendering: "optimizeLegibility",
+        WebkitFontSmoothing: "antialiased",
       },
       "::-webkit-scrollbar": {
         display: "none",
@@ -38,26 +45,28 @@ export const customTheme = extendTheme({
   components: {
     Button: {
       baseStyle: {
-        borderRadius: "18px",
-        fontWeight: "900",
-        _active: { transform: "scale(0.96)" },
+        // Умеренные скругления, характерные для Roboto-интерфейсов
+        borderRadius: "12px",
+        fontWeight: "500", // Roboto лучше всего выглядит на 500 весах в кнопках
+        _active: { transform: "scale(0.97)" },
       },
       variants: {
         brand: {
           bg: "brand.500",
           color: "black",
-          _hover: { bg: "brand.200" },
         },
-        ghost: {
-            _hover: { bg: "brand.surface" }
-        }
+      },
+    },
+    Heading: {
+      baseStyle: {
+        fontWeight: "700",
       },
     },
     Drawer: {
       baseStyle: {
         dialog: {
           bg: "brand.bg",
-          borderTopRadius: "32px",
+          borderTopRadius: "20px",
         },
       },
     },

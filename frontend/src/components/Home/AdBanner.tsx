@@ -40,7 +40,6 @@ const MotionBox = motion(Box)
 const AdBanner: React.FC = () => {
   const [index, setIndex] = useState(0)
 
-  // Определяем платформу через Telegram API
   const isMobileDevice = useMemo(() => {
     const platform = window.Telegram?.WebApp?.platform || "unknown"
     return platform === "android" || platform === "ios"
@@ -55,19 +54,13 @@ const AdBanner: React.FC = () => {
 
   const current = banners[index]
 
-  // Настройки для ПК: Высокий баннер, маленький текст внизу
   const config = {
-    // Увеличили общую высоту на ПК до 48px
     height: isMobileDevice ? "140px" : "48px",
-    // Отступ сверху только для телефонов
     paddingTop: isMobileDevice ? "env(safe-area-inset-top)" : "0px",
-    // Шрифт на ПК делаем совсем мелким
     fontSize: isMobileDevice ? "10px" : "9px",
     iconSize: isMobileDevice ? "13px" : "10px",
     borderRadius: isMobileDevice ? "25px" : "12px",
-    // Прижимаем контент к низу на обоих устройствах
     align: "flex-end",
-    // Отступ от самого нижнего края (на ПК поменьше, на мобилках побольше)
     paddingBottom: isMobileDevice ? "20px" : "8px",
   }
 

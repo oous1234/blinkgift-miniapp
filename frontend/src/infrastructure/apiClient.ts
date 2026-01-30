@@ -13,18 +13,12 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = new URL(`${API_URL}${endpoint}`)
 
-  // 1. Получаем данные из Telegram
   const initData = AUTH_CONFIG.getInitData()
 
-  // 2. Определяем, что отправлять в tgauth
-  // Если мы в Telegram — шлем реальную строку.
-  // Если в браузере — шлем наш мок-объект.
   const tgAuthValue = AUTH_CONFIG.EXTERNAL_TGAUTH
 
-  // 3. Бэкенд требует tgauth в каждом запросе
   url.searchParams.append("tgauth", tgAuthValue)
 
-  // 4. Добавляем остальные параметры
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) url.searchParams.append(key, String(value))
@@ -35,7 +29,6 @@ export async function apiRequest<T>(
     "Content-Type": "application/json",
   }
 
-  // 5. Важно: шлем Authorization только если есть реальные данные Telegram
   if (initData) {
     headers["Authorization"] = initData
   }
@@ -47,7 +40,6 @@ export async function apiRequest<T>(
   })
 
   if (!response.ok) {
-    // Выводим ошибку в консоль, чтобы было проще дебажить
     const errorBody = await response.json().catch(() => ({}));
     console.error(`[API Error] ${response.status}:`, errorBody);
 

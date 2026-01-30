@@ -24,8 +24,6 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({ images }) => {
   return (
     <Box
       position="relative"
-      // --- ИЗМЕНЕНИЯ ДЛЯ ПОЛНОЙ ШИРИНЫ (EDGE-TO-EDGE) ---
-      // Родительский контейнер имеет px="16px", поэтому:
       w="calc(100% + 32px)" // 1. Делаем ширину больше на 32px (16px слева + 16px справа)
       ml="-16px" // 2. Сдвигаем влево на 16px, чтобы прижаться к левому краю экрана
       borderRadius="0" // 3. Убираем скругление полностью

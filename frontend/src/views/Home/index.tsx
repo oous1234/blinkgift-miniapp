@@ -2,121 +2,113 @@ import React from "react"
 import {
   Box,
   SimpleGrid,
-  Skeleton,
   Text,
-  Collapse,
   VStack,
-  IconButton,
   HStack,
-  Avatar,
+  Heading,
+  Flex,
+  Icon,
+  Divider,
 } from "@chakra-ui/react"
-import { ChevronDownIcon, ChevronUpIcon, ArrowBackIcon } from "@chakra-ui/icons"
-import { useNavigate, useLocation } from "react-router-dom"
-
 import { useHomeLogic } from "./hooks/useHomeLogic"
-import { NetWorthCard } from "@components/Home/NetWorthCard"
 import { GiftCard } from "@components/Home/GiftCard"
 import { Pagination } from "@components/Home/Pagination"
-import { PortfolioChart } from "@components/Home/PortfolioChart"
-import { CardSurface, StatRow } from "@components/Shared/UI"
-
+import { CardSurface } from "@components/Shared/UI"
 import BottomNavigation from "@components/navigation/BottomNavigation"
 import GiftDetailDrawer from "@components/overlay/GiftDetailDrawer"
 import SearchDrawer from "@components/overlay/search/SearchDrawer"
+import { TonIconBlue, GiftIconMini } from "@components/Shared/Icons"
+import { InfoOutlineIcon } from "@chakra-ui/icons"
 
 const ProfilePage: React.FC = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
   const logic = useHomeLogic()
 
-  const profile = location.state as { name?: string; username?: string; avatarUrl?: string }
+  // Тестовые данные для анализатора
+  const analysisStats = {
+    rarityScore: 85,
+    avgHoldTime: "14д",
+    topCategory: "Plushies",
+    estimatedAnnualProfit: "+140 TON"
+  }
 
   return (
-    <Box minH="100vh" bg="brand.bg" px={4} pt={4} pb="120px">
-      {/* Шапка для режима просмотра чужого профиля */}
-      {logic.isVisitorMode && (
-        <HStack justify="space-between" mb={6} bg="whiteAlpha.50" p={3} borderRadius="20px">
-          <HStack spacing={3}>
-            <Avatar
-              src={profile?.avatarUrl}
-              name={profile?.name}
-              size="sm"
-              borderRadius="12px"
-              border="1px solid"
-              borderColor="brand.500"
-            />
+    <Box minH="100vh" bg="#0F1115" px={4} pt={2} pb="120px">
+
+      {/* БЛОК 1: ОБЩАЯ СВОДКА ПОРТФЕЛЯ (В стиле Drawer Header) */}
+      <CardSurface p={6} mb={4} mt={2}>
+        <VStack align="stretch" spacing={4}>
+          <HStack justify="space-between" align="flex-start">
             <VStack align="start" spacing={0}>
-              <Text fontWeight="800" fontSize="14px">{profile?.name || "User"}</Text>
-              <Text fontSize="11px" color="whiteAlpha.400">@{profile?.username}</Text>
+              <Text color="whiteAlpha.400" fontSize="11px" fontWeight="900" textTransform="uppercase" letterSpacing="1px">
+                Оценка портфеля
+              </Text>
+              <HStack spacing={2}>
+                <Text fontSize="36px" fontWeight="900" lineHeight="1">
+                  {logic.analytics.current.toFixed(2)}
+                </Text>
+                <TonIconBlue boxSize="24px" mt={1} />
+              </HStack>
             </VStack>
+            <Flex
+              bg="rgba(76, 217, 100, 0.15)"
+              color="#4CD964"
+              px={3}
+              py={1}
+              borderRadius="10px"
+              fontSize="13px"
+              fontWeight="900"
+            >
+              +{logic.analytics.percent.toFixed(2)}%
+            </Flex>
           </HStack>
-          <IconButton
-            aria-label="Back"
-            icon={<ArrowBackIcon />}
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-          />
-        </HStack>
-      )}
 
-      {/* Основная карточка стоимости */}
-      <Skeleton isLoaded={!logic.isChartLoading} borderRadius="24px">
-        <NetWorthCard
-          totalValue={logic.analytics.current}
-          pnlPercent={logic.analytics.percent}
-        />
-      </Skeleton>
-
-      {/* Кнопка открытия аналитики */}
-      <CardSurface
-        as="button"
-        w="100%"
-        onClick={logic.statsDisclosure.onToggle}
-        mt={4}
-        p={4}
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        _active={{ transform: "scale(0.98)", bg: "whiteAlpha.100" }}
-      >
-        <Text fontSize="12px" fontWeight="900" letterSpacing="0.5px" textTransform="uppercase">
-          Аналитика портфеля
-        </Text>
-        {logic.statsDisclosure.isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          <SimpleGrid columns={2} spacing={4} pt={2}>
+            <VStack align="start" spacing={0}>
+              <Text color="whiteAlpha.400" fontSize="10px" fontWeight="800">ПРИБЫЛЬ (P/L)</Text>
+              <Text fontSize="15px" fontWeight="800" color="#4CD964">+{logic.analytics.pnl.toFixed(2)} TON</Text>
+            </VStack>
+            <VStack align="start" spacing={0}>
+              <Text color="whiteAlpha.400" fontSize="10px" fontWeight="800">ВСЕГО NFT</Text>
+              <Text fontSize="15px" fontWeight="800">{logic.totalCount} шт.</Text>
+            </VStack>
+          </SimpleGrid>
+        </VStack>
       </CardSurface>
 
-      {/* Раздел с графиком */}
-      <Collapse in={logic.statsDisclosure.isOpen}>
-        <CardSurface mt={2} p={5}>
-          <PortfolioChart
-            historyData={logic.historyData}
-            selectedPeriod={logic.chartPeriod}
-            onPeriodChange={logic.setChartPeriod}
-          />
-          <VStack align="stretch" mt={6}>
-            <StatRow
-              label="Текущая оценка"
-              value={`${logic.analytics.current.toFixed(2)} TON`}
-              isAccent
-            />
-            <StatRow
-              label="Количество подарков"
-              value={`${logic.totalCount} шт.`}
-            />
-          </VStack>
-        </CardSurface>
-      </Collapse>
+      {/* БЛОК 2: АНАЛИТИЧЕСКИЕ ИНСАЙТЫ (Анализатор) */}
+      <CardSurface p={5} mb={6} border="1px solid" borderColor="brand.500" boxShadow="0 0 20px rgba(232, 215, 253, 0.05)">
+        <HStack mb={4} spacing={2}>
+          <Icon as={InfoOutlineIcon} color="brand.500" boxSize="14px" />
+          <Text fontSize="12px" fontWeight="900" letterSpacing="0.5px" textTransform="uppercase">
+            Анализ коллекции
+          </Text>
+        </HStack>
 
-      {/* Сетка подарков */}
-      <Box mt={6}>
-        <Skeleton isLoaded={!logic.isInvLoading} minH="200px">
-          <SimpleGrid columns={2} spacing={3}>
-            {logic.items.map((item) => (
-              <GiftCard key={item.id} item={item} onClick={logic.handleGiftClick} />
-            ))}
-          </SimpleGrid>
-        </Skeleton>
+        <VStack align="stretch" spacing={3}>
+          <InsightRow label="Rarity Score" value={`${analysisStats.rarityScore}/100`} />
+          <InsightRow label="Среднее удержание" value={analysisStats.avgHoldTime} />
+          <InsightRow label="Лучшая категория" value={analysisStats.topCategory} />
+          <InsightRow label="Ожидаемый доход" value={analysisStats.estimatedAnnualProfit} isGreen />
+        </VStack>
+      </CardSurface>
+
+      {/* БЛОК 3: ИНВЕНТАРЬ (Сетка подарков) */}
+      <Box mb={4}>
+        <HStack justify="space-between" mb={4} px={1}>
+          <HStack spacing={2}>
+            <Icon as={GiftIconMini} color="whiteAlpha.600" />
+            <Heading size="sm" fontWeight="900">ИНВЕНТАРЬ</Heading>
+          </HStack>
+          <Text fontSize="xs" color="whiteAlpha.400" fontWeight="800">
+            {logic.items.length} из {logic.totalCount}
+          </Text>
+        </HStack>
+
+        <SimpleGrid columns={2} spacing={3}>
+          {logic.items.map((item) => (
+            <GiftCard key={item.id} item={item} onClick={logic.handleGiftClick} />
+          ))}
+        </SimpleGrid>
       </Box>
 
       {/* Пагинация */}
@@ -127,7 +119,7 @@ const ProfilePage: React.FC = () => {
         onPageChange={logic.setPage}
       />
 
-      {/* Оверлеи */}
+      {/* Модалки и Навигация */}
       <GiftDetailDrawer
         isOpen={logic.detailDisclosure.isOpen}
         onClose={logic.detailDisclosure.onClose}
@@ -135,15 +127,21 @@ const ProfilePage: React.FC = () => {
         isLoading={logic.isDetailLoading}
         isError={logic.isDetailError}
       />
-
       <SearchDrawer
         isOpen={logic.searchDisclosure.isOpen}
         onClose={logic.searchDisclosure.onClose}
       />
-
       <BottomNavigation onSearchOpen={logic.searchDisclosure.onOpen} />
     </Box>
   )
 }
+
+// Вспомогательный компонент для строк анализа
+const InsightRow = ({ label, value, isGreen }: { label: string, value: string, isGreen?: boolean }) => (
+  <Flex justify="space-between" align="center">
+    <Text color="whiteAlpha.500" fontSize="12px" fontWeight="700">{label}</Text>
+    <Text fontSize="13px" fontWeight="900" color={isGreen ? "#4CD964" : "white"}>{value}</Text>
+  </Flex>
+)
 
 export default ProfilePage

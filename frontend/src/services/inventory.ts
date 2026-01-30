@@ -7,6 +7,7 @@ import {
   DetailedGiftResponse,
   GiftSearchRequest,
   GiftShortResponse,
+  PagedResponse,
 } from "../types/inventory"
 import { NftExplorerDetails } from "../types/explorer"
 
@@ -31,9 +32,9 @@ export default class InventoryService {
     }
   }
 
-  static async searchGifts(params: GiftSearchRequest): Promise<GiftShortResponse[]> {
-    // Изменено на POST и новый путь /api/v1/search/gifts
-    return await apiRequest<GiftShortResponse[]>("/api/v1/search/gifts", "POST", params)
+  // ОБНОВЛЕНО: теперь возвращает PagedResponse
+  static async searchGifts(params: GiftSearchRequest): Promise<PagedResponse<GiftShortResponse>> {
+    return await apiRequest<PagedResponse<GiftShortResponse>>("/api/v1/search/gifts", "POST", params)
   }
 
   static async getGiftDetail(slugWithNum: string): Promise<GiftItem> {

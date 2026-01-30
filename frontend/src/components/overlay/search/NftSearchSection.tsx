@@ -10,14 +10,15 @@ import {
   Spinner,
   Center,
   Image,
-  HStack,
   AspectRatio,
   Badge,
+  Select,
 } from "@chakra-ui/react"
 import { RepeatIcon } from "@chakra-ui/icons"
 import { SearchField } from "./SearchField"
 import { GiftPreview } from "./GiftPreview"
 import { AttributePicker } from "./AttributePicker"
+import { Pagination } from "../../Home/Pagination"
 import ChangesService, { ApiBackdrop } from "@services/changes"
 import InventoryService from "@services/inventory"
 import { GiftShortResponse } from "@types/inventory"
@@ -30,7 +31,10 @@ const INITIAL_FORM = {
   pattern: "Любой узор",
   backdropObj: null as ApiBackdrop | null,
   number: "",
+  sortBy: "newest",
 }
+
+const PAGE_SIZE = 20
 
 export const NftSearchSection: React.FC = () => {
   const [view, setView] = useState<ViewState>("FORM")
@@ -41,8 +45,11 @@ export const NftSearchSection: React.FC = () => {
     backdrops: [],
     loading: false,
   })
+
   const [form, setForm] = useState(INITIAL_FORM)
   const [searchResults, setSearchResults] = useState<GiftShortResponse[]>([])
+  const [totalResults, setTotalResults] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
@@ -68,27 +75,56 @@ export const NftSearchSection: React.FC = () => {
   const handleReset = () => {
     setForm(INITIAL_FORM)
     setSearchResults([])
+    setTotalResults(0)
     setHasSearched(false)
+    setCurrentPage(1)
   }
 
-  const handleSearch = async () => {
+  const handleSearch = async (page: number = 1) => {
     setIsSearching(true)
     setHasSearched(true)
+    setCurrentPage(page)
+
+    // ЛОГИКА ФОРМИРОВАНИЯ QUERY
+    // Если выбран подарок, мы берем его название.
+    // Если введен номер/текст в поиске, добавляем его (например "Trapped Heart 123")
+    let searchQuery = ""
+    if (form.gift !== "Все подарки") {
+      searchQuery = form.gift
+      if (form.number) {
+        searchQuery += ` ${form.number}`
+      }
+    } else {
+      searchQuery = form.number
+    }
+
     try {
-      const results = await InventoryService.searchGifts({
-        symbols: form.gift !== "Все подарки" ? [form.gift] : undefined,
+      const response = await InventoryService.searchGifts({
+        // ТЕПЕРЬ передаем собранную строку в query
+        query: searchQuery.trim() || undefined,
+
+        // Остальные фильтры (если выбраны)
         models: form.model !== "Любая модель" ? [form.model] : undefined,
         backdrops: form.backdropObj ? [form.backdropObj.name] : undefined,
-        query: form.number ? form.number : undefined,
-        limit: 40,
-        offset: 0,
+
+        sortBy: form.sortBy,
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
       })
-      setSearchResults(results)
+
+      setSearchResults(response.items)
+      setTotalResults(response.total)
     } catch (error) {
       console.error("Search error:", error)
     } finally {
       setIsSearching(false)
     }
+  }
+
+  const onPageChange = (page: number) => {
+    handleSearch(page)
+    const resultsHeader = document.getElementById("results-header")
+    resultsHeader?.scrollIntoView({ behavior: "smooth" })
   }
 
   const previewData = useMemo(() => {
@@ -232,40 +268,71 @@ export const NftSearchSection: React.FC = () => {
               value={form.number}
               onChange={(e) => setForm((p) => ({ ...p, number: e.target.value }))}
             />
-            <Button
-              h="44px"
+            <VStack align="stretch" spacing={1}>
+                 <Text fontSize="11px" fontWeight="800" color="whiteAlpha.500" ml="4px" textTransform="uppercase">Сортировка</Text>
+                 <Select
+                    h="44px"
+                    bg="#1F232E"
+                    border="1px solid"
+                    borderColor="whiteAlpha.100"
+                    borderRadius="16px"
+                    fontSize="13px"
+                    fontWeight="700"
+                    color="white"
+                    value={form.sortBy}
+                    onChange={(e) => setForm(f => ({...f, sortBy: e.target.value}))}
+                >
+                    <option value="newest" style={{backgroundColor: "#1F232E"}}>Новинки</option>
+                    <option value="price_asc" style={{backgroundColor: "#1F232E"}}>Дешевле</option>
+                    <option value="price_desc" style={{backgroundColor: "#1F232E"}}>Дороже</option>
+                </Select>
+            </VStack>
+          </SimpleGrid>
+
+          <Button
+              mt={2}
+              h="52px"
               bg="brand.500"
               color="black"
-              borderRadius="14px"
+              borderRadius="18px"
               fontWeight="900"
-              fontSize="13px"
+              fontSize="15px"
               isLoading={isSearching}
               isDisabled={!isGiftSelected}
-              onClick={handleSearch}
+              onClick={() => handleSearch(1)}
               _active={{ transform: "scale(0.96)" }}
             >
-              НАЙТИ
+              ПОИСК
             </Button>
-          </SimpleGrid>
         </VStack>
       </VStack>
 
-      <Box mt={2}>
-        {isSearching ? (
+      <Box mt={4} id="results-header">
+        {isSearching && searchResults.length === 0 ? (
           <Center py={10}>
             <Spinner color="brand.500" size="lg" thickness="3px" />
           </Center>
         ) : hasSearched ? (
           <VStack align="stretch" spacing={4}>
             <Text fontSize="10px" fontWeight="900" color="whiteAlpha.300" letterSpacing="1px" px={1}>
-              РЕЗУЛЬТАТЫ ({searchResults.length})
+              РЕЗУЛЬТАТЫ ({totalResults})
             </Text>
+
             {searchResults.length > 0 ? (
-              <SimpleGrid columns={2} spacing={4}>
-                {searchResults.map((item) => (
-                  <NftSearchResultCard key={item.id} item={item} />
-                ))}
-              </SimpleGrid>
+              <>
+                <SimpleGrid columns={2} spacing={4}>
+                  {searchResults.map((item) => (
+                    <NftSearchResultCard key={item.id} item={item} />
+                  ))}
+                </SimpleGrid>
+
+                <Pagination
+                    currentPage={currentPage}
+                    totalCount={totalResults}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={onPageChange}
+                />
+              </>
             ) : (
               <Center py={10} bg="whiteAlpha.50" borderRadius="20px">
                 <Text color="whiteAlpha.400" fontSize="13px" fontWeight="700">
@@ -282,7 +349,6 @@ export const NftSearchSection: React.FC = () => {
 
 const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) => {
   const isForSale = item.price && item.price > 0
-
   return (
     <Box
       position="relative"
@@ -298,8 +364,6 @@ const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) =>
       <AspectRatio ratio={1}>
         <Box position="relative">
           <Image src={item.image} w="100%" h="100%" objectFit="cover" />
-
-          {/* Badge: On-chain / Off-chain (Top Left) */}
           <Box position="absolute" top="10px" left="10px">
             <Badge
               bg={item.is_offchain ? "orange.400" : "blue.500"}
@@ -314,8 +378,6 @@ const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) =>
               {item.is_offchain ? "Off-chain" : "On-chain"}
             </Badge>
           </Box>
-
-          {/* Badge: Sale Status (Top Right) */}
           <Box position="absolute" top="10px" right="10px">
             <Badge
               bg={isForSale ? "green.400" : "whiteAlpha.300"}
@@ -326,11 +388,9 @@ const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) =>
               px={2}
               py={0.5}
             >
-              {isForSale ? "SALE" : "PRIVATE"}
+              {isForSale ? `${item.price} ${item.currency || 'TON'}` : "PRIVATE"}
             </Badge>
           </Box>
-
-          {/* Bottom Info Gradient */}
           <Box
             position="absolute"
             bottom="0"
@@ -342,10 +402,10 @@ const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) =>
           >
             <VStack align="start" spacing={0.5}>
               <Text fontSize="12px" fontWeight="900" color="white" isTruncated w="100%">
-                {item.name || item.slug.split('-')[0]}
+                {item.name || item.slug}
               </Text>
               <Text fontSize="9px" color="brand.500" fontWeight="800" letterSpacing="0.2px">
-                {item.slug}
+                {item.rarity}
               </Text>
             </VStack>
           </Box>

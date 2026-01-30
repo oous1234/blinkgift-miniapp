@@ -60,6 +60,14 @@ export interface ApiGiftItem {
   }
 }
 
+// Новый интерфейс для пагинированных ответов
+export interface PagedResponse<T> {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export interface GiftSearchRequest {
   query?: string
   models?: string[]
@@ -68,7 +76,7 @@ export interface GiftSearchRequest {
   rarities?: string[]
   minPrice?: number
   maxPrice?: number
-  sortBy?: string
+  sortBy?: string // "price_asc" | "price_desc" | "newest"
   limit?: number
   offset?: number
 }

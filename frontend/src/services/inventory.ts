@@ -1,81 +1,57 @@
-import { apiRequest } from "../infrastructure/apiClient"
-import {
-  InventoryResponse,
-  InventoryServiceResponse,
-  ApiGiftItem,
-  GiftItem,
-  DetailedGiftResponse,
-  GiftSearchRequest,
-  GiftShortResponse,
-  PagedResponse,
-} from "../types/inventory"
-import { NftExplorerDetails } from "../types/explorer"
+import { apiRequest } from "../infrastructure/apiClient";
+import { GiftItem, GiftAttribute } from "../types";
 
 export default class InventoryService {
-  static async getItems(
-      limit: number,
-      offset: number,
-      ownerId?: string
-  ): Promise<InventoryServiceResponse> {
-    const targetId =
-        ownerId || window.Telegram.WebApp.initDataUnsafe?.user?.id?.toString() || "8241853306"
-    const data = await apiRequest<InventoryResponse>("/inventory", "GET", null, {
-      current_owner_id: targetId,
-      limit: limit.toString(),
-      offset: offset.toString(),
-    })
-    return {
-      items: data.items.map(this.mapDtoToModel),
-      total: data.total,
-      limit: data.limit,
-      offset: data.offset,
+  static async getItems(limit: number, offset: number, ownerId?: string) {
+    try {
+      const targetId = ownerId || window.Telegram.WebApp.initDataUnsafe?.user?.id?.toString() || "8241853306"
+
+      const response = await apiRequest<{ items: any[]; total: number }>("/inventory", "GET", null, {
+        current_owner_id: targetId,
+        limit: String(limit),
+        offset: String(offset),
+      })
+
+      return {
+        total: Number(response.total) || 0, // Принудительно в число
+        items: (response.items || []).map(this.mapDtoToGift)
+      }
+    } catch (error) {
+      console.error("Failed to fetch items", error)
+      return { total: 0, items: [] } // Возвращаем пустую структуру при ошибке
     }
   }
 
-  // ОБНОВЛЕНО: теперь возвращает PagedResponse
-  static async searchGifts(params: GiftSearchRequest): Promise<PagedResponse<GiftShortResponse>> {
-    return await apiRequest<PagedResponse<GiftShortResponse>>("/api/v1/search/gifts", "POST", params)
-  }
+  static async getGiftDetail(slug: string, num: number): Promise<GiftItem> {
+    const data = await apiRequest<any>(`/api/v1/gifts/${slug}-${num}`);
+    const gift = data.gift;
 
-  static async getGiftDetail(slugWithNum: string): Promise<GiftItem> {
-    const data = await apiRequest<DetailedGiftResponse>(`/api/v1/gifts/${slugWithNum}`, "GET")
     return {
-      id: data.gift.slug,
-      giftId: data.gift.id.toString(),
-      name: data.gift.name,
-      collection: "Telegram Gift",
-      image: `https://nft.fragment.com/gift/${data.gift.slug}.webp`,
-      floorPrice: data.gift.estimated_price_ton,
-      currency: data.gift.currency,
-      num: data.gift.id,
-      rarity: "NFT",
+      id: gift.slug,
+      giftId: String(gift.id),
+      name: gift.name,
+      slug: gift.slug,
+      num: gift.id,
+      image: `https://nft.fragment.com/gift/${gift.slug}-${gift.id}.webp`,
+      floorPrice: gift.estimated_price_ton,
+      estimatedPrice: gift.estimated_price_ton,
+      isOffchain: gift.is_offchain,
+      ownerUsername: gift.owner?.username,
       attributes: data.attributes,
-      marketStats: data.market_stats,
-      recentSales: data.recent_sales,
-      estimatedPrice: data.gift.estimated_price_ton,
-      ownerUsername: data.gift.owner.username,
-      isOffchain: data.gift.is_offchain
-    }
+    };
   }
 
-  static async getNftBlockchainDetails(address: string): Promise<NftExplorerDetails> {
-    const testAddr = "EQAlCt5luoSZ9ihvGarDP5T89hycr2AY-WXDWnUVMWPtryPx"
-    return await apiRequest<NftExplorerDetails>(`/api/v1/nft-explorer/details/${testAddr}`, "GET")
-  }
-
-  private static mapDtoToModel(dto: ApiGiftItem): GiftItem {
-    const address = `${dto.slug}-${dto.num}`
+  private static mapDtoToGift(dto: any): GiftItem {
     return {
       id: dto.id,
       giftId: dto.gift_id,
       name: dto.title,
-      collection: dto.model_name,
-      image: `https://nft.fragment.com/gift/${address}.webp`,
-      floorPrice: dto.gift_value?.model_floor?.average?.ton || 0,
-      currency: "TON",
+      slug: dto.slug,
       num: dto.num,
+      image: `https://nft.fragment.com/gift/${dto.slug}-${dto.num}.webp`,
+      floorPrice: dto.gift_value?.model_floor?.average?.ton || 0,
       rarity: dto.num < 1000 ? "Legendary" : "Common",
-      isOffchain: dto.is_offchain || false
-    }
+      isOffchain: dto.is_offchain || false,
+    };
   }
 }

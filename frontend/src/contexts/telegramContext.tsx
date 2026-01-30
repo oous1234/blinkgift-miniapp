@@ -1,62 +1,59 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import SuperFetch from "@infrastructure/superFetch"
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react"
 import { WebApp } from "@grammyjs/web-app"
-import { useLocation } from "react-router-dom"
-import Wallet from "@services/wallet"
-import { useCustomToast } from "@helpers/toastUtil"
+import WalletService from "@services/wallet"
 
 interface TelegramContextType {
-  userData: WebAppInitData
-  getBalance: () => Promise<void>
+  webApp: typeof WebApp
+  user: typeof WebApp.initDataUnsafe.user
+  isReady: boolean
   balance: number | null
+  refreshBalance: () => Promise<void>
 }
 
-const emptyTelegramContext: TelegramContextType = {
-  userData: { hash: "", auth_date: 0 },
-  getBalance: async () => {},
-  balance: null,
-}
+const TelegramContext = createContext<TelegramContextType | undefined>(undefined)
 
-const TelegramContext: React.Context<TelegramContextType> =
-  createContext<TelegramContextType>(emptyTelegramContext)
-
-interface TelegramProviderProps {
-  children: React.ReactNode
-}
-
-const TelegramContextProvider: React.FC<TelegramProviderProps> = ({ children }) => {
-  const emptyUserData: WebAppInitData = { hash: "", auth_date: 0 }
-  const [userData, setUserData] = useState<WebAppInitData>(emptyUserData)
+export const TelegramContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [balance, setBalance] = useState<number | null>(null)
-  const [hasExpanded, setHasExpanded] = useState<boolean>(false)
+  const [isReady, setIsReady] = useState(false)
 
-  if (!hasExpanded && !window.Telegram.WebApp.isExpanded) {
-    setHasExpanded(true)
-    window.Telegram.WebApp.expand()
-  }
-
-  const showToast = useCustomToast()
-  const getBalance = async () => {
-    const res = await Wallet.getBalance(showToast)
-    if (!res && res !== 0) return
-    setBalance(res)
+  const refreshBalance = async () => {
+    try {
+      const val = await WalletService.getBalance()
+      if (val !== undefined) setBalance(val)
+    } catch (e) {
+      console.error("Balance refresh failed", e)
+    }
   }
 
   useEffect(() => {
-    WebApp.ready()
-    setUserData(WebApp.initDataUnsafe)
-    SuperFetch.setToken(WebApp.initData)
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp
+      tg.ready()
+      tg.expand()
+      setIsReady(true)
+      refreshBalance()
+    }
   }, [])
 
+  const value = useMemo(() => ({
+    webApp: WebApp,
+    user: WebApp.initDataUnsafe.user,
+    isReady,
+    balance,
+    refreshBalance
+  }), [isReady, balance])
+
   return (
-    <TelegramContext.Provider value={{ userData, getBalance, balance }}>
+    <TelegramContext.Provider value={value}>
       {children}
     </TelegramContext.Provider>
   )
 }
 
-const useTelegramContext = () => {
-  return useContext(TelegramContext)
+export const useTelegram = () => {
+  const context = useContext(TelegramContext)
+  if (context === undefined) {
+    throw new Error("useTelegram must be used within a TelegramContextProvider")
+  }
+  return context
 }
-
-export { TelegramContextProvider, useTelegramContext }

@@ -1,6 +1,5 @@
-// src/infrastructure/apiClient.ts
 import Settings from "./settings"
-import { getAuthParams } from "./auth"
+import { AUTH_CONFIG } from "./auth"
 
 const API_URL = Settings.apiUrl()
 
@@ -8,28 +7,28 @@ export async function apiRequest<T>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   body?: any,
-  params: Record<string, string> = {} // Дополнительные параметры (limit, offset)
+  params: Record<string, string | number | undefined> = {}
 ): Promise<T> {
-  const { tgauth, initData } = getAuthParams()
+  const url = new URL(`${API_URL}${endpoint}`)
 
-  // Собираем все query-параметры в одну кучу
-  const queryParams = new URLSearchParams({
-    ...params,
-    tgauth: tgauth, // Автоматически подмешиваем наш хардкод во все GET/POST запросы
-  })
+  // Автоматически добавляем параметры авторизации для стороннего API
+  url.searchParams.append("tgauth", AUTH_CONFIG.EXTERNAL_TGAUTH)
 
-  const url = `${API_URL}${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryParams.toString()}`
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) url.searchParams.append(key, String(value))
+    })
+  }
 
-  const response = await fetch(url, {
+  const response = await fetch(url.toString(), {
     method,
     headers: {
       "Content-Type": "application/json",
-      Authorization: initData,
+      "Authorization": AUTH_CONFIG.getInitData(),
     },
     body: body ? JSON.stringify(body) : undefined,
   })
 
   if (!response.ok) throw new Error(`API Error: ${response.statusText}`)
-
   return response.json()
 }

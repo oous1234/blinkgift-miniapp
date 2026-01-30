@@ -1,44 +1,64 @@
-// src/customTheme.ts
-import { extendTheme } from "@chakra-ui/react"
+import { extendTheme, type ThemeConfig } from "@chakra-ui/react"
+
+const config: ThemeConfig = {
+  initialColorMode: "dark",
+  useSystemColorMode: false,
+}
 
 export const customTheme = extendTheme({
-  config: {
-    initialColorMode: "dark",
-    useSystemColorMode: false,
-  },
+  config,
   fonts: {
     heading: "'Montserrat', sans-serif",
     body: "'Montserrat', sans-serif",
   },
+  colors: {
+    brand: {
+      50: "#f5f0ff",
+      100: "#e8d7fd", // Основной светлый акцент
+      200: "#d1b3ff",
+      500: "#e8d7fd",
+      bg: "#0F1115",
+      card: "#161920",
+      surface: "rgba(255, 255, 255, 0.05)",
+    },
+    ton: "#0088CC",
+  },
   styles: {
     global: {
       body: {
-        bg: "#0F1115",
+        bg: "brand.bg",
         color: "white",
-        margin: 0,
-        padding: 0,
-        WebkitFontSmoothing: "antialiased",
+        WebkitTapHighlightColor: "transparent",
       },
-      // Убираем синие контуры при клике (для мобилок)
-      "*:focus": {
-        boxShadow: "none !important",
+      "::-webkit-scrollbar": {
+        display: "none",
       },
-    },
-  },
-  colors: {
-    brand: {
-      500: "#e8d7fd",
-      600: "#d1b3ff",
-    },
-    dark: {
-      100: "#161920",
-      200: "#1F232E",
     },
   },
   components: {
     Button: {
       baseStyle: {
-        _active: { transform: "scale(0.98)" },
+        borderRadius: "18px",
+        fontWeight: "900",
+        _active: { transform: "scale(0.96)" },
+      },
+      variants: {
+        brand: {
+          bg: "brand.500",
+          color: "black",
+          _hover: { bg: "brand.200" },
+        },
+        ghost: {
+            _hover: { bg: "brand.surface" }
+        }
+      },
+    },
+    Drawer: {
+      baseStyle: {
+        dialog: {
+          bg: "brand.bg",
+          borderTopRadius: "32px",
+        },
       },
     },
   },

@@ -3,39 +3,41 @@ import { useParams } from "react-router-dom"
 import { useDisclosure } from "@chakra-ui/react"
 import { useInventory } from "./useInventory"
 import { useOwnerProfile } from "./useOwnerProfile"
-import { GiftItem } from "../../../types/inventory"
-import InventoryService from "../../../services/inventory"
+import InventoryService from "@services/inventory"
+import { GiftItem } from "../../../types"
 
 export const useHomeLogic = () => {
-  const { id: routeUserId } = useParams<{ id: string }>()
-  const ownerId = routeUserId
-
+  const { id: ownerId } = useParams<{ id: string }>()
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
-  const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false)
-  const [isDetailError, setIsDetailError] = useState<boolean>(false)
-  const [chartPeriod, setChartPeriod] = useState<string>("30d")
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [isDetailError, setIsDetailError] = useState(false)
+  const [chartPeriod, setChartPeriod] = useState("30d")
 
   const detailDisclosure = useDisclosure()
   const statsDisclosure = useDisclosure()
   const searchDisclosure = useDisclosure()
 
-  const {
-    items,
-    totalCount,
-    currentPage,
-    limit,
-    setPage,
-    isLoading: isInvLoading,
-  } = useInventory(ownerId)
+  const { items, totalCount, currentPage, limit, setPage, isLoading: isInvLoading } = useInventory(ownerId)
   const { historyData, isLoading: isChartLoading } = useOwnerProfile(chartPeriod, ownerId)
 
+  // Исправленный расчет аналитики
   const analytics = useMemo(() => {
-    const points = historyData?.data || []
-    if (points.length < 2) return { current: 0, pnl: 0, percent: 0, tonPrice: 5.4 }
-    const last = points[points.length - 1].average.ton
-    const first = points[0].average.ton
-    const pnl = last - first
-    return { current: last, pnl, percent: first > 0 ? (pnl / first) * 100 : 0, tonPrice: 5.4 }
+    const points = historyData || []
+    if (points.length < 2) {
+      return { current: 0, pnl: 0, percent: 0, tonPrice: 5.4 }
+    }
+
+    const firstPoint = points[0].average.ton
+    const lastPoint = points[points.length - 1].average.ton
+    const pnl = lastPoint - firstPoint
+    const percent = firstPoint > 0 ? (pnl / firstPoint) * 100 : 0
+
+    return {
+      current: lastPoint,
+      pnl,
+      percent,
+      tonPrice: 5.4
+    }
   }, [historyData])
 
   const handleGiftClick = async (gift: any) => {
@@ -45,14 +47,11 @@ export const useHomeLogic = () => {
     detailDisclosure.onOpen()
 
     try {
-      // Генерируем slug из имени и номера: Trapped Heart #8442 -> TrappedHeart-8442
-      const slugBase = gift.name.replace(/\s+/g, "")
-      const fullSlug = `${slugBase}-${gift.num}`
-
-      const detailedGift = await InventoryService.getGiftDetail(fullSlug)
+      // Используем новый метод сервиса
+      const detailedGift = await InventoryService.getGiftDetail(gift.slug, gift.num)
       setSelectedGift(detailedGift)
     } catch (error) {
-      console.error("API Fetch Error:", error)
+      console.error("Detail load error:", error)
       setIsDetailError(true)
     } finally {
       setIsDetailLoading(false)
@@ -78,6 +77,6 @@ export const useHomeLogic = () => {
     isInvLoading,
     chartPeriod,
     setChartPeriod,
-    isVisitorMode: !!routeUserId,
+    isVisitorMode: !!ownerId,
   }
 }

@@ -15,19 +15,15 @@ export const Pagination: React.FC<PaginationProps> = ({
   pageSize,
   onPageChange,
 }) => {
-  // Безопасный расчет количества страниц
-  const safeTotalCount = Number(totalCount) || 0
-  const safePageSize = Number(pageSize) || 10
-  const totalPages = Math.ceil(safeTotalCount / safePageSize)
+  // Защита от деления на 0 и некорректных данных
+  const safePageSize = pageSize > 0 ? pageSize : 10
+  const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize))
 
-  // Если страниц нет или только одна — не рендерим ничего
-  if (totalPages <= 1 || isNaN(totalPages) || !isFinite(totalPages)) {
-    return null
-  }
+  if (totalPages <= 1) return null
 
   const renderPageButtons = () => {
     const pages = []
-    const range = 1
+    const range = 1 // Сколько страниц показывать по бокам от текущей
 
     for (let i = 1; i <= totalPages; i++) {
       if (
@@ -39,34 +35,29 @@ export const Pagination: React.FC<PaginationProps> = ({
           <Button
             key={i}
             size="sm"
-            variant={currentPage === i ? "solid" : "ghost"}
-            bg={currentPage === i ? "brand.500" : "transparent"}
-            color={currentPage === i ? "black" : "whiteAlpha.600"}
+            variant={currentPage === i ? "brand" : "ghost"}
             onClick={() => onPageChange(i)}
-            minW="36px"
-            borderRadius="12px"
-            _hover={{ bg: currentPage === i ? "brand.600" : "whiteAlpha.100" }}
+            minW="32px"
           >
             {i}
           </Button>
         )
       } else if (i === currentPage - range - 1 || i === currentPage + range + 1) {
-        pages.push(<Text key={`dots-${i}`} color="whiteAlpha.300">...</Text>)
+        pages.push(<Text key={`dots-${i}`} color="whiteAlpha.400">...</Text>)
       }
     }
     return pages
   }
 
   return (
-    <Flex direction="column" align="center" gap={3} py={8}>
-      <HStack spacing={4}>
+    <Flex direction="column" align="center" gap={3} py={6}>
+      <HStack spacing={2}>
         <Button
           size="sm"
           variant="ghost"
           isDisabled={currentPage === 1}
           onClick={() => onPageChange(currentPage - 1)}
           leftIcon={<ChevronLeftIcon />}
-          color="whiteAlpha.700"
         >
           Назад
         </Button>
@@ -81,11 +72,14 @@ export const Pagination: React.FC<PaginationProps> = ({
           isDisabled={currentPage === totalPages}
           onClick={() => onPageChange(currentPage + 1)}
           rightIcon={<ChevronRightIcon />}
-          color="whiteAlpha.700"
         >
           Далее
         </Button>
       </HStack>
+
+      <Text fontSize="10px" fontWeight="800" color="whiteAlpha.300" textTransform="uppercase">
+        Всего: {totalCount} объектов
+      </Text>
     </Flex>
   )
 }

@@ -1,3 +1,5 @@
+// frontend/src/infrastructure/apiClient.ts
+
 import Settings from "./settings"
 import { AUTH_CONFIG } from "./auth"
 
@@ -11,24 +13,46 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = new URL(`${API_URL}${endpoint}`)
 
-  // Автоматически добавляем параметры авторизации для стороннего API
-  url.searchParams.append("tgauth", AUTH_CONFIG.EXTERNAL_TGAUTH)
+  // 1. Получаем данные из Telegram
+  const initData = AUTH_CONFIG.getInitData()
 
+  // 2. Определяем, что отправлять в tgauth
+  // Если мы в Telegram — шлем реальную строку.
+  // Если в браузере — шлем наш мок-объект.
+  const tgAuthValue = AUTH_CONFIG.EXTERNAL_TGAUTH
+
+  // 3. Бэкенд требует tgauth в каждом запросе
+  url.searchParams.append("tgauth", tgAuthValue)
+
+  // 4. Добавляем остальные параметры
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) url.searchParams.append(key, String(value))
     })
   }
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  // 5. Важно: шлем Authorization только если есть реальные данные Telegram
+  if (initData) {
+    headers["Authorization"] = initData
+  }
+
   const response = await fetch(url.toString(), {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": AUTH_CONFIG.getInitData(),
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    headers,
+    body: (method !== "GET" && body) ? JSON.stringify(body) : undefined,
   })
 
-  if (!response.ok) throw new Error(`API Error: ${response.statusText}`)
+  if (!response.ok) {
+    // Выводим ошибку в консоль, чтобы было проще дебажить
+    const errorBody = await response.json().catch(() => ({}));
+    console.error(`[API Error] ${response.status}:`, errorBody);
+
+    throw new Error(`API Error: ${response.statusText}`)
+  }
+
   return response.json()
 }

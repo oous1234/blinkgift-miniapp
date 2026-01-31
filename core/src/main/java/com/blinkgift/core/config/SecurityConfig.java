@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/search/gifts**").permitAll()
                         .requestMatchers("/api/v1/nft-explorer/details/**").permitAll()
                         .requestMatchers("/api/v1/marketplace/**").permitAll()
+                        .requestMatchers("/api/internal/v1/deals/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

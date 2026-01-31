@@ -1,53 +1,54 @@
 import React, { useEffect, useState } from "react"
-import { Box, VStack, Heading, Text, Center, Spinner, IconButton, Flex } from "@chakra-ui/react"
-import { RepeatIcon } from "@chakra-ui/icons"
-import FeedService from "../../services/feed.service"
+import { Box, VStack, Heading, Text, Center, Spinner, Flex, HStack } from "@chakra-ui/react"
+import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 import { FeedEvent } from "../../types/feed"
 import { FeedCard } from "./components/FeedCard"
 import BottomNavigation from "../../components/navigation/BottomNavigation"
-import SearchDrawer from "../../components/overlay/search/SearchDrawer"
-import GiftDetailDrawer from "../../components/overlay/GiftDetailDrawer"
-import InventoryService from "../../services/inventory"
-import { GiftItem } from "../../types/inventory"
 
 const LiveFeedView: React.FC = () => {
+  // Начинаем с ПУСТОГО массива, чтобы не было тестовых данных
   const [events, setEvents] = useState<FeedEvent[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null)
-
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isDetailLoading, setIsDetailLoading] = useState(false)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
-
-  const loadFeed = async () => {
-    setIsLoading(true)
-    const data = await FeedService.getLiveFeed()
-    setEvents(data)
-    setIsLoading(false)
-  }
+  const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
-    loadFeed()
-    const interval = setInterval(loadFeed, 30000) // Обновляем каждые 30 сек
-    return () => clearInterval(interval)
+    const socket = new SockJS('https://blinkback.ru.tuna.am/ws-deals')
+    const stompClient = new Client({
+      webSocketFactory: () => socket,
+      onConnect: () => {
+        setIsConnected(true)
+        stompClient.subscribe('/topic/deals', (message) => {
+          const deal = JSON.parse(message.body)
+
+          const newEvent: FeedEvent = {
+            id: deal.id,
+            type: "LISTING",
+            timestamp: deal.timestamp,
+            dealScore: deal.dealScore, // Реальный скор из бэка
+            confidence: "HIGH",
+            item: {
+              id: deal.id,
+              name: deal.name,
+              price: deal.price,
+              estimatedPrice: deal.floor, // Используем флор как оценку
+              marketplace: deal.marketplace,
+              imageUrl: `https://nft.fragment.com/gift/${deal.name.toLowerCase().replace(/#/g, "-").replace(/\s+/g, "")}.webp`
+            } as any
+          }
+
+          setEvents(prev => [newEvent, ...prev].slice(0, 50))
+
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success')
+          }
+        })
+      },
+      onDisconnect: () => setIsConnected(false),
+    })
+
+    stompClient.activate()
+    return () => { stompClient.deactivate() }
   }, [])
-
-  const handleCardClick = async (event: FeedEvent) => {
-    const item = event.item as any
-    const slug = item.name.toLowerCase().replace(/\s+/g, '-').split('#')[0]
-    const num = parseInt(item.name.split('#')[1])
-
-    setIsDetailOpen(true)
-    setIsDetailLoading(true)
-    try {
-      const detail = await InventoryService.getGiftDetail(slug, num)
-      setSelectedGift(detail)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setIsDetailLoading(false)
-    }
-  }
 
   return (
     <Box pb="120px" px={4} pt={4} bg="#0F1115" minH="100vh">
@@ -56,49 +57,39 @@ const LiveFeedView: React.FC = () => {
           <Heading size="lg" fontWeight="900" letterSpacing="-1px">
             Sniper <Text as="span" color="brand.500">Feed</Text>
           </Heading>
-          <Text color="whiteAlpha.400" fontSize="12px" fontWeight="700">
-            ЖИВАЯ ЛЕНТА СДЕЛОК И ЛИСТИНГОВ
-          </Text>
+          <HStack spacing={2}>
+             <Box boxSize="8px" borderRadius="full" bg={isConnected ? "green.400" : "red.400"} />
+             <Text color="whiteAlpha.400" fontSize="12px" fontWeight="700">
+               {isConnected ? "LIVE CONNECTION ACTIVE" : "CONNECTING..."}
+             </Text>
+          </HStack>
         </VStack>
-        <IconButton
-          aria-label="Refresh"
-          icon={<RepeatIcon />}
-          variant="ghost"
-          color="brand.500"
-          onClick={loadFeed}
-          isLoading={isLoading}
-        />
       </Flex>
 
-      {isLoading && events.length === 0 ? (
-        <Center h="50vh">
-          <Spinner color="brand.500" size="xl" thickness="4px" />
-        </Center>
-      ) : (
-        <VStack align="stretch" spacing={1}>
-          {events.map((event) => (
+      <VStack align="stretch" spacing={1}>
+        {events.length === 0 ? (
+          <Center h="50vh" flexDirection="column" textAlign="center">
+            <Spinner color="brand.500" mb={4} thickness="4px" size="xl" />
+            <Text color="whiteAlpha.600" fontWeight="800" fontSize="14px">
+              ЖДЕМ НОВЫЕ ЛИСТИНГИ...
+            </Text>
+            <Text color="whiteAlpha.300" fontSize="12px" mt={2}>
+              Как только кто-то выставит подарок на маркет, <br/> он появится здесь мгновенно.
+            </Text>
+          </Center>
+        ) : (
+          events.map((event) => (
             <FeedCard
               key={event.id}
-              event={event}
-              onClick={() => handleCardClick(event)}
+              item={event.item}
+              dealScore={event.dealScore} // Передаем реальный скор
+              onClick={() => {}}
             />
-          ))}
-        </VStack>
-      )}
-
-      {/* Интеграция с существующими оверлеями */}
-      <GiftDetailDrawer
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        gift={selectedGift}
-        isLoading={isDetailLoading}
-        isError={false}
-      />
-
-      <SearchDrawer isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      <BottomNavigation onSearchOpen={() => setIsSearchOpen(true)} />
+          ))
+        )}
+      </VStack>
+      <BottomNavigation onSearchOpen={() => {}} />
     </Box>
   )
 }
-
 export default LiveFeedView

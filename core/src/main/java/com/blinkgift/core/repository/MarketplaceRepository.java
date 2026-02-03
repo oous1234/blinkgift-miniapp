@@ -15,7 +15,6 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
@@ -52,29 +51,22 @@ public class MarketplaceRepository {
     public List<GiftShortResponse> searchGiftsWithFilters(GiftSearchRequest request) {
         List<AggregationOperation> operations = new ArrayList<>();
 
-        // 1. Фильтрация
         operations.add(match(buildCriteria(request)));
-
-        // 2. Джоин с продажами (чтобы пометить premarket)
         operations.add(lookup(COLLECTION_SALES, "address", "address", "active_sales"));
 
-        // 3. Проекция данных
         operations.add(project()
                 .and("_id").as("slug")
                 .and("name").as("name")
                 .and("isOffchain").as("offchain")
                 .and("marketData.estimatedPrice").as("price")
-                .and("currency").as("currency")
                 .and("model").as("model")
                 .and("backdrop").as("backdrop")
+                .and("symbol").as("symbol")
                 .and(ArrayOperators.Size.lengthOfArray("active_sales")).gt(0).as("premarket")
                 .and(createImageExpression()).as("image")
         );
 
-        // 4. Сортировка
         operations.add(sort(resolveSort(request.getSortBy())));
-
-        // 5. Пагинация
         operations.add(skip((long) request.getOffset()));
         operations.add(limit(request.getLimit() > 0 ? request.getLimit() : 20));
 
@@ -93,37 +85,33 @@ public class MarketplaceRepository {
     private Criteria buildCriteria(GiftSearchRequest request) {
         List<Criteria> criteriaList = new ArrayList<>();
 
-        // Умный поиск по строке запроса
+        if (request.getGiftId() != null) {
+            criteriaList.add(Criteria.where("giftNum").is(request.getGiftId()));
+        }
+
         if (StringUtils.hasText(request.getQuery())) {
             String q = request.getQuery().trim();
             List<Criteria> queryOR = new ArrayList<>();
-
-            // 1. Поиск по имени ("Toy Bear")
             queryOR.add(Criteria.where("name").regex(q, "i"));
-
-            // 2. Поиск по слагам ("ToyBear-4583")
             queryOR.add(Criteria.where("_id").regex(q, "i"));
-
-            // 3. Если в запросе только цифры, ищем по точному номеру подарка (giftNum)
             if (q.matches("\\d+")) {
                 queryOR.add(Criteria.where("giftNum").is(Integer.parseInt(q)));
             }
-
             criteriaList.add(new Criteria().orOperator(queryOR.toArray(new Criteria[0])));
         }
 
-        // Фильтры по атрибутам
         if (request.getModels() != null && !request.getModels().isEmpty()) {
             criteriaList.add(Criteria.where("model").in(request.getModels()));
         }
+
         if (request.getBackdrops() != null && !request.getBackdrops().isEmpty()) {
             criteriaList.add(Criteria.where("backdrop").in(request.getBackdrops()));
         }
+
         if (request.getSymbols() != null && !request.getSymbols().isEmpty()) {
             criteriaList.add(Criteria.where("symbol").in(request.getSymbols()));
         }
 
-        // Фильтр по цене
         if (request.getMinPrice() != null || request.getMaxPrice() != null) {
             Criteria priceCriteria = Criteria.where("marketData.estimatedPrice");
             if (request.getMinPrice() != null) priceCriteria.gte(request.getMinPrice());

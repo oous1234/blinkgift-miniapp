@@ -60,7 +60,6 @@ export interface ApiGiftItem {
   }
 }
 
-// Новый интерфейс для пагинированных ответов
 export interface PagedResponse<T> {
   items: T[]
   total: number
@@ -70,13 +69,14 @@ export interface PagedResponse<T> {
 
 export interface GiftSearchRequest {
   query?: string
+  giftId?: number
   models?: string[]
   backdrops?: string[]
   symbols?: string[]
   rarities?: string[]
   minPrice?: number
   maxPrice?: number
-  sortBy?: string // "price_asc" | "price_desc" | "newest"
+  sortBy?: string
   limit?: number
   offset?: number
 }
@@ -87,12 +87,11 @@ export interface GiftShortResponse {
   slug: string
   image: string
   price: number
-  currency: string
   is_offchain: boolean
   is_premarket: boolean
   model: string
   backdrop: string
-  rarity: string
+  symbol: string
 }
 
 export interface GiftItem {

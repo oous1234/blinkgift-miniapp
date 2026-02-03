@@ -21,7 +21,7 @@ import { AttributePicker } from "./AttributePicker"
 import { Pagination } from "../../Home/Pagination"
 import ChangesService, { ApiBackdrop } from "@services/changes"
 import InventoryService from "@services/inventory"
-import { GiftShortResponse } from "@types/inventory"
+import { GiftShortResponse, GiftSearchRequest } from "@types/inventory"
 
 type ViewState = "FORM" | "PICK_GIFT" | "PICK_MODEL" | "PICK_PATTERN" | "PICK_BACKDROP"
 
@@ -45,7 +45,6 @@ export const NftSearchSection: React.FC = () => {
     backdrops: [],
     loading: false,
   })
-
   const [form, setForm] = useState(INITIAL_FORM)
   const [searchResults, setSearchResults] = useState<GiftShortResponse[]>([])
   const [totalResults, setTotalResults] = useState(0)
@@ -58,6 +57,7 @@ export const NftSearchSection: React.FC = () => {
   }, [])
 
   const isGiftSelected = form.gift !== "Все подарки"
+  const canSearch = isGiftSelected || form.number.trim().length > 0
 
   useEffect(() => {
     if (isGiftSelected) {
@@ -85,35 +85,39 @@ export const NftSearchSection: React.FC = () => {
     setHasSearched(true)
     setCurrentPage(page)
 
-    // ЛОГИКА ФОРМИРОВАНИЯ QUERY
-    // Если выбран подарок, мы берем его название.
-    // Если введен номер/текст в поиске, добавляем его (например "Trapped Heart 123")
-    let searchQuery = ""
-    if (form.gift !== "Все подарки") {
-      searchQuery = form.gift
-      if (form.number) {
-        searchQuery += ` ${form.number}`
+    const searchRequest: GiftSearchRequest = {
+      sortBy: form.sortBy,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
+    }
+
+    const input = form.number.trim()
+    if (input) {
+      if (/^\d+$/.test(input)) {
+        searchRequest.giftId = parseInt(input, 10)
+      } else {
+        searchRequest.query = input
       }
-    } else {
-      searchQuery = form.number
+    }
+
+    if (isGiftSelected) {
+      searchRequest.query = searchRequest.query ? `${form.gift} ${searchRequest.query}` : form.gift
+    }
+
+    if (form.model !== "Любая модель") {
+      searchRequest.models = [form.model]
+    }
+    if (form.backdropObj) {
+      searchRequest.backdrops = [form.backdropObj.name]
+    }
+    if (form.pattern !== "Любой узор") {
+      searchRequest.symbols = [form.pattern]
     }
 
     try {
-      const response = await InventoryService.searchGifts({
-        // ТЕПЕРЬ передаем собранную строку в query
-        query: searchQuery.trim() || undefined,
-
-        // Остальные фильтры (если выбраны)
-        models: form.model !== "Любая модель" ? [form.model] : undefined,
-        backdrops: form.backdropObj ? [form.backdropObj.name] : undefined,
-
-        sortBy: form.sortBy,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      })
-
-      setSearchResults(response.items)
-      setTotalResults(response.total)
+      const response = await InventoryService.searchGifts(searchRequest)
+      setSearchResults(response.items || [])
+      setTotalResults(response.total || 0)
     } catch (error) {
       console.error("Search error:", error)
     } finally {
@@ -217,7 +221,6 @@ export const NftSearchSection: React.FC = () => {
             </Text>
           </Flex>
         </Flex>
-
         <GiftPreview
           giftName={form.gift}
           modelUrl={previewData?.modelUrl}
@@ -225,7 +228,6 @@ export const NftSearchSection: React.FC = () => {
           bg={previewData?.bg}
           isSelected={isGiftSelected}
         />
-
         <VStack spacing={2} align="stretch">
           <SimpleGrid columns={2} spacing={3}>
             <Box onClick={() => setView("PICK_GIFT")}>
@@ -243,16 +245,15 @@ export const NftSearchSection: React.FC = () => {
               </SearchField>
             </Box>
           </SimpleGrid>
-
           <SimpleGrid columns={2} spacing={3}>
-            <Box onClick={() => setView("PICK_PATTERN")}>
+            <Box onClick={() => isGiftSelected && setView("PICK_PATTERN")} opacity={isGiftSelected ? 1 : 0.3}>
               <SearchField label="Узор" isMenu readOnly>
                 <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>
                   {form.pattern}
                 </Text>
               </SearchField>
             </Box>
-            <Box onClick={() => setView("PICK_BACKDROP")}>
+            <Box onClick={() => isGiftSelected && setView("PICK_BACKDROP")} opacity={isGiftSelected ? 1 : 0.3}>
               <SearchField label="Фон" isMenu readOnly>
                 <Text px="12px" h="44px" lineHeight="44px" fontSize="13px" fontWeight="700" isTruncated>
                   {form.backdropObj?.name || "Любой"}
@@ -260,7 +261,6 @@ export const NftSearchSection: React.FC = () => {
               </SearchField>
             </Box>
           </SimpleGrid>
-
           <SimpleGrid columns={2} spacing={3} alignItems="flex-end">
             <SearchField
               label="Поиск по ID / Названию"
@@ -288,7 +288,6 @@ export const NftSearchSection: React.FC = () => {
                 </Select>
             </VStack>
           </SimpleGrid>
-
           <Button
               mt={2}
               h="52px"
@@ -298,7 +297,7 @@ export const NftSearchSection: React.FC = () => {
               fontWeight="900"
               fontSize="15px"
               isLoading={isSearching}
-              isDisabled={!isGiftSelected}
+              isDisabled={!canSearch}
               onClick={() => handleSearch(1)}
               _active={{ transform: "scale(0.96)" }}
             >
@@ -306,7 +305,6 @@ export const NftSearchSection: React.FC = () => {
             </Button>
         </VStack>
       </VStack>
-
       <Box mt={4} id="results-header">
         {isSearching && searchResults.length === 0 ? (
           <Center py={10}>
@@ -317,7 +315,6 @@ export const NftSearchSection: React.FC = () => {
             <Text fontSize="10px" fontWeight="900" color="whiteAlpha.300" letterSpacing="1px" px={1}>
               РЕЗУЛЬТАТЫ ({totalResults})
             </Text>
-
             {searchResults.length > 0 ? (
               <>
                 <SimpleGrid columns={2} spacing={4}>
@@ -325,7 +322,6 @@ export const NftSearchSection: React.FC = () => {
                     <NftSearchResultCard key={item.id} item={item} />
                   ))}
                 </SimpleGrid>
-
                 <Pagination
                     currentPage={currentPage}
                     totalCount={totalResults}
@@ -388,7 +384,7 @@ const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) =>
               px={2}
               py={0.5}
             >
-              {isForSale ? `${item.price} ${item.currency || 'TON'}` : "PRIVATE"}
+              {isForSale ? `${item.price} TON` : "PRIVATE"}
             </Badge>
           </Box>
           <Box
@@ -404,8 +400,8 @@ const NftSearchResultCard: React.FC<{ item: GiftShortResponse }> = ({ item }) =>
               <Text fontSize="12px" fontWeight="900" color="white" isTruncated w="100%">
                 {item.name || item.slug}
               </Text>
-              <Text fontSize="9px" color="brand.500" fontWeight="800" letterSpacing="0.2px">
-                {item.rarity}
+              <Text fontSize="9px" color="brand.500" fontWeight="800" letterSpacing="0.2px" textTransform="uppercase">
+                {item.symbol || item.model}
               </Text>
             </VStack>
           </Box>

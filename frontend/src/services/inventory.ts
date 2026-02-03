@@ -1,5 +1,5 @@
 import { apiRequest } from "../infrastructure/apiClient";
-import { GiftItem } from "../types/inventory";
+import { GiftItem, GiftSearchRequest, GiftShortResponse, PagedResponse } from "../types/inventory";
 import { NftExplorerDetails } from "../types/explorer";
 
 export default class InventoryService {
@@ -21,13 +21,20 @@ export default class InventoryService {
     }
   }
 
+  static async searchGifts(request: GiftSearchRequest): Promise<PagedResponse<GiftShortResponse>> {
+    try {
+      return await apiRequest<PagedResponse<GiftShortResponse>>("/api/v1/search/gifts", "POST", request);
+    } catch (error) {
+      console.error("Search API failed", error);
+      return { items: [], total: 0, limit: request.limit || 20, offset: request.offset || 0 };
+    }
+  }
+
   static async getGiftDetail(slug: string, num: number): Promise<GiftItem> {
-    // В большинстве случаев API для деталей находится по этому пути
     const data = await apiRequest<any>(`/api/v1/gifts/${slug}-${num}`);
     const gift = data.gift;
-
     return {
-      id: gift.slug + "-" + gift.id, // Формируем ID как slug-number
+      id: gift.slug + "-" + gift.id,
       giftId: String(gift.id),
       name: gift.name,
       slug: gift.slug,
@@ -38,17 +45,16 @@ export default class InventoryService {
       isOffchain: gift.is_offchain,
       ownerUsername: gift.owner?.username,
       attributes: data.attributes || [],
-      // Добавляем эти поля, чтобы подгружалась аналитика
       marketStats: data.market_stats || [],
       recentSales: data.recent_sales || [],
+      currency: gift.currency || "TON",
+      collection: "Telegram Gifts",
+      rarity: "Common"
     };
   }
 
-  // Исправленный метод для получения истории (GetGems/Blockchain)
   static async getNftBlockchainDetails(giftId: string): Promise<NftExplorerDetails> {
     try {
-      // Пытаемся вызвать эндпоинт истории.
-      // Если ваш бэкенд ожидает путь /api/v1/..., используйте его:
       return await apiRequest<NftExplorerDetails>(`/api/v1/explorer/nft/${giftId}/history`, "GET");
     } catch (error) {
       console.error("Failed to fetch blockchain history", error);
@@ -58,7 +64,7 @@ export default class InventoryService {
 
   private static mapDtoToGift(dto: any): GiftItem {
     return {
-      id: dto.slug + "-" + dto.num, // Важно для корректной работы истории
+      id: dto.slug + "-" + dto.num,
       giftId: dto.gift_id,
       name: dto.title,
       slug: dto.slug,
@@ -67,7 +73,8 @@ export default class InventoryService {
       floorPrice: dto.gift_value?.model_floor?.average?.ton || 0,
       rarity: dto.num < 1000 ? "Legendary" : "Common",
       isOffchain: dto.is_offchain || false,
-      collection: "Telegram Gifts"
+      collection: "Telegram Gifts",
+      currency: "TON"
     };
   }
 }

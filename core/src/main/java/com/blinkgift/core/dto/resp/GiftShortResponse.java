@@ -16,7 +16,6 @@ public class GiftShortResponse {
     private String slug;
     private String image;
     private Double price;
-    private String currency;
 
     @JsonProperty("is_offchain")
     private boolean offchain;
@@ -26,5 +25,5 @@ public class GiftShortResponse {
 
     private String model;
     private String backdrop;
-    private String rarity;
+    private String symbol;
 }

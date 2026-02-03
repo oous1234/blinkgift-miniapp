@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { Box, Flex, Text, IconButton, HStack, Button } from "@chakra-ui/react"
+import { Box, Flex, Text, Button, HStack } from "@chakra-ui/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { CloseIcon, ArrowBackIcon } from "@chakra-ui/icons"
@@ -16,7 +16,6 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const navigate = useNavigate()
 
-  // Состояния для NFT поиска
   const [nftForm, setNftForm] = useState({
     gift: "Все подарки",
     model: "Любая модель",
@@ -25,6 +24,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
     number: "",
     sortBy: "newest",
   })
+
   const [nftResults, setNftResults] = useState<any[]>([])
   const [nftTotal, setNftTotal] = useState(0)
   const [nftPage, setNftPage] = useState(1)
@@ -46,7 +46,11 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
     try {
       const data = await InventoryService.getGiftDetail(slug, num)
       setSelectedGift(data)
-    } catch (e) { console.error(e) } finally { setIsLoadingDetail(false) }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoadingDetail(false)
+    }
   }
 
   const handleBack = () => {
@@ -58,7 +62,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
     <AnimatePresence>
       {isOpen && (
         <Box position="fixed" inset={0} zIndex={2000}>
-          {/* Backdrop / Затемнение фона */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -66,13 +70,13 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
             style={{
               position: "absolute",
               inset: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.6)",
-              backdropFilter: "blur(4px)",
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(8px)",
             }}
             onClick={onClose}
           />
 
-          {/* Само окно (Drawer) */}
+          {/* Drawer Content */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
@@ -83,57 +87,78 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
               bottom: 0,
               left: 0,
               right: 0,
-              height: "85vh",
+              height: "83vh",
               backgroundColor: "#0F1115",
               borderTopLeftRadius: "30px",
               borderTopRightRadius: "30px",
               display: "flex",
               flexDirection: "column",
               boxShadow: "0 -20px 50px rgba(0,0,0,0.5)",
-              overflow: "hidden"
+              overflow: "hidden",
             }}
           >
-            {/* Liquid Glass Header / Шапка "Жидкое стекло" */}
+            {/* Minimalist Header */}
             <Flex
               position="absolute"
               top="0"
               left="0"
               right="0"
               zIndex={10}
-              px={5}
-              h="70px"
+              px={4}
+              h="50px" // Уменьшенная высота
               align="center"
               justify="space-between"
-              background="rgba(20, 22, 28, 0.6)" // Прозрачность
-              backdropFilter="blur(25px) saturate(180%)" // Эффект стекла
-              borderBottom="1px solid rgba(255,255,255,0.08)"
+              pointerEvents="none" // Чтобы кнопки внутри работали, а сама полоса не мешала
             >
-              <IconButton
-                aria-label="Back"
-                icon={view === "DETAIL" ? <ArrowBackIcon /> : <CloseIcon fontSize="10px" />}
-                size="md"
-                variant="ghost"
-                bg="whiteAlpha.100"
-                _active={{ bg: "whiteAlpha.300", transform: "scale(0.9)" }}
-                borderRadius="full"
-                onClick={handleBack}
-              />
+              <HStack spacing={2} pointerEvents="auto">
+                <Button
+                  leftIcon={<ArrowBackIcon fontSize="14px" />}
+                  size="xs"
+                  variant="ghost"
+                  bg="whiteAlpha.100"
+                  backdropFilter="blur(10px)"
+                  borderRadius="full"
+                  color="whiteAlpha.800"
+                  fontWeight="800"
+                  fontSize="11px"
+                  px={3}
+                  h="32px"
+                  onClick={handleBack}
+                  _active={{ bg: "whiteAlpha.300", transform: "scale(0.95)" }}
+                  display={view === "DETAIL" ? "flex" : "none"}
+                >
+                  НАЗАД
+                </Button>
+              </HStack>
 
-              <Text fontSize="17px" fontWeight="900" letterSpacing="-0.5px">
-                {view === "DETAIL" ? "Информация" : "Поиск"}
-              </Text>
-
-              {/* Пустой блок для симметрии или доп. кнопка */}
-              <Box w="40px" />
+              <HStack spacing={2} pointerEvents="auto">
+                <Button
+                  rightIcon={<CloseIcon fontSize="9px" />}
+                  size="xs"
+                  variant="ghost"
+                  bg="whiteAlpha.100"
+                  backdropFilter="blur(10px)"
+                  borderRadius="full"
+                  color="whiteAlpha.800"
+                  fontWeight="800"
+                  fontSize="11px"
+                  px={3}
+                  h="32px"
+                  onClick={onClose}
+                  _active={{ bg: "whiteAlpha.300", transform: "scale(0.95)" }}
+                >
+                  ЗАКРЫТЬ
+                </Button>
+              </HStack>
             </Flex>
 
-            {/* Scrollable Content Area */}
+            {/* Main Content Area */}
             <Box
               flex={1}
-              mt="70px" // Отступ под высоту шапки
+              mt="50px" // Отступ под уменьшенную шапку
               overflowY="auto"
               px={5}
-              pb="calc(40px + env(safe-area-inset-bottom))" // Учет нижней безопасной зоны
+              pb="calc(40px + env(safe-area-inset-bottom))"
               css={{
                 "&::-webkit-scrollbar": { display: "none" },
               }}
@@ -146,10 +171,14 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -15 }}
                   >
-                    <Flex mb={6} mt={4} justify="center">
+                    <Flex mb={6} mt={2} justify="center">
                       <HStack bg="whiteAlpha.50" p="4px" borderRadius="16px" w="full">
                         <Button
-                          flex={1} size="sm" variant="ghost" fontSize="11px" fontWeight="900"
+                          flex={1}
+                          size="sm"
+                          variant="ghost"
+                          fontSize="11px"
+                          fontWeight="900"
                           bg={searchType === "PROFILE" ? "whiteAlpha.200" : "transparent"}
                           color={searchType === "PROFILE" ? "white" : "whiteAlpha.400"}
                           onClick={() => setSearchType("PROFILE")}
@@ -157,7 +186,11 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                           ПРОФИЛИ
                         </Button>
                         <Button
-                          flex={1} size="sm" variant="ghost" fontSize="11px" fontWeight="900"
+                          flex={1}
+                          size="sm"
+                          variant="ghost"
+                          fontSize="11px"
+                          fontWeight="900"
                           bg={searchType === "NFT" ? "whiteAlpha.200" : "transparent"}
                           color={searchType === "NFT" ? "white" : "whiteAlpha.400"}
                           onClick={() => setSearchType("NFT")}
@@ -171,7 +204,10 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                       <ProfileSearchSection
                         query={profileQuery}
                         setQuery={setProfileQuery}
-                        onUserClick={(user) => { onClose(); navigate(`/user/${user.id}`) }}
+                        onUserClick={(user) => {
+                          onClose()
+                          navigate(`/user/${user.id}`)
+                        }}
                       />
                     ) : (
                       <NftSearchSection
@@ -196,11 +232,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                   >
-                    <GiftDetailContent
-                      gift={selectedGift}
-                      isLoading={isLoadingDetail}
-                      isError={false}
-                    />
+                    <GiftDetailContent gift={selectedGift} isLoading={isLoadingDetail} isError={false} />
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -45,14 +45,13 @@ export const SearchField: React.FC<SearchFieldProps> = ({
           <Input
             variant="unstyled"
             p="14px"
-            fontSize="15px"
+            fontSize="16px"
             fontWeight="600"
             color="white"
             _placeholder={{ color: "whiteAlpha.300" }}
             {...props}
           />
         )}
-
         {isMenu && (
           <Box pr="12px">
             <ChevronDownIcon color="whiteAlpha.400" boxSize="20px" />

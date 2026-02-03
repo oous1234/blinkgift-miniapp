@@ -30,6 +30,11 @@ export const TelegramContextProvider: React.FC<{ children: React.ReactNode }> = 
       const tg = window.Telegram.WebApp
       tg.ready()
       tg.expand()
+
+      if (tg.disableVerticalSwipes) {
+        tg.disableVerticalSwipes()
+      }
+
       setIsReady(true)
       refreshBalance()
     }

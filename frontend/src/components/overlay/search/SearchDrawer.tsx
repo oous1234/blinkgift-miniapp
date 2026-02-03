@@ -26,14 +26,11 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const navigate = useNavigate()
 
-  // --- Состояние для сохранения данных поиска NFT ---
   const [nftForm, setNftForm] = useState(INITIAL_NFT_FORM)
   const [nftResults, setNftResults] = useState<any[]>([])
   const [nftTotal, setNftTotal] = useState(0)
   const [nftPage, setNftPage] = useState(1)
   const [nftHasSearched, setNftHasSearched] = useState(false)
-
-  // --- Состояние для сохранения поиска людей ---
   const [profileQuery, setProfileQuery] = useState("")
 
   useEffect(() => {
@@ -41,10 +38,6 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
       setTimeout(() => {
         setView("LIST")
         setSelectedGift(null)
-        // Если хотите полностью сбрасывать поиск при закрытии всего окна,
-        // можно раскомментировать строки ниже:
-        // setNftForm(INITIAL_NFT_FORM);
-        // setNftResults([]);
       }, 300)
     }
   }, [isOpen])
@@ -85,7 +78,6 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
             }}
             onClick={onClose}
           />
-
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
@@ -96,7 +88,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
               bottom: 0,
               left: 0,
               right: 0,
-              height: "90vh",
+              height: "90%",
               backgroundColor: "#0F1115",
               borderTopLeftRadius: "40px",
               borderTopRightRadius: "40px",
@@ -106,8 +98,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
               overflow: "hidden",
             }}
           >
-            <Box w="40px" h="4px" bg="whiteAlpha.200" borderRadius="full" mx="auto" mb={6} />
-
+            <Box w="40px" h="4px" bg="whiteAlpha.200" borderRadius="full" mx="auto" mb={6} flexShrink={0} />
             <Box position="relative" flex={1} width="100%" overflow="hidden">
               <AnimatePresence initial={false} mode="popLayout">
                 {view === "LIST" ? (
@@ -119,7 +110,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                     transition={tweenTransition}
                     style={{ height: "100%", display: "flex", flexDirection: "column", width: "100%" }}
                   >
-                    <Flex mb={6} justify="space-between" align="center">
+                    <Flex mb={6} justify="space-between" align="center" flexShrink={0}>
                       <Text fontSize="24px" fontWeight="900">Поиск</Text>
                       <HStack bg="whiteAlpha.100" p="4px" borderRadius="14px">
                         <Button
@@ -140,7 +131,6 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                         </Button>
                       </HStack>
                     </Flex>
-
                     <Box overflowY="auto" flex={1} css={{ "&::-webkit-scrollbar": { display: "none" } }}>
                       {searchType === "PROFILE" ? (
                         <ProfileSearchSection
@@ -151,7 +141,6 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                       ) : (
                         <NftSearchSection
                           onGiftClick={handleOpenGift}
-                          // Передаем состояние как пропсы
                           persistentForm={nftForm}
                           setPersistentForm={setNftForm}
                           persistentResults={nftResults}

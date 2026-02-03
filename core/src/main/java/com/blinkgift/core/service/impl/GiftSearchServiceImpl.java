@@ -13,6 +13,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class GiftSearchServiceImpl implements GiftSearchService {
+
     private final MarketplaceRepository marketplaceRepository;
 
     @Override

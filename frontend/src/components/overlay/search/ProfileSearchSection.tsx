@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import { VStack, Center, Spinner, Box, Text } from "@chakra-ui/react"
 import { SearchField } from "./SearchField"
 import { SearchResultItem } from "@components/SearchResultItem"
@@ -6,10 +6,15 @@ import { useOwnerSearch } from "@views/Home/hooks/useOwnerSearch"
 
 interface ProfileSearchSectionProps {
   onUserClick: (user: any) => void
+  query: string
+  setQuery: (val: string) => void
 }
 
-export const ProfileSearchSection: React.FC<ProfileSearchSectionProps> = ({ onUserClick }) => {
-  const [query, setQuery] = useState("")
+export const ProfileSearchSection: React.FC<ProfileSearchSectionProps> = ({
+  onUserClick,
+  query,
+  setQuery
+}) => {
   const { results, isLoading } = useOwnerSearch(query, "PROFILE")
 
   return (
@@ -21,7 +26,6 @@ export const ProfileSearchSection: React.FC<ProfileSearchSectionProps> = ({ onUs
         onChange={(e) => setQuery(e.target.value)}
         autoFocus
       />
-
       <Box mt={6}>
         {isLoading ? (
           <Center py={10}>

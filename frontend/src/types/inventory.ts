@@ -1,3 +1,42 @@
+export interface TradeItem {
+  giftSlug: string
+  giftTonPrice: number
+  marketplace: string
+  date: string
+}
+
+export interface ParameterInfo {
+  amount: number
+  floorPrice: number | null
+  avg30dPrice: number
+  dealsCount30d: number
+  lastTrades: TradeItem[]
+}
+
+export interface NewDetailedGiftResponse {
+  giftSlug: string
+  giftName: string
+  giftNum: number
+  giftMinted: number
+  giftTotal: number
+  giftAvatarLink: string
+  model: string
+  modelRare: number
+  backdrop: string
+  backdropRare: number
+  symbol: string
+  symbolRare: number
+  floorPriceTon: number
+  estimatedPriceTon: number
+  saleData: any | null
+  parameters: {
+    symbol: ParameterInfo
+    backdrop: ParameterInfo
+    model: ParameterInfo
+    collection: ParameterInfo
+  }
+}
+
 export interface GiftAttribute {
   rarity_percent: number
   trait_type: string
@@ -23,48 +62,6 @@ export interface RecentSale {
   platform: string
   price: number
   trait_value: string
-}
-
-export interface DetailedGiftResponse {
-  attributes: GiftAttribute[]
-  gift: {
-    currency: string
-    estimated_price_ton: number
-    id: number
-    name: string
-    owner: {
-      username: string
-    }
-    slug: string
-    is_offchain: boolean
-  }
-  market_stats: MarketStat[]
-  recent_sales: RecentSale[]
-}
-
-export interface ApiGiftItem {
-  id: string
-  gift_id: string
-  title: string
-  slug: string
-  num: number
-  model_name: string
-  url: string
-  is_offchain?: boolean
-  gift_value?: {
-    model_floor?: {
-      average?: {
-        ton: number
-      }
-    }
-  }
-}
-
-export interface PagedResponse<T> {
-  items: T[]
-  total: number
-  limit: number
-  offset: number
 }
 
 export interface GiftSearchRequest {
@@ -94,6 +91,13 @@ export interface GiftShortResponse {
   symbol: string
 }
 
+export interface PagedResponse<T> {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export interface GiftItem {
   id: string
   giftId: string
@@ -110,18 +114,4 @@ export interface GiftItem {
   recentSales?: RecentSale[]
   estimatedPrice?: number
   ownerUsername?: string
-}
-
-export interface InventoryResponse {
-  items: ApiGiftItem[]
-  total: number
-  limit: number
-  offset: number
-}
-
-export interface InventoryServiceResponse {
-  items: GiftItem[]
-  total: number
-  limit: number
-  offset: number
 }

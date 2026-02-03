@@ -1,5 +1,11 @@
 import { apiRequest } from "../infrastructure/apiClient";
-import { GiftItem, GiftSearchRequest, GiftShortResponse, PagedResponse } from "../types/inventory";
+import {
+  GiftItem,
+  GiftSearchRequest,
+  GiftShortResponse,
+  PagedResponse,
+  NewDetailedGiftResponse
+} from "../types/inventory";
 import { NftExplorerDetails } from "../types/explorer";
 
 export default class InventoryService {
@@ -31,25 +37,73 @@ export default class InventoryService {
   }
 
   static async getGiftDetail(slug: string, num: number): Promise<GiftItem> {
-    const data = await apiRequest<any>(`/api/v1/gifts/${slug}-${num}`);
-    const gift = data.gift;
+    const data = await apiRequest<NewDetailedGiftResponse>(`/api/v1/gifts/${slug}-${num}`);
+
+    // Атрибуты (модель, фон, символ)
+    const attributes = [
+      {
+        trait_type: "Model",
+        value: data.model || "Нет информации",
+        rarity_percent: data.modelRare
+      },
+      {
+        trait_type: "Backdrop",
+        value: data.backdrop || "Нет информации",
+        rarity_percent: data.backdropRare
+      },
+      {
+        trait_type: "Symbol",
+        value: data.symbol || "Нет информации",
+        rarity_percent: data.symbolRare
+      }
+    ];
+
+    // Рыночная статистика из объекта parameters
+    const marketStats = Object.entries(data.parameters).map(([key, info]) => ({
+      label: key === 'collection' ? "Весь тираж" : key.charAt(0).toUpperCase() + key.slice(1),
+      items_count: info.amount,
+      floor_price: info.floorPrice && info.floorPrice > 0 ? info.floorPrice : null,
+      avg_price_30d: info.avg30dPrice,
+      deals_count_30d: info.dealsCount30d,
+      type: key
+    }));
+
+    // Собираем все последние продажи в один список для Drawer
+    const allRecentSales: any[] = [];
+    Object.entries(data.parameters).forEach(([category, info]) => {
+      if (info.lastTrades) {
+        info.lastTrades.forEach((trade) => {
+          allRecentSales.push({
+            id: `${trade.giftSlug}-${trade.date}`,
+            name: trade.giftSlug,
+            trait_value: trade.giftSlug.split('-')[0], // Имя подарка без номера
+            price: trade.giftTonPrice,
+            currency: "TON",
+            date: new Date(trade.date).toLocaleDateString(),
+            platform: trade.marketplace,
+            avatar_url: `https://nft.fragment.com/gift/${trade.giftSlug.toLowerCase()}.webp`,
+            filter_category: category === 'symbol' ? 'pattern' : category // Маппинг под категории Drawer
+          });
+        });
+      }
+    });
+
     return {
-      id: gift.slug + "-" + gift.id,
-      giftId: String(gift.id),
-      name: gift.name,
-      slug: gift.slug,
-      num: gift.id,
-      image: `https://nft.fragment.com/gift/${gift.slug}-${gift.id}.webp`,
-      floorPrice: gift.estimated_price_ton || 0,
-      estimatedPrice: gift.estimated_price_ton || 0,
-      isOffchain: gift.is_offchain,
-      ownerUsername: gift.owner?.username,
-      attributes: data.attributes || [],
-      marketStats: data.market_stats || [],
-      recentSales: data.recent_sales || [],
-      currency: gift.currency || "TON",
+      id: data.giftSlug,
+      giftId: String(data.giftNum),
+      name: data.giftName,
+      slug: slug,
+      num: data.giftNum,
+      image: data.giftAvatarLink,
+      floorPrice: data.floorPriceTon || 0,
+      estimatedPrice: data.estimatedPriceTon || 0,
+      isOffchain: false,
+      attributes: attributes,
+      marketStats: marketStats as any,
+      recentSales: allRecentSales,
+      currency: "TON",
       collection: "Telegram Gifts",
-      rarity: "Common"
+      rarity: "NFT"
     };
   }
 

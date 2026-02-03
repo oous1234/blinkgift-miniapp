@@ -36,7 +36,11 @@ const INITIAL_FORM = {
 
 const PAGE_SIZE = 20
 
-export const NftSearchSection: React.FC = () => {
+interface NftSearchSectionProps {
+  onGiftClick: (slug: string, num: number) => void
+}
+
+export const NftSearchSection: React.FC<NftSearchSectionProps> = ({ onGiftClick }) => {
   const [view, setView] = useState<ViewState>("FORM")
   const [allGifts, setAllGifts] = useState<string[]>([])
   const [attributes, setAttributes] = useState({
@@ -45,6 +49,7 @@ export const NftSearchSection: React.FC = () => {
     backdrops: [],
     loading: false,
   })
+
   const [form, setForm] = useState(INITIAL_FORM)
   const [searchResults, setSearchResults] = useState<GiftShortResponse[]>([])
   const [totalResults, setTotalResults] = useState(0)
@@ -52,13 +57,16 @@ export const NftSearchSection: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
+  // Инициализация списка всех подарков
   useEffect(() => {
     ChangesService.getGifts().then(setAllGifts)
   }, [])
 
+  // Логика состояния формы
   const isGiftSelected = form.gift !== "Все подарки"
   const canSearch = isGiftSelected || form.number.trim().length > 0
 
+  // Загрузка атрибутов при выборе конкретного подарка
   useEffect(() => {
     if (isGiftSelected) {
       setAttributes((prev) => ({ ...prev, loading: true }))
@@ -103,7 +111,6 @@ export const NftSearchSection: React.FC = () => {
     if (isGiftSelected) {
       searchRequest.query = searchRequest.query ? `${form.gift} ${searchRequest.query}` : form.gift
     }
-
     if (form.model !== "Любая модель") {
       searchRequest.models = [form.model]
     }
@@ -125,12 +132,6 @@ export const NftSearchSection: React.FC = () => {
     }
   }
 
-  const onPageChange = (page: number) => {
-    handleSearch(page)
-    const resultsHeader = document.getElementById("results-header")
-    resultsHeader?.scrollIntoView({ behavior: "smooth" })
-  }
-
   const previewData = useMemo(() => {
     if (!isGiftSelected) return null
     return {
@@ -150,17 +151,7 @@ export const NftSearchSection: React.FC = () => {
     }
   }, [form, isGiftSelected])
 
-  const handleSelectAttribute = useCallback((type: ViewState, item: any) => {
-    setForm((prev) => ({
-      ...prev,
-      gift: type === "PICK_GIFT" ? item : prev.gift,
-      model: type === "PICK_GIFT" ? "Любая модель" : type === "PICK_MODEL" ? item : prev.model,
-      pattern: type === "PICK_PATTERN" ? item : prev.pattern,
-      backdropObj: type === "PICK_BACKDROP" ? item : prev.backdropObj,
-    }))
-    setView("FORM")
-  }, [])
-
+  // Рендер выбора атрибутов (Модель, Узор и т.д.)
   if (view !== "FORM") {
     const items =
       view === "PICK_GIFT"
@@ -170,6 +161,7 @@ export const NftSearchSection: React.FC = () => {
         : view === "PICK_PATTERN"
         ? attributes.patterns
         : attributes.backdrops
+
     return (
       <AttributePicker
         title={
@@ -184,7 +176,16 @@ export const NftSearchSection: React.FC = () => {
         items={items}
         isLoading={view !== "PICK_GIFT" && attributes.loading}
         onBack={() => setView("FORM")}
-        onSelect={(item) => handleSelectAttribute(view, item)}
+        onSelect={(item) => {
+          setForm((prev) => ({
+            ...prev,
+            gift: view === "PICK_GIFT" ? item : prev.gift,
+            model: view === "PICK_GIFT" ? "Любая модель" : view === "PICK_MODEL" ? item : prev.model,
+            pattern: view === "PICK_PATTERN" ? item : prev.pattern,
+            backdropObj: view === "PICK_BACKDROP" ? item : prev.backdropObj,
+          }))
+          setView("FORM")
+        }}
         getImageUrl={(n) => {
           if (view === "PICK_GIFT") return ChangesService.getOriginalUrl(n, "png")
           if (view === "PICK_MODEL") return ChangesService.getModelUrl(form.gift, n, "png")
@@ -207,8 +208,9 @@ export const NftSearchSection: React.FC = () => {
     )
   }
 
+  // Главный рендер формы
   return (
-    <VStack spacing={5} align="stretch" pb={10}>
+    <VStack spacing={5} align="stretch">
       <VStack spacing={3} align="stretch">
         <Flex justify="space-between" align="center" px={1}>
           <Text fontSize="10px" fontWeight="900" color="whiteAlpha.300" letterSpacing="1px">
@@ -221,6 +223,7 @@ export const NftSearchSection: React.FC = () => {
             </Text>
           </Flex>
         </Flex>
+
         <GiftPreview
           giftName={form.gift}
           modelUrl={previewData?.modelUrl}
@@ -228,6 +231,7 @@ export const NftSearchSection: React.FC = () => {
           bg={previewData?.bg}
           isSelected={isGiftSelected}
         />
+
         <VStack spacing={2} align="stretch">
           <SimpleGrid columns={2} spacing={3}>
             <Box onClick={() => setView("PICK_GIFT")}>
@@ -245,6 +249,7 @@ export const NftSearchSection: React.FC = () => {
               </SearchField>
             </Box>
           </SimpleGrid>
+
           <SimpleGrid columns={2} spacing={3}>
             <Box onClick={() => isGiftSelected && setView("PICK_PATTERN")} opacity={isGiftSelected ? 1 : 0.3}>
               <SearchField label="Узор" isMenu readOnly>
@@ -261,6 +266,7 @@ export const NftSearchSection: React.FC = () => {
               </SearchField>
             </Box>
           </SimpleGrid>
+
           <SimpleGrid columns={2} spacing={3} alignItems="flex-end">
             <SearchField
               label="Поиск по ID / Названию"
@@ -272,7 +278,7 @@ export const NftSearchSection: React.FC = () => {
                  <Text fontSize="11px" fontWeight="800" color="whiteAlpha.500" ml="4px" textTransform="uppercase">Сортировка</Text>
                  <Select
                     h="44px"
-                    bg="#1F232E"
+                    bg="whiteAlpha.50"
                     border="1px solid"
                     borderColor="whiteAlpha.100"
                     borderRadius="16px"
@@ -282,12 +288,13 @@ export const NftSearchSection: React.FC = () => {
                     value={form.sortBy}
                     onChange={(e) => setForm(f => ({...f, sortBy: e.target.value}))}
                 >
-                    <option value="newest" style={{backgroundColor: "#1F232E"}}>Новинки</option>
-                    <option value="price_asc" style={{backgroundColor: "#1F232E"}}>Дешевле</option>
-                    <option value="price_desc" style={{backgroundColor: "#1F232E"}}>Дороже</option>
+                    <option value="newest" style={{background: '#0F1115'}}>Новинки</option>
+                    <option value="price_asc" style={{background: '#0F1115'}}>Дешевле</option>
+                    <option value="price_desc" style={{background: '#0F1115'}}>Дороже</option>
                 </Select>
             </VStack>
           </SimpleGrid>
+
           <Button
               mt={2}
               h="52px"
@@ -305,6 +312,7 @@ export const NftSearchSection: React.FC = () => {
             </Button>
         </VStack>
       </VStack>
+
       <Box mt={4} id="results-header">
         {isSearching && searchResults.length === 0 ? (
           <Center py={10}>
@@ -319,14 +327,21 @@ export const NftSearchSection: React.FC = () => {
               <>
                 <SimpleGrid columns={2} spacing={4}>
                   {searchResults.map((item) => (
-                    <NftSearchResultCard key={item.id} item={item} />
+                    <Box key={item.id} onClick={() => {
+                      const parts = item.id.split('-');
+                      const num = parseInt(parts.pop() || "0");
+                      const slug = parts.join('-');
+                      onGiftClick(slug, num);
+                    }}>
+                      <NftSearchResultCard item={item} />
+                    </Box>
                   ))}
                 </SimpleGrid>
                 <Pagination
                     currentPage={currentPage}
                     totalCount={totalResults}
                     pageSize={PAGE_SIZE}
-                    onPageChange={onPageChange}
+                    onPageChange={handleSearch}
                 />
               </>
             ) : (

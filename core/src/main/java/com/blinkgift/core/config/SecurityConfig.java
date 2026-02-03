@@ -32,45 +32,42 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Отключаем CSRF для REST API
-                .cors(cors -> {}) // Включаем CORS (настройка бина ниже)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Без сессий
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> {})
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // Публичные эндпоинты (Swagger, Health check)
                         .requestMatchers("/api-documentation/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Разрешаем pre-flight запросы
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
-                        // Все остальные запросы требуют аутентификации
                         .requestMatchers("/api/parsing/**").permitAll()
                         .requestMatchers("/api/v1/gifts/**").permitAll()
                         .requestMatchers("/api/v1/search/gifts**").permitAll()
                         .requestMatchers("/api/v1/nft-explorer/details/**").permitAll()
                         .requestMatchers("/api/v1/marketplace/**").permitAll()
                         .requestMatchers("/api/internal/v1/deals/**").permitAll()
+                        .requestMatchers("/ws-deals/**").permitAll()
+                        .requestMatchers("/wallet").permitAll()
+                        .requestMatchers("/api/parsing/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
-                // Добавляем наш фильтр перед стандартным
                 .addFilterBefore(telegramAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // Создаем AuthenticationManager вручную, так как Spring Boot 3 изменил способ его получения
     @Bean
     public AuthenticationManager authenticationManager() {
         return new ProviderManager(Collections.singletonList(telegramAuthenticationProvider));
     }
 
-    // Настраиваем наш фильтр
-    @Bean // Можно добавить @Bean, чтобы Spring управлял им, или вызывать как раньше
+    @Bean
     public TelegramAuthFilter telegramAuthFilter() {
         return new TelegramAuthFilter(authenticationManager());
     }
 
-    // Настройка CORS (чтобы фронтенд мог слать запросы)
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

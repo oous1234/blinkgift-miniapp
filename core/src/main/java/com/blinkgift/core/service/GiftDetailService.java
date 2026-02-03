@@ -1,7 +1,7 @@
 package com.blinkgift.core.service;
 
-import com.blinkgift.core.dto.resp.GiftDetailsResponse;
+import com.blinkgift.core.dto.resp.FullGiftDetailsResponse;
 
 public interface GiftDetailService {
-    GiftDetailsResponse getGiftDetailsBySlug(String slug);
+    FullGiftDetailsResponse getGiftDetailsBySlug(String slug);
 }

@@ -1,5 +1,6 @@
 package com.blinkgift.core.controller;
 
+import com.blinkgift.core.dto.resp.FullGiftDetailsResponse;
 import com.blinkgift.core.dto.resp.GiftDetailsResponse;
 import com.blinkgift.core.service.GiftDetailService;
 import lombok.RequiredArgsConstructor;
@@ -13,11 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/gifts")
 @RequiredArgsConstructor
 public class GiftDetailController {
-
     private final GiftDetailService giftDetailService;
 
     @GetMapping("/{slug}")
-    public ResponseEntity<GiftDetailsResponse> getGiftDetails(@PathVariable String slug) {
+    public ResponseEntity<FullGiftDetailsResponse> getGiftDetails(@PathVariable String slug) {
+        // slug приходит в формате "WinterWreath-19852"
         return ResponseEntity.ok(giftDetailService.getGiftDetailsBySlug(slug));
     }
 }

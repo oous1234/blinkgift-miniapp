@@ -1,153 +1,148 @@
 package com.blinkgift.core.service.impl;
 
-import com.blinkgift.core.domain.GiftHistoryDocument;
-import com.blinkgift.core.domain.GiftMetadataDocument;
-import com.blinkgift.core.dto.resp.GiftDetailsResponse;
+import com.blinkgift.core.domain.*;
+import com.blinkgift.core.dto.resp.FullGiftDetailsResponse;
 import com.blinkgift.core.exception.ServiceException;
 import com.blinkgift.core.repository.GiftHistoryRepository;
-import com.blinkgift.core.repository.GiftMetadataRepository;
-import com.blinkgift.core.repository.MarketStatRepository;
 import com.blinkgift.core.service.GiftDetailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class GiftDetailServiceImpl implements GiftDetailService {
 
-    private final GiftMetadataRepository giftRepository;
-    private final MarketStatRepository statRepository;
-    private final GiftHistoryRepository historyRepository;
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            .withZone(ZoneId.systemDefault());
+    private final MongoTemplate mongoTemplate;
 
     @Override
-    public GiftDetailsResponse getGiftDetailsBySlug(String slug) {
-        GiftMetadataDocument doc = giftRepository.findBySlug(slug)
-                .orElseThrow(() -> new ServiceException("Gift not found with slug: " + slug));
+    public FullGiftDetailsResponse getGiftDetailsBySlug(String slug) {
+        // 1. Ищем основной паспорт подарка в unique_gifts
+        UniqueGiftDocument gift = mongoTemplate.findById(slug, UniqueGiftDocument.class);
+        if (gift == null) throw new ServiceException("Gift not found: " + slug);
 
-        String model = getAttrValue(doc, "Model");
-        String backdrop = getAttrValue(doc, "Backdrop");
-        String pattern = getAttrValue(doc, "Pattern");
+        // 2. Ищем активную продажу в current_sales
+        CurrentSaleDocument sale = mongoTemplate.findOne(
+                Query.query(Criteria.where("address").is(gift.getAddress())),
+                CurrentSaleDocument.class
+        );
 
-        return GiftDetailsResponse.builder()
-                .gift(mapToGiftDto(doc))
-                .attributes(mapToAttributeDtos(doc))
-                .marketStats(collectMarketStats(model, backdrop, pattern))
-                .recentSales(collectRecentSales(model, backdrop))
-                .build();
-    }
+        // 3. Собираем статистику по категориям
+        Map<String, FullGiftDetailsResponse.ParameterStats> params = new HashMap<>();
 
-    private List<GiftDetailsResponse.MarketStatDto> collectMarketStats(String model, String backdrop, String pattern) {
-        List<GiftDetailsResponse.MarketStatDto> stats = new ArrayList<>();
+        // Модель
+        params.put("model", getAttributeStats("Model", gift.getModel(), gift.getCollectionAddress()));
+        // Фон
+        params.put("backdrop", getAttributeStats("Backdrop", gift.getBackdrop(), gift.getCollectionAddress()));
+        // Символ
+        params.put("symbol", getAttributeStats("Symbol", gift.getSymbol(), gift.getCollectionAddress()));
+        // Коллекция целиком
+        params.put("collection", getCollectionStats(gift.getCollectionAddress()));
 
-        addStatIfPresent(stats, "model", "Модель", model);
-        addStatIfPresent(stats, "backdrop", "Фон", backdrop);
-        addStatIfPresent(stats, "pattern", "Паттерн", pattern);
-
-        if (model != null && backdrop != null) {
-            addStatIfPresent(stats, "model_backdrop", "Модель + Фон", model + " + " + backdrop);
-        }
-
-        if (model != null && backdrop != null && pattern != null) {
-            addStatIfPresent(stats, "full_combo", "Модель + Фон + Паттерн", model + " + " + backdrop + " + " + pattern);
-        }
-
-        return stats;
-    }
-
-    private List<GiftDetailsResponse.RecentSaleDto> collectRecentSales(String model, String backdrop) {
-        List<GiftDetailsResponse.RecentSaleDto> sales = new ArrayList<>();
-
-        if (model != null) {
-            historyRepository.findTop10ByNameContainingAndEventTypeOrderByTimestampDesc(model, "sold")
-                    .forEach(h -> sales.add(mapHistoryToDto(h, "model", model)));
-        }
-
-        if (backdrop != null) {
-            historyRepository.findTop10ByNameContainingAndEventTypeOrderByTimestampDesc(backdrop, "sold")
-                    .forEach(h -> sales.add(mapHistoryToDto(h, "backdrop", backdrop)));
-        }
-
-        if (model != null && backdrop != null) {
-            historyRepository.findTop10ByNameContainingAndEventTypeOrderByTimestampDesc(model, "sold").stream()
-                    .filter(h -> h.getName().contains(backdrop))
-                    .forEach(h -> sales.add(mapHistoryToDto(h, "model_backdrop", model + " + " + backdrop)));
-        }
-
-        return sales;
-    }
-
-    private GiftDetailsResponse.RecentSaleDto mapHistoryToDto(GiftHistoryDocument h, String category, String traitValue) {
-        String cleanName = h.getName().split("\\(")[0].trim();
-        String slugForLink = cleanName.toLowerCase()
-                .replace(" ", "")
-                .replace("#", "-");
-
-        return GiftDetailsResponse.RecentSaleDto.builder()
-                .id(h.getAddress())
-                .name(h.getName())
-                .price(h.getPrice() != null ? Double.parseDouble(h.getPrice()) : 0.0)
-                .currency(h.getCurrency() != null ? h.getCurrency() : "TON")
-                .platform(h.getIsOffchain() != null && h.getIsOffchain() ? "PORTALS" : "GETGEMS")
-                .date(DATE_FORMATTER.format(Instant.ofEpochSecond(h.getTimestamp())))
-                .avatarUrl("https://fragment.com/gift/" + slugForLink)
-                .filterCategory(category)
-                .traitValue(traitValue)
-                .build();
-    }
-
-    private void addStatIfPresent(List<GiftDetailsResponse.MarketStatDto> list, String type, String label, String traitValue) {
-        if (traitValue == null) return;
-        statRepository.findByTypeAndTraitValue(type, traitValue).ifPresent(s -> {
-            list.add(GiftDetailsResponse.MarketStatDto.builder()
-                    .type(s.getType())
-                    .label(label)
-                    .itemsCount(s.getItemsCount())
-                    .floorPrice(s.getFloorPrice())
-                    .avgPrice30d(s.getAvgPrice30d())
-                    .dealsCount30d(s.getDealsCount30d())
-                    .build());
-        });
-    }
-
-    private GiftDetailsResponse.GiftDto mapToGiftDto(GiftMetadataDocument doc) {
-        return GiftDetailsResponse.GiftDto.builder()
-                .name(doc.getName())
-                .id(doc.getGiftId())
-                .slug(doc.getSlug())
-                .estimatedPriceTon(doc.getEstimatedPriceTon())
-                .currency(doc.getCurrency())
-                .isOffchain(doc.getIsOffchain()) // Заполняем поле из документа
-                .owner(GiftDetailsResponse.OwnerDto.builder()
-                        .username(doc.getOwner().getUsername())
+        // 4. Сборка финального JSON
+        return FullGiftDetailsResponse.builder()
+                .giftSlug(gift.getId())
+                .giftName(gift.getName())
+                .giftNum(gift.getGiftNum())
+                .giftMinted(gift.getGiftMinted())
+                .giftTotal(gift.getGiftTotal())
+                .giftAvatarLink("https://nft.fragment.com/gift/" + slug.toLowerCase() + ".medium.jpg")
+                .model(gift.getModel())
+                .modelRare(gift.getModelRare())
+                .backdrop(gift.getBackdrop())
+                .backdropRare(gift.getBackdropRare())
+                .symbol(gift.getSymbol())
+                .symbolRare(gift.getSymbolRare())
+                // Флор всей коллекции
+                .floorPriceTon(getCollectionFloorOnly(gift.getCollectionAddress()))
+                .estimatedPriceTon(gift.getMarketData() != null && gift.getMarketData().getEstimatedPrice() != null ?
+                        gift.getMarketData().getEstimatedPrice().doubleValue() : 0.0)
+                // Если подарок на продаже
+                .saleData(sale == null ? null : FullGiftDetailsResponse.SaleData.builder()
+                        .marketplace(sale.getMarketplace())
+                        .salePriceTon(Double.parseDouble(sale.getPrice()))
+                        .url("https://getgems.io/nft/" + sale.getAddress())
                         .build())
+                .parameters(params)
                 .build();
     }
 
-    private List<GiftDetailsResponse.AttributeDto> mapToAttributeDtos(GiftMetadataDocument doc) {
-        return doc.getAttributes().stream()
-                .map(attr -> GiftDetailsResponse.AttributeDto.builder()
-                        .traitType(attr.getTraitType())
-                        .value(attr.getValue())
-                        .rarityPercent(attr.getRarityPercent())
-                        .build())
-                .collect(Collectors.toList());
+    /**
+     * Получает статистику по конкретному атрибуту (модель/фон/символ)
+     */
+    private FullGiftDetailsResponse.ParameterStats getAttributeStats(String traitType, String value, String colAddr) {
+        if (value == null) return null;
+
+        // 1. Ищем данные о флоре в collection_attributes (наполняется getgems-parser)
+        String attrId = generateAttributeId(colAddr, traitType, value);
+        CollectionAttributeDocument attrDoc = mongoTemplate.findById(attrId, CollectionAttributeDocument.class);
+
+        // 2. Ищем высчитанную аналитику (avg30d) в market_statistics (наполняется StatisticsWorker)
+        MarketStatDocument marketStat = mongoTemplate.findOne(
+                Query.query(Criteria.where("type").is(traitType.toLowerCase()).and("traitValue").is(value)),
+                MarketStatDocument.class
+        );
+
+        // 3. Берем ВСЕ продажи из sold_gifts по этому значению
+        List<SoldGiftDocument> trades = mongoTemplate.find(
+                Query.query(Criteria.where(traitType.toLowerCase()).is(value))
+                        .with(Sort.by(Sort.Direction.DESC, "soldAt")),
+                SoldGiftDocument.class
+        );
+
+        return FullGiftDetailsResponse.ParameterStats.builder()
+                .amount(attrDoc != null ? attrDoc.getItemsCount().longValue() : 0L)
+                .floorPrice(attrDoc != null && attrDoc.getPrice() != null ? attrDoc.getPrice().doubleValue() : 0.0)
+                .avg30dPrice(marketStat != null ? marketStat.getAvgPrice30d() : 0.0)
+                .dealsCount30d(marketStat != null ? marketStat.getDealsCount30d() : 0)
+                .lastTrades(mapTrades(trades))
+                .build();
     }
 
-    private String getAttrValue(GiftMetadataDocument doc, String type) {
-        return doc.getAttributes().stream()
-                .filter(a -> a.getTraitType().equalsIgnoreCase(type))
-                .map(GiftMetadataDocument.Attribute::getValue)
-                .findFirst()
-                .orElse(null);
+    /**
+     * Специальная обработка статистики всей коллекции
+     */
+    private FullGiftDetailsResponse.ParameterStats getCollectionStats(String colAddr) {
+        CollectionStatisticsDocument stat = mongoTemplate.findById(colAddr, CollectionStatisticsDocument.class);
+
+        List<SoldGiftDocument> trades = mongoTemplate.find(
+                Query.query(Criteria.where("collectionAddress").is(colAddr))
+                        .with(Sort.by(Sort.Direction.DESC, "soldAt")),
+                SoldGiftDocument.class
+        );
+
+        return FullGiftDetailsResponse.ParameterStats.builder()
+                .amount(stat != null ? stat.getItemsCount() : 0L)
+                .floorPrice(stat != null ? stat.getFloorPrice() : 0.0)
+                .avg30dPrice(0.0) // Можно добавить агрегацию по всей коллекции
+                .dealsCount30d(0)
+                .lastTrades(mapTrades(trades))
+                .build();
+    }
+
+    private Double getCollectionFloorOnly(String addr) {
+        CollectionStatisticsDocument stat = mongoTemplate.findById(addr, CollectionStatisticsDocument.class);
+        return (stat != null && stat.getFloorPrice() != null) ? stat.getFloorPrice() : 0.0;
+    }
+
+    private List<FullGiftDetailsResponse.TradeInfo> mapTrades(List<SoldGiftDocument> trades) {
+        return trades.stream().map(t -> FullGiftDetailsResponse.TradeInfo.builder()
+                .giftSlug(t.getName().replace(" ", "").replace("#", "-"))
+                .giftTonPrice(Double.parseDouble(t.getPrice()))
+                .marketplace(t.getMarketplace())
+                .date(t.getSoldAt().toString())
+                .build()).collect(Collectors.toList());
+    }
+
+    private String generateAttributeId(String colAddr, String type, String val) {
+        return colAddr + "_" + type.replaceAll("\\s+", "_") + "_" + val.replaceAll("\\s+", "_");
     }
 }

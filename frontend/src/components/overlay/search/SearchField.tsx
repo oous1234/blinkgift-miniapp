@@ -18,11 +18,11 @@ export const SearchField: React.FC<SearchFieldProps> = ({
   return (
     <Box w="100%">
       <Text
-        fontSize="11px"
-        fontWeight="800"
-        color="whiteAlpha.500"
+        fontSize="10px"
+        fontWeight="900"
+        color="whiteAlpha.300"
         mb="6px"
-        ml="4px"
+        ml="2px"
         textTransform="uppercase"
         letterSpacing="0.5px"
       >
@@ -30,34 +30,40 @@ export const SearchField: React.FC<SearchFieldProps> = ({
       </Text>
       <Flex
         position="relative"
-        bg="whiteAlpha.50"
-        border="1px solid"
-        borderColor="whiteAlpha.100"
+        bg="rgba(255, 255, 255, 0.04)"
         borderRadius="16px"
         transition="all 0.2s"
         align="center"
-        _focusWithin={{ borderColor: "brand.500", bg: "whiteAlpha.100" }}
+        border="1px solid"
+        borderColor="whiteAlpha.50"
+        _focusWithin={{
+          borderColor: "brand.500",
+          bg: "rgba(255, 255, 255, 0.07)"
+        }}
         cursor={isMenu ? "pointer" : "text"}
       >
         {isMenu ? (
-          <Box w="100%">{children}</Box>
+          <Box w="100%" h="44px" display="flex" alignItems="center">
+            {children}
+          </Box>
         ) : (
           <Input
             variant="unstyled"
-            p="14px"
-            fontSize="16px"
-            fontWeight="600"
+            px="14px"
+            h="44px"
+            fontSize="14px"
+            fontWeight="700"
             color="white"
-            _placeholder={{ color: "whiteAlpha.300" }}
+            _placeholder={{ color: "whiteAlpha.200" }}
             {...props}
           />
         )}
         {isMenu && (
-          <Box pr="12px">
-            <ChevronDownIcon color="whiteAlpha.400" boxSize="20px" />
+          <Box pr="10px">
+            <ChevronDownIcon color="whiteAlpha.300" boxSize="18px" />
           </Box>
         )}
-        {rightElement && <Box pr="12px">{rightElement}</Box>}
+        {rightElement && <Box pr="10px">{rightElement}</Box>}
       </Flex>
     </Box>
   )

@@ -1,7 +1,9 @@
 package com.blinkgift.core.service;
 
+import com.blinkgift.core.client.BotInternalClient;
 import com.blinkgift.core.domain.UserFilterDocument;
 import com.blinkgift.core.dto.ListingEvent;
+import com.blinkgift.core.dto.SniperNotificationDto;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SniperMatchingEngine {
     private final MongoTemplate mongoTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final BotInternalClient botInternalClient; // Добавили клиент бота
 
-    // Кэш фильтров в памяти: UserId -> Настройки
     @Getter
     private final Map<String, UserFilterDocument> filterCache = new ConcurrentHashMap<>();
 
@@ -30,7 +32,6 @@ public class SniperMatchingEngine {
         refreshCache();
     }
 
-    // Выгружаем все фильтры из базы в память при старте
     public void refreshCache() {
         log.info("Refreshing sniper filters cache...");
         List<UserFilterDocument> allFilters = mongoTemplate.findAll(UserFilterDocument.class);
@@ -39,14 +40,11 @@ public class SniperMatchingEngine {
         log.info("Loaded {} user filters into memory", filterCache.size());
     }
 
-    // Обновить фильтр конкретного юзера (вызывается при сохранении настроек)
     public void updatePlayerFilter(UserFilterDocument filter) {
         filterCache.put(filter.getUserId(), filter);
     }
 
-    // САМАЯ ВАЖНАЯ ФУНКЦИЯ: Матчинг
     public void processNewListing(ListingEvent gift) {
-        // Пробегаем по всем активным фильтрам (через параллельный стрим для скорости)
         filterCache.values().parallelStream().forEach(filter -> {
             if (isMatch(gift, filter)) {
                 sendToUser(filter.getUserId(), gift);
@@ -55,34 +53,46 @@ public class SniperMatchingEngine {
     }
 
     private boolean isMatch(ListingEvent gift, UserFilterDocument filter) {
-        // 1. Фильтр по цене
         if (filter.getMaxPrice() != null && gift.getPrice().compareTo(filter.getMaxPrice()) > 0) {
             return false;
         }
-
-        // 2. Фильтр по модели (если список не пуст)
         if (filter.getModels() != null && !filter.getModels().isEmpty()) {
             if (!filter.getModels().contains(gift.getModel())) return false;
         }
-
-        // 3. Фильтр по фону
         if (filter.getBackdrops() != null && !filter.getBackdrops().isEmpty()) {
             if (!filter.getBackdrops().contains(gift.getBackdrop())) return false;
         }
-
         return true;
     }
 
     private void sendToUser(String userId, ListingEvent gift) {
         log.debug("🎯 Match found for user {}! Gift: {}", userId, gift.getName());
 
-        // Отправка в персональный WebSocket канал юзера
-        messagingTemplate.convertAndSendToUser(
-                userId,
-                "/queue/sniper",
-                gift
-        );
+        // 1. Отправка в WebSocket (Mini App)
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    userId,
+                    "/queue/sniper",
+                    gift
+            );
+        } catch (Exception e) {
+            log.error("WS error: {}", e.getMessage());
+        }
 
-        // Здесь же в будущем будет вызов Telegram Bot Service
+        // 2. Отправка уведомления в Telegram бот
+        try {
+            SniperNotificationDto notification = SniperNotificationDto.builder()
+                    .userId(Long.parseLong(userId))
+                    .giftName(gift.getName())
+                    .model(gift.getModel() != null ? gift.getModel() : "Original")
+                    .price(gift.getPrice().toString())
+                    .marketplace(gift.getMarketplace())
+                    .build();
+
+            botInternalClient.notifyBot(notification);
+            log.info("✅ Bot notification sent for user {}", userId);
+        } catch (Exception e) {
+            log.error("❌ Failed to notify Bot for user {}: {}", userId, e.getMessage());
+        }
     }
 }

@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-// Подключаем конфигурацию с прокси только для этого клиента
 @FeignClient(
         name = "getGemsClient",
         url = "https://api.getgems.io/public-api",
@@ -30,7 +29,6 @@ public interface GetGemsApiClient {
     @GetMapping("/v1/nft/{nftAddress}")
     GetGemsNftInfoResponse getNftInfo(@PathVariable("nftAddress") String nftAddress);
 
-    // Получение истории конкретной NFT
     @GetMapping("/v1/nft/history/{nftAddress}")
     GetGemsHistoryResponse getNftHistory(
             @PathVariable("nftAddress") String nftAddress,

@@ -1,55 +1,39 @@
 import { useState, useEffect, useCallback } from "react"
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
-import SniperService from "@services/sniper"
 
-const FILTERS_KEY = "isnap_sniper_filters_v3"
-const EVENTS_KEY = "isnap_sniper_events_v3"
-
-export interface SniperFilters {
+export interface SniperRule {
+  id: string
+  giftName: string
   models: string[]
   backdrops: string[]
+  minPrice: string
+  maxPrice: string
+  minDiscount: string
+  enabled: boolean
 }
 
+const RULES_KEY = "isnap_sniper_rules_v1"
+
 export const useSniperLogic = () => {
-  const [events, setEvents] = useState<any[]>(() => {
-    const savedEvents = localStorage.getItem(EVENTS_KEY)
-    return savedEvents ? JSON.parse(savedEvents) : []
-  })
-
+  const [events, setEvents] = useState<any[]>([])
   const [isConnected, setIsConnected] = useState(false)
-  const [filters, setFilters] = useState<SniperFilters>(() => {
-    const saved = localStorage.getItem(FILTERS_KEY)
-    return saved ? JSON.parse(saved) : { models: [], backdrops: [] }
+  const [rules, setRules] = useState<SniperRule[]>(() => {
+    const saved = localStorage.getItem(RULES_KEY)
+    return saved ? JSON.parse(saved) : []
   })
 
   useEffect(() => {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(events))
-  }, [events])
+    localStorage.setItem(RULES_KEY, JSON.stringify(rules))
+  }, [rules])
 
-  const applyFilters = useCallback(async (newFilters: SniperFilters) => {
-    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "1342062477"
-
-    // Сначала сохраняем локально, чтобы интерфейс не тупил
-    setFilters(newFilters)
-    localStorage.setItem(FILTERS_KEY, JSON.stringify(newFilters))
-
-    // Затем синхронизируем с сервером
-    try {
-      await SniperService.updateFilters(userId, newFilters)
-      console.log("✅ Фильтры синхронизированы с бекендом")
-    } catch (e) {
-      console.error("❌ Ошибка синхронизации фильтров", e)
-    }
-  }, [])
-
-  const clearHistory = useCallback(() => {
-    setEvents([])
-    localStorage.removeItem(EVENTS_KEY)
-  }, [])
+  const saveRules = (newRules: SniperRule[]) => {
+    setRules(newRules)
+    // Здесь должен быть вызов API для обновления фильтров на бэкенде
+  }
 
   useEffect(() => {
-    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "1342062477"
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "8241853306"
     const socket = new SockJS('https://blinkback.ru.tuna.am/ws-deals')
     const client = new Client({
       webSocketFactory: () => socket,
@@ -61,22 +45,17 @@ export const useSniperLogic = () => {
           const enriched = {
             ...deal,
             id: deal.id || Date.now().toString(),
+            receivedAt: Date.now(),
             imageUrl: `https://nft.fragment.com/gift/${deal.name.toLowerCase().replace(/#/g, "-").replace(/\s+/g, "")}.webp`
           }
-          setEvents(prev => {
-            if (prev.some(e => e.id === enriched.id)) return prev
-            return [enriched, ...prev].slice(0, 50)
-          })
-          if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success')
-          }
+          setEvents(prev => [enriched, ...prev].slice(0, 50))
         })
       },
-      onDisconnect: () => setIsConnected(false),
+      onDisconnect: () => setIsConnected(false)
     })
     client.activate()
     return () => { client.deactivate() }
   }, [])
 
-  return { events, isConnected, filters, applyFilters, clearHistory }
+  return { events, isConnected, rules, saveRules, clearHistory: () => setEvents([]) }
 }

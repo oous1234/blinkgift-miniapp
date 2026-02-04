@@ -1,205 +1,272 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react";
 import {
   Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton,
-  VStack, HStack, Text, Box, Button, Input, SimpleGrid, Switch, Flex, IconButton, Center
-} from "@chakra-ui/react"
-import { ChevronRightIcon, ArrowBackIcon, DeleteIcon, AddIcon } from "@chakra-ui/icons"
-import { motion, AnimatePresence } from "framer-motion"
-import { AttributePicker } from "@components/overlay/search/AttributePicker"
-import ChangesService, { ApiBackdrop } from "@services/changes"
-import { SniperRule } from "../hooks/useSniperLogic"
+  VStack, HStack, Text, Box, Button, Input, SimpleGrid, IconButton, Flex, Badge, Divider,
+  Switch, useToast
+} from "@chakra-ui/react";
+import { ChevronRightIcon, DeleteIcon, AddIcon, ArrowBackIcon } from "@chakra-ui/icons";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSniperStore } from "../../../store/useSniperStore";
+import { SniperRule } from "../../../types/sniper";
+import { AttributePicker } from "../../../components/overlay/search/AttributePicker";
+import ChangesService from "../../../services/changes";
 
-interface SniperFilterDrawerProps {
-  isOpen: boolean
-  onClose: () => void
-  rules: SniperRule[]
-  onSave: (rules: SniperRule[]) => void
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-type ViewType = "LIST" | "EDIT" | "PICKER"
+type ViewType = "LIST" | "EDITOR" | "PICKER";
 
-export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
-  isOpen, onClose, rules, onSave
-}) => {
-  const [view, setView] = useState<ViewType>("LIST")
-  const [pickerType, setPickerType] = useState<"GIFT" | "MODEL" | "BACKDROP">("GIFT")
-  const [editingRule, setEditingRule] = useState<SniperRule | null>(null)
-  const [allGifts, setAllGifts] = useState<string[]>([])
-  const [attributes, setAttributes] = useState({
-    models: [] as string[],
-    backdrops: [] as ApiBackdrop[],
-    loading: false
-  })
+export const SniperFilterDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
+  const { rules, addRule, updateRule, deleteRule } = useSniperStore();
+  const [view, setView] = useState<ViewType>("LIST");
+  const [activeRule, setActiveRule] = useState<SniperRule | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      setView("LIST")
-      ChangesService.getGifts().then(setAllGifts)
-    }
-  }, [isOpen])
+  // Конфиг для пикера (чтобы картинки грузились правильно)
+  const [pickerType, setPickerType] = useState<"gift" | "model" | "backdrop" | "symbol">("gift");
+  const [pickerItems, setPickerItems] = useState<any[]>([]);
+  const [isPickerLoading, setIsPickerLoading] = useState(false);
 
-  useEffect(() => {
-    if (editingRule && editingRule.giftName !== "Все подарки") {
-      setAttributes(prev => ({ ...prev, loading: true }))
-      Promise.all([
-        ChangesService.getModels(editingRule.giftName),
-        ChangesService.getBackdrops(editingRule.giftName),
-      ]).then(([m, b]) => {
-        setAttributes({ models: m as any, backdrops: b as any, loading: false })
-      })
-    }
-  }, [editingRule?.giftName])
+  const toast = useToast();
 
-  const handleAdd = () => {
-    setEditingRule({
+  const handleCreateNew = () => {
+    const newRule: SniperRule = {
       id: Math.random().toString(36).substr(2, 9),
       giftName: "Все подарки",
-      models: [],
-      backdrops: [],
-      minPrice: "",
-      maxPrice: "",
-      minDiscount: "",
+      models: [], backdrops: [], symbols: [], rarities: [],
+      minPrice: null, maxPrice: null, minProfitPercent: 10,
       enabled: true
-    })
-    setView("EDIT")
-  }
+    };
+    setActiveRule(newRule);
+    setView("EDITOR");
+  };
 
-  const handleSave = () => {
-    if (!editingRule) return
-    onSave(rules.find(r => r.id === editingRule.id)
-      ? rules.map(r => r.id === editingRule.id ? editingRule : r)
-      : [...rules, editingRule])
-    setView("LIST")
-  }
+  const handleEdit = (rule: SniperRule) => {
+    setActiveRule({ ...rule });
+    setView("EDITOR");
+  };
 
-  const toggleAttr = (list: string[], val: string) =>
-    list.includes(val) ? list.filter(v => v !== val) : [...list, val]
+  const saveRule = () => {
+    if (!activeRule) return;
+    const exists = rules.find(r => r.id === activeRule.id);
+    if (exists) {
+      updateRule(activeRule.id, activeRule);
+    } else {
+      addRule(activeRule);
+    }
+    setView("LIST");
+    toast({ title: "Слот сохранен", status: "success", duration: 2000 });
+  };
 
-  // Подготовка данных для пикера
-  const pickerConfig = editingRule ? {
-    GIFT: { items: allGifts, title: "Выбор предмета", getImg: (n: string) => ChangesService.getOriginalUrl(n, "png"), selected: [editingRule.giftName] },
-    MODEL: { items: attributes.models, title: "Выбор моделей", getImg: (n: string) => ChangesService.getModelUrl(editingRule.giftName, n, "png"), selected: editingRule.models },
-    BACKDROP: { items: attributes.backdrops, title: "Выбор фонов", selected: editingRule.backdrops },
-  }[pickerType] : null
+  const openPicker = async (type: "gift" | "model" | "backdrop" | "symbol") => {
+    setPickerType(type);
+    setIsPickerLoading(true);
+    setView("PICKER");
+
+    try {
+      let items: any[] = [];
+      if (type === "gift") items = await ChangesService.getGifts();
+      else {
+        const giftContext = activeRule?.giftName === "Все подарки" ? "Plush Pepe" : activeRule?.giftName;
+        if (type === "model") items = await ChangesService.getModels(giftContext!);
+        if (type === "backdrop") items = await ChangesService.getBackdrops(giftContext!);
+        if (type === "symbol") items = await ChangesService.getPatterns(giftContext!);
+      }
+      setPickerItems(items);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsPickerLoading(false);
+    }
+  };
+
+  const toggleAttribute = (key: keyof SniperRule, value: string) => {
+    if (!activeRule) return;
+    const current = (activeRule[key] as string[]) || [];
+    const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
+    setActiveRule({ ...activeRule, [key]: next });
+  };
+
+  // Функция для получения URL картинок (как в NFT Search)
+  const getImageUrl = (item: any) => {
+    const name = typeof item === "string" ? item : item.name;
+    const giftContext = activeRule?.giftName === "Все подарки" ? "Plush Pepe" : activeRule?.giftName;
+
+    if (pickerType === "gift") return ChangesService.getOriginalUrl(name, "png");
+    if (pickerType === "model") return ChangesService.getModelUrl(giftContext!, name, "png");
+    if (pickerType === "symbol") return ChangesService.getPatternImage(giftContext!, name);
+    return "";
+  };
 
   return (
     <Drawer isOpen={isOpen} placement="bottom" onClose={onClose}>
-      <DrawerOverlay backdropFilter="blur(10px)" bg="blackAlpha.700" />
-      <DrawerContent bg="#0F1115" borderTopRadius="28px" height="84vh" color="white">
-        <DrawerBody p={0} display="flex" flexDirection="column">
+      <DrawerOverlay backdropFilter="blur(12px)" bg="blackAlpha.800" />
+      <DrawerContent bg="#0A0C10" borderTopRadius="32px" height="85vh" color="white" borderTop="1px solid" borderColor="whiteAlpha.200">
+        <DrawerBody p={0}>
           <AnimatePresence mode="wait">
-            {/* СПИСОК СЛОТОВ */}
             {view === "LIST" && (
-              <motion.div key="list" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }} style={{ height: '100%', padding: '20px' }}>
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2, ease: "easeOut" }} // Убрали пружинку
+                style={{ padding: '24px' }}
+              >
                 <Flex justify="space-between" align="center" mb={6}>
-                  <Text fontSize="11px" fontWeight="900" color="whiteAlpha.400" letterSpacing="1px">АКТИВНЫЕ СЛОТЫ ({rules.length})</Text>
-                  <DrawerCloseButton position="static" size="sm" />
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="900" fontSize="14px" color="whiteAlpha.600" letterSpacing="1px">АКТИВНЫЕ СЛОТЫ</Text>
+                    <Text fontSize="10px" color="brand.500" fontWeight="bold">СИСТЕМА: ЗАПУЩЕНА</Text>
+                  </VStack>
+                  <DrawerCloseButton position="static" />
                 </Flex>
-                <VStack align="stretch" spacing={2} overflowY="auto" maxH="calc(84vh - 160px)">
-                  {rules.length === 0 ? (
-                    <Center py={14} bg="whiteAlpha.50" borderRadius="20px" border="1px dashed" borderColor="whiteAlpha.100">
-                      <Text color="whiteAlpha.300" fontSize="12px" fontWeight="700">НЕТ АКТИВНЫХ КОНФИГОВ</Text>
-                    </Center>
-                  ) : (
-                    rules.map(rule => (
-                      <HStack key={rule.id} bg="rgba(255,255,255,0.03)" p={3} borderRadius="16px" border="1px solid" borderColor="whiteAlpha.50" justify="space-between">
-                        <VStack align="start" spacing={0} flex={1} onClick={() => { setEditingRule(rule); setView("EDIT"); }} cursor="pointer">
-                          <Text fontWeight="800" fontSize="14px">{rule.giftName}</Text>
-                          <Text fontSize="10px" color="brand.500" fontWeight="800">{rule.models.length + rule.backdrops.length} АТТР • ДО {rule.maxPrice || '∞'} TON</Text>
-                        </VStack>
-                        <IconButton aria-label="Del" icon={<DeleteIcon />} variant="ghost" color="whiteAlpha.300" size="sm" onClick={() => onSave(rules.filter(r => r.id !== rule.id))} />
-                      </HStack>
-                    ))
+
+                <VStack spacing={3} align="stretch" maxH="55vh" overflowY="auto">
+                  {rules.length === 0 && (
+                    <Box py={10} textAlign="center" border="1px dashed" borderColor="whiteAlpha.200" borderRadius="20px">
+                      <Text color="whiteAlpha.400" fontSize="12px">Нет активных слотов для поиска</Text>
+                    </Box>
                   )}
+                  {rules.map(r => (
+                    <Flex key={r.id} bg="whiteAlpha.50" p={4} borderRadius="18px" align="center" border="1px solid" borderColor="whiteAlpha.100" onClick={() => handleEdit(r)} cursor="pointer">
+                       <VStack align="start" spacing={0} flex={1}>
+                          <HStack>
+                             <Text fontWeight="900" fontSize="15px">{r.giftName}</Text>
+                             {!r.enabled && <Badge colorScheme="red" variant="subtle" fontSize="8px">ВЫКЛ</Badge>}
+                          </HStack>
+                          <Text fontSize="10px" color="whiteAlpha.500" fontWeight="bold">
+                            {r.models.length + r.backdrops.length + r.symbols.length} АТТР • МАКС {r.maxPrice || '∞'} TON
+                          </Text>
+                       </VStack>
+                       <ChevronRightIcon color="whiteAlpha.300" />
+                    </Flex>
+                  ))}
                 </VStack>
-                <Button position="absolute" bottom="30px" left="20px" right="20px" h="48px" borderRadius="14px" bg="brand.500" color="black" fontWeight="900" fontSize="13px" leftIcon={<AddIcon boxSize="10px" />} onClick={handleAdd}>СОЗДАТЬ СЛОТ</Button>
+
+                <Button
+                  mt={6} w="100%" h="56px" bg="white" color="black" borderRadius="18px" fontWeight="900" fontSize="14px" leftIcon={<AddIcon boxSize="10px"/>}
+                  onClick={handleCreateNew}
+                >
+                  СОЗДАТЬ НОВЫЙ СЛОТ
+                </Button>
               </motion.div>
             )}
 
-            {/* РЕДАКТИРОВАНИЕ СЛОТА */}
-            {view === "EDIT" && (
-              <motion.div key="edit" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }} style={{ height: '100%', padding: '20px' }}>
-                <HStack justify="space-between" mb={6}>
-                  <IconButton aria-label="back" icon={<ArrowBackIcon />} onClick={() => setView("LIST")} variant="ghost" size="sm" />
-                  <Text fontWeight="900" fontSize="14px" letterSpacing="0.5px">НАСТРОЙКА СЛОТА</Text>
-                  <Box w="32px" />
+            {view === "EDITOR" && activeRule && (
+              <motion.div
+                key="editor"
+                initial={{ x: 30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.2, ease: "easeOut" }} // Убрали пружинку
+                style={{ padding: '24px' }}
+              >
+                <HStack mb={6} justify="space-between">
+                  <IconButton aria-label="back" icon={<ArrowBackIcon />} variant="ghost" size="sm" onClick={() => setView("LIST")} />
+                  <Text fontWeight="900" fontSize="14px" letterSpacing="1px">НАСТРОЙКА СЛОТА</Text>
+                  <IconButton aria-label="del" icon={<DeleteIcon />} variant="ghost" colorScheme="red" size="sm" onClick={() => { deleteRule(activeRule.id); setView("LIST"); }} />
                 </HStack>
-                <VStack spacing={5} align="stretch">
-                  <Box>
-                    <Text fontSize="9px" fontWeight="900" color="whiteAlpha.400" mb={1} ml={1}>КОЛЛЕКЦИЯ / ПРЕДМЕТ</Text>
-                    <Button w="100%" h="48px" borderRadius="14px" bg="whiteAlpha.50" justifyContent="space-between" fontSize="14px" fontWeight="800" onClick={() => { setPickerType("GIFT"); setView("PICKER"); }}>
-                      {editingRule?.giftName} <ChevronRightIcon color="whiteAlpha.300" />
-                    </Button>
+
+                <VStack spacing={4} align="stretch">
+                  <Box bg="whiteAlpha.50" p={3} borderRadius="16px" onClick={() => openPicker("gift")}>
+                    <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.400" mb={1}>ПРЕДМЕТ / КОЛЛЕКЦИЯ</Text>
+                    <Flex justify="space-between" align="center">
+                      <Text fontWeight="800" fontSize="16px">{activeRule.giftName}</Text>
+                      <ChevronRightIcon color="brand.500" />
+                    </Flex>
                   </Box>
-                  <SimpleGrid columns={2} spacing={3}>
-                    <CompactAttr label="Модели" count={editingRule?.models.length || 0} onClick={() => { setPickerType("MODEL"); setView("PICKER"); }} isDisabled={editingRule?.giftName === "Все подарки"} />
-                    <CompactAttr label="Фоны" count={editingRule?.backdrops.length || 0} onClick={() => { setPickerType("BACKDROP"); setView("PICKER"); }} isDisabled={editingRule?.giftName === "Все подарки"} />
+
+                  <SimpleGrid columns={3} spacing={2}>
+                    <MiniAttr label="Модели" count={activeRule.models.length} onClick={() => openPicker("model")} />
+                    <MiniAttr label="Фоны" count={activeRule.backdrops.length} onClick={() => openPicker("backdrop")} />
+                    <MiniAttr label="Узоры" count={activeRule.symbols.length} onClick={() => openPicker("symbol")} />
                   </SimpleGrid>
-                  <HStack spacing={3}>
+
+                  <Divider borderColor="whiteAlpha.100" my={2} />
+
+                  <HStack spacing={4}>
                     <Box flex={1}>
-                      <Text fontSize="9px" fontWeight="900" color="whiteAlpha.400" mb={1} ml={1}>МИН. ЦЕНА</Text>
-                      <Input placeholder="0" bg="whiteAlpha.50" border="none" h="48px" borderRadius="14px" fontSize="14px" fontWeight="800" value={editingRule?.minPrice} onChange={e => setEditingRule(prev => prev ? {...prev, minPrice: e.target.value} : null)} />
+                       <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.400" mb={1}>МИН. ЦЕНА</Text>
+                       <Input
+                        placeholder="0" variant="filled" bg="whiteAlpha.100" border="none" borderRadius="12px" fontWeight="900"
+                        value={activeRule.minPrice || ""} onChange={e => setActiveRule({...activeRule, minPrice: Number(e.target.value)})}
+                       />
                     </Box>
                     <Box flex={1}>
-                      <Text fontSize="9px" fontWeight="900" color="whiteAlpha.400" mb={1} ml={1}>МАКС. ЦЕНА</Text>
-                      <Input placeholder="∞" bg="whiteAlpha.50" border="none" h="48px" borderRadius="14px" fontSize="14px" fontWeight="800" value={editingRule?.maxPrice} onChange={e => setEditingRule(prev => prev ? {...prev, maxPrice: e.target.value} : null)} />
+                       <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.400" mb={1}>МАКС. ЦЕНА</Text>
+                       <Input
+                        placeholder="∞" variant="filled" bg="whiteAlpha.100" border="none" borderRadius="12px" fontWeight="900"
+                        value={activeRule.maxPrice || ""} onChange={e => setActiveRule({...activeRule, maxPrice: Number(e.target.value)})}
+                       />
                     </Box>
                   </HStack>
-                  <Button position="absolute" bottom="30px" left="20px" right="20px" h="52px" borderRadius="16px" bg="brand.500" color="black" fontWeight="900" fontSize="14px" onClick={handleSave}>СОХРАНИТЬ КОНФИГ</Button>
+
+                  <Box bg="rgba(76, 217, 100, 0.05)" p={4} borderRadius="18px" border="1px solid" borderColor="rgba(76, 217, 100, 0.2)">
+                    <Flex justify="space-between" align="center" mb={2}>
+                       <Text fontSize="11px" fontWeight="900" color="#4CD964">МИНИМАЛЬНЫЙ ПРОФИТ (%)</Text>
+                       <Text fontSize="14px" fontWeight="900" color="#4CD964">+{activeRule.minProfitPercent}%</Text>
+                    </Flex>
+                    <Input
+                      type="range" min="0" max="50" step="5"
+                      value={activeRule.minProfitPercent || 0}
+                      onChange={e => setActiveRule({...activeRule, minProfitPercent: Number(e.target.value)})}
+                    />
+                  </Box>
+
+                  <Flex justify="space-between" align="center" bg="whiteAlpha.50" p={3} borderRadius="16px">
+                     <Text fontSize="13px" fontWeight="800">Статус активности</Text>
+                     <Switch isChecked={activeRule.enabled} onChange={e => setActiveRule({...activeRule, enabled: e.target.checked})} colorScheme="purple" />
+                  </Flex>
+
+                  <Button h="56px" bg="brand.500" color="black" fontWeight="900" borderRadius="16px" mt={4} onClick={saveRule}>
+                    СОХРАНИТЬ КОНФИГУРАЦИЮ
+                  </Button>
                 </VStack>
               </motion.div>
             )}
 
-            {/* ВЫБОР АТРИБУТОВ (PICKER) */}
-            {view === "PICKER" && pickerConfig && (
-              <motion.div key="picker" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Box flex={1} overflow="hidden">
+            {view === "PICKER" && (
+               <motion.div
+                key="picker"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+                style={{ height: '85vh' }}
+               >
                   <AttributePicker
-                    title={pickerConfig.title}
-                    items={pickerConfig.items}
-                    selectedItems={pickerConfig.selected}
-                    onBack={() => setView("EDIT")}
-                    isLoading={attributes.loading && pickerType !== "GIFT"}
-                    getImageUrl={pickerConfig.getImg}
-                    renderCustomItem={pickerType === "BACKDROP" ? (item: any) => (
-                      <Box boxSize="40px" borderRadius="full" style={{ background: `radial-gradient(circle, ${item.hex?.centerColor || '#333'} 0%, ${item.hex?.edgeColor || '#111'} 100%)` }} />
-                    ) : undefined}
+                    title={pickerType === "gift" ? "Выберите подарок" : pickerType === "model" ? "Выберите модели" : pickerType === "symbol" ? "Выберите узоры" : "Выберите фоны"}
+                    items={pickerItems}
+                    selectedItems={(activeRule as any)[pickerType === 'gift' ? 'giftName' : pickerType + 's']}
+                    onBack={() => setView("EDITOR")}
+                    isLoading={isPickerLoading}
+                    getImageUrl={getImageUrl}
                     onSelect={(item) => {
-                      const name = typeof item === 'string' ? item : (item.name || item)
-                      if (!editingRule) return
-                      if (pickerType === "GIFT") {
-                        setEditingRule({ ...editingRule, giftName: name, models: [], backdrops: [] })
-                        setView("EDIT")
+                      const val = typeof item === 'string' ? item : item.name;
+                      if (pickerType === 'gift') {
+                        setActiveRule({ ...activeRule!, giftName: val, models: [], backdrops: [], symbols: [] });
+                        setView("EDITOR");
                       } else {
-                        const key = pickerType === "MODEL" ? "models" : "backdrops"
-                        setEditingRule({ ...editingRule, [key]: toggleAttr(editingRule[key], name) })
+                        toggleAttribute((pickerType + 's') as any, val);
                       }
                     }}
+                    renderCustomItem={pickerType === "backdrop" ? (item: any) => (
+                      <Box boxSize="40px" borderRadius="full" style={{ background: `radial-gradient(circle, ${item.hex?.centerColor} 0%, ${item.hex?.edgeColor} 100%)` }} />
+                    ) : undefined}
                   />
-                </Box>
-                {pickerType !== "GIFT" && (
-                  <Box p={4} bg="#0F1115" borderTop="1px solid" borderColor="whiteAlpha.50">
-                    <Button w="100%" h="48px" borderRadius="14px" bg="brand.500" color="black" fontWeight="900" onClick={() => setView("EDIT")}>ПОДТВЕРДИТЬ ВЫБОР</Button>
-                  </Box>
-                )}
-              </motion.div>
+               </motion.div>
             )}
           </AnimatePresence>
         </DrawerBody>
       </DrawerContent>
     </Drawer>
-  )
-}
+  );
+};
 
-const CompactAttr = ({ label, count, onClick, isDisabled }: any) => (
-  <Box
-    bg="whiteAlpha.50" p={3} borderRadius="14px" border="1px solid"
-    borderColor="whiteAlpha.50" onClick={!isDisabled ? onClick : undefined}
-    cursor={isDisabled ? "not-allowed" : "pointer"}
-    opacity={isDisabled ? 0.4 : 1}
-    _active={!isDisabled ? { bg: "whiteAlpha.100" } : {}}
+const MiniAttr = ({ label, count, onClick }: any) => (
+  <VStack
+    bg="whiteAlpha.100" p={2} borderRadius="12px" cursor="pointer" spacing={0} align="start" border="1px solid" borderColor="whiteAlpha.50"
+    onClick={onClick} _active={{ bg: "whiteAlpha.200" }}
   >
-    <Text fontSize="8px" color="whiteAlpha.400" fontWeight="900" mb={0.5} textTransform="uppercase">{label}</Text>
-    <Text fontSize="13px" fontWeight="800" color={count > 0 ? "brand.500" : "white"}>{count > 0 ? `Выбрано: ${count}` : "Любой"}</Text>
-  </Box>
-)
+    <Text fontSize="8px" fontWeight="bold" color="whiteAlpha.400">{label === 'Models' ? 'МОДЕЛИ' : label === 'Backdrops' ? 'ФОНЫ' : 'УЗОРЫ'}</Text>
+    <Text fontSize="12px" fontWeight="900" color={count > 0 ? "brand.500" : "white"}>{count > 0 ? count : 'ВСЕ'}</Text>
+  </VStack>
+);

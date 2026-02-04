@@ -32,14 +32,21 @@ public class RedisPubSubConfig {
     MessageListenerAdapter listingListenerAdapter(ListingEventDispatcher dispatcher) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         Jackson2JsonRedisSerializer<ListingEvent> serializer = new Jackson2JsonRedisSerializer<>(mapper, ListingEvent.class);
 
         MessageListenerAdapter adapter = new MessageListenerAdapter(new Object() {
             public void handleMessage(ListingEvent event) {
+                // ЛОГ ДЛЯ ОТЛАДКИ:
+                System.out.println("\n--- REDIS EVENT RECEIVED ---");
+                System.out.println("Gift: " + event.getName());
+                System.out.println("Model: " + event.getModel());
+                System.out.println("Price: " + event.getPrice());
+                System.out.println("---------------------------\n");
+
                 dispatcher.dispatch(event);
             }
         }, "handleMessage");
-
         adapter.setSerializer(serializer);
         return adapter;
     }
@@ -48,13 +55,11 @@ public class RedisPubSubConfig {
     MessageListenerAdapter filterListenerAdapter(FilterUpdateListener listener) {
         ObjectMapper mapper = new ObjectMapper();
         Jackson2JsonRedisSerializer<FilterUpdateEvent> serializer = new Jackson2JsonRedisSerializer<>(mapper, FilterUpdateEvent.class);
-
         MessageListenerAdapter adapter = new MessageListenerAdapter(new Object() {
             public void handleMessage(FilterUpdateEvent event) {
                 listener.handleFilterUpdate(event);
             }
         }, "handleMessage");
-
         adapter.setSerializer(serializer);
         return adapter;
     }

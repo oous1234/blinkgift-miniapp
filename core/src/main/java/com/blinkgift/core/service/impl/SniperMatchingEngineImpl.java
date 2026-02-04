@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -38,13 +37,15 @@ public class SniperMatchingEngineImpl implements SniperMatchingEngine {
 
     @Override
     public void processListing(ListingEvent gift) {
-        List<Set<String>> candidateSets = new ArrayList<>();
+        log.debug("Processing sniper match for: {}", gift.getName());
 
+        List<Set<String>> candidateSets = new ArrayList<>();
         collectCandidates(candidateSets, modelIndex, gift.getModel());
         collectCandidates(candidateSets, backdropIndex, gift.getBackdrop());
         collectCandidates(candidateSets, symbolIndex, gift.getSymbol());
 
         if (candidateSets.isEmpty()) {
+            log.debug("No candidates found for attributes of {}", gift.getName());
             return;
         }
 
@@ -71,22 +72,38 @@ public class SniperMatchingEngineImpl implements SniperMatchingEngine {
 
     private void checkAndNotify(String userId, ListingEvent gift) {
         UserFilterDocument filter = filterCache.get(userId);
-        if (filter != null && isMatch(gift, filter)) {
-            notificationService.sendMatchNotifications(userId, gift);
+        if (filter != null) {
+            if (isMatch(gift, filter)) {
+                log.info("MATCH FOUND! User: {}, Gift: {}", userId, gift.getName());
+                notificationService.sendMatchNotifications(userId, gift);
+            } else {
+                log.debug("User {} candidate but price/attributes didn't match fully", userId);
+            }
         }
     }
 
     private boolean isMatch(ListingEvent gift, UserFilterDocument filter) {
+        // Проверка моделей
         if (!isAttributeMatch(filter.getModels(), gift.getModel())) return false;
+        // Проверка фонов
         if (!isAttributeMatch(filter.getBackdrops(), gift.getBackdrop())) return false;
+        // Проверка символов
         if (!isAttributeMatch(filter.getSymbols(), gift.getSymbol())) return false;
+
+        // ПРОВЕРКА ЦЕНЫ (обязательно!)
+        if (filter.getMaxPrice() != null && gift.getPrice() != null) {
+            if (gift.getPrice().compareTo(filter.getMaxPrice()) > 0) {
+                log.debug("Price {} higher than filter max {}", gift.getPrice(), filter.getMaxPrice());
+                return false;
+            }
+        }
 
         return true;
     }
 
     private boolean isAttributeMatch(List<String> filterValues, String giftValue) {
         if (filterValues == null || filterValues.isEmpty()) {
-            return true;
+            return true; // Если фильтр не задан, значит подходит любой
         }
         if (giftValue == null) {
             return false;
@@ -100,13 +117,6 @@ public class SniperMatchingEngineImpl implements SniperMatchingEngine {
     @Override
     public void updateFilter(UserFilterDocument filter) {
         String userId = filter.getUserId();
-
-        UserFilterDocument existing = filterCache.get(userId);
-        if (existing != null && existing.getVersion() >= filter.getVersion()) {
-            log.debug("Skipping update for user {}: version is not newer", userId);
-            return;
-        }
-
         removeFilter(userId);
 
         filterCache.put(userId, filter);
@@ -114,7 +124,7 @@ public class SniperMatchingEngineImpl implements SniperMatchingEngine {
         indexAttributes(userId, filter.getBackdrops(), backdropIndex);
         indexAttributes(userId, filter.getSymbols(), symbolIndex);
 
-        log.debug("Filter updated for user: {}", userId);
+        log.info("Filter updated/indexed for user: {}", userId);
     }
 
     private void indexAttributes(String userId, List<String> values, Map<String, Set<String>> index) {

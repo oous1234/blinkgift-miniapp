@@ -14,12 +14,10 @@ import java.util.List;
 public class UserFilterDocument {
     @Id
     private String userId;
-
     private List<String> models;
     private List<String> backdrops;
     private List<String> symbols;
-
     private BigDecimal maxPrice;
-
     private Boolean notificationsEnabled;
+    private long version;
 }

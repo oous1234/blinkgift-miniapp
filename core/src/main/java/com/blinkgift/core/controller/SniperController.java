@@ -19,8 +19,10 @@ public class SniperController {
     private final SniperMatchingEngine matchingEngine;
 
     @GetMapping("/history")
-    public ResponseEntity<List<SniperHistoryDto>> getSniperHistory(@RequestParam String userId) {
-        return ResponseEntity.ok(sniperService.getFilteredHistory(userId));
+    public ResponseEntity<List<SniperHistoryDto>> getSniperHistory(
+            @RequestParam String userId,
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(sniperService.getMatchHistory(userId, limit));
     }
 
     @PostMapping("/filters")

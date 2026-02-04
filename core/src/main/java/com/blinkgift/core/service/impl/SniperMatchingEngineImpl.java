@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,64 +30,99 @@ public class SniperMatchingEngineImpl implements SniperMatchingEngine {
     @PostConstruct
     @Override
     public void warmUp() {
+        log.info("Starting Sniper Engine warm-up...");
         List<UserFilterDocument> allFilters = filterRepository.findAll();
         allFilters.forEach(this::updateFilter);
+        log.info("Warm-up completed. Loaded {} filters.", filterCache.size());
     }
 
     @Override
     public void processListing(ListingEvent gift) {
-        Set<String> candidates = new HashSet<>();
+        List<Set<String>> candidateSets = new ArrayList<>();
 
-        if (gift.getModel() != null) {
-            Set<String> users = modelIndex.get(gift.getModel());
-            if (users != null) candidates.addAll(users);
-        }
-        if (gift.getBackdrop() != null) {
-            Set<String> users = backdropIndex.get(gift.getBackdrop());
-            if (users != null) candidates.addAll(users);
-        }
-        if (gift.getSymbol() != null) {
-            Set<String> users = symbolIndex.get(gift.getSymbol());
-            if (users != null) candidates.addAll(users);
+        collectCandidates(candidateSets, modelIndex, gift.getModel());
+        collectCandidates(candidateSets, backdropIndex, gift.getBackdrop());
+        collectCandidates(candidateSets, symbolIndex, gift.getSymbol());
+
+        if (candidateSets.isEmpty()) {
+            return;
         }
 
-        if (candidates.isEmpty()) return;
+        Set<String> uniqueCandidates = new HashSet<>();
+        candidateSets.sort(Comparator.comparingInt(Set::size));
 
-        for (String userId : candidates) {
-            UserFilterDocument filter = filterCache.get(userId);
-            if (filter != null && isMatch(gift, filter)) {
-                notificationService.sendMatchNotifications(userId, gift);
+        for (Set<String> set : candidateSets) {
+            for (String userId : set) {
+                if (uniqueCandidates.add(userId)) {
+                    checkAndNotify(userId, gift);
+                }
             }
         }
     }
 
+    private void collectCandidates(List<Set<String>> target, Map<String, Set<String>> index, String value) {
+        if (value != null) {
+            Set<String> users = index.get(normalize(value));
+            if (users != null && !users.isEmpty()) {
+                target.add(users);
+            }
+        }
+    }
+
+    private void checkAndNotify(String userId, ListingEvent gift) {
+        UserFilterDocument filter = filterCache.get(userId);
+        if (filter != null && isMatch(gift, filter)) {
+            notificationService.sendMatchNotifications(userId, gift);
+        }
+    }
+
     private boolean isMatch(ListingEvent gift, UserFilterDocument filter) {
-        if (filter.getModels() != null && !filter.getModels().isEmpty()) {
-            if (!filter.getModels().contains(gift.getModel())) return false;
-        }
-        if (filter.getBackdrops() != null && !filter.getBackdrops().isEmpty()) {
-            if (!filter.getBackdrops().contains(gift.getBackdrop())) return false;
-        }
-        if (filter.getSymbols() != null && !filter.getSymbols().isEmpty()) {
-            if (!filter.getSymbols().contains(gift.getSymbol())) return false;
-        }
+        if (!isAttributeMatch(filter.getModels(), gift.getModel())) return false;
+        if (!isAttributeMatch(filter.getBackdrops(), gift.getBackdrop())) return false;
+        if (!isAttributeMatch(filter.getSymbols(), gift.getSymbol())) return false;
+
         return true;
+    }
+
+    private boolean isAttributeMatch(List<String> filterValues, String giftValue) {
+        if (filterValues == null || filterValues.isEmpty()) {
+            return true;
+        }
+        if (giftValue == null) {
+            return false;
+        }
+        String normalizedGiftValue = normalize(giftValue);
+        return filterValues.stream()
+                .map(this::normalize)
+                .anyMatch(normalizedGiftValue::equals);
     }
 
     @Override
     public void updateFilter(UserFilterDocument filter) {
         String userId = filter.getUserId();
-        removeFilter(userId);
-        filterCache.put(userId, filter);
 
-        if (filter.getModels() != null) {
-            filter.getModels().forEach(m -> modelIndex.computeIfAbsent(m, k -> ConcurrentHashMap.newKeySet()).add(userId));
+        UserFilterDocument existing = filterCache.get(userId);
+        if (existing != null && existing.getVersion() >= filter.getVersion()) {
+            log.debug("Skipping update for user {}: version is not newer", userId);
+            return;
         }
-        if (filter.getBackdrops() != null) {
-            filter.getBackdrops().forEach(b -> backdropIndex.computeIfAbsent(b, k -> ConcurrentHashMap.newKeySet()).add(userId));
-        }
-        if (filter.getSymbols() != null) {
-            filter.getSymbols().forEach(s -> symbolIndex.computeIfAbsent(s, k -> ConcurrentHashMap.newKeySet()).add(userId));
+
+        removeFilter(userId);
+
+        filterCache.put(userId, filter);
+        indexAttributes(userId, filter.getModels(), modelIndex);
+        indexAttributes(userId, filter.getBackdrops(), backdropIndex);
+        indexAttributes(userId, filter.getSymbols(), symbolIndex);
+
+        log.debug("Filter updated for user: {}", userId);
+    }
+
+    private void indexAttributes(String userId, List<String> values, Map<String, Set<String>> index) {
+        if (values != null) {
+            values.forEach(val -> {
+                String normalized = normalize(val);
+                index.computeIfAbsent(normalized, k -> ConcurrentHashMap.newKeySet()).add(userId);
+            });
         }
     }
 
@@ -102,11 +138,17 @@ public class SniperMatchingEngineImpl implements SniperMatchingEngine {
 
     private void removeFromIndex(Map<String, Set<String>> index, List<String> values, String userId) {
         if (values != null) {
-            values.forEach(v -> {
-                Set<String> set = index.get(v);
-                if (set != null) set.remove(userId);
+            values.forEach(val -> {
+                Set<String> set = index.get(normalize(val));
+                if (set != null) {
+                    set.remove(userId);
+                }
             });
         }
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     @Override

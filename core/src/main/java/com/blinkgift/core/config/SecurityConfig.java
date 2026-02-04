@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/ws-deals/**").permitAll()
                         .requestMatchers("/wallet").permitAll()
                         .requestMatchers("/api/parsing/**").permitAll()
+                        .requestMatchers("/api/v1/sniper/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

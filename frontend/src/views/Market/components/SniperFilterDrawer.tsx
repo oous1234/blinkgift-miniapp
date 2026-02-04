@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
 import {
   Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton,
-  VStack, HStack, Text, Box, Button, Badge, Divider, IconButton
+  VStack, HStack, Text, Box, Button, Divider, IconButton
 } from "@chakra-ui/react"
 import { ChevronRightIcon, DeleteIcon } from "@chakra-ui/icons"
 import { AttributePicker } from "@components/overlay/search/AttributePicker"
@@ -19,20 +19,20 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
   isOpen, onClose, activeFilters, onApply
 }) => {
   const [tempFilters, setTempFilters] = useState<SniperFilters>(activeFilters)
-  const [pickerMode, setPickerMode] = useState<"NONE" | "MODEL" | "BACKDROP" | "SYMBOL">("NONE")
-  const [availableGifts, setAvailableGifts] = useState<string[]>([])
+  const [pickerMode, setPickerMode] = useState<"NONE" | "MODEL" | "BACKDROP">("NONE")
+  const [allGifts, setAllGifts] = useState<string[]>([])
 
   useEffect(() => {
     if (isOpen) {
       setTempFilters(activeFilters)
-      ChangesService.getGifts().then(setAvailableGifts)
+      ChangesService.getGifts().then(setAllGifts)
     }
   }, [isOpen, activeFilters])
 
-  const toggleItem = (type: keyof SniperFilters, value: string) => {
-    const list = tempFilters[type]
-    const newList = list.includes(value) ? list.filter(i => i !== value) : [...list, value]
-    setTempFilters({ ...tempFilters, [type]: newList })
+  const handleToggle = (type: keyof SniperFilters, value: string) => {
+    const current = tempFilters[type] || []
+    const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value]
+    setTempFilters({ ...tempFilters, [type]: next })
   }
 
   if (pickerMode !== "NONE") {
@@ -40,12 +40,12 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
       <Drawer isOpen={isOpen} placement="bottom" onClose={() => setPickerMode("NONE")}>
         <DrawerContent bg="#0F1115" borderTopRadius="30px" h="85vh">
           <AttributePicker
-            title={pickerMode === "MODEL" ? "Модели" : "Фоны"}
-            items={availableGifts} // Здесь для примера список всех гифтов
+            title={pickerMode === "MODEL" ? "Выбор Модели" : "Выбор Фона"}
+            items={allGifts}
             onBack={() => setPickerMode("NONE")}
             onSelect={(val) => {
-              const key = pickerMode === "MODEL" ? "models" : pickerMode === "BACKDROP" ? "backdrops" : "symbols"
-              toggleItem(key, val)
+              const key = pickerMode === "MODEL" ? "models" : "backdrops"
+              handleToggle(key, val)
               setPickerMode("NONE")
             }}
           />
@@ -60,28 +60,28 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
       <DrawerContent bg="#0F1115" borderTopRadius="32px">
         <Box w="40px" h="5px" bg="whiteAlpha.300" borderRadius="full" mx="auto" mt={4} />
         <DrawerHeader>
-          <HStack justify="space-between">
+          <HStack justify="space-between" pr={4}>
             <VStack align="start" spacing={0}>
-              <Text fontSize="20px" fontWeight="900">Настройки Снайпера</Text>
-              <Text fontSize="12px" color="whiteAlpha.500">Уведомления о новых листингах</Text>
+              <Text fontSize="20px" fontWeight="900">Sniper Settings</Text>
+              <Text fontSize="12px" color="whiteAlpha.500">Уведомления о находках</Text>
             </VStack>
             <IconButton
                 aria-label="Reset" icon={<DeleteIcon />} variant="ghost" color="red.400"
-                onClick={() => setTempFilters({ models: [], backdrops: [], symbols: [] })}
+                onClick={() => setTempFilters({ models: [], backdrops: [] })}
             />
           </HStack>
         </DrawerHeader>
         <DrawerCloseButton mt={2} />
         <DrawerBody pb={10} px={6}>
           <VStack spacing={4} align="stretch">
-            <FilterButton
+            <SelectorRow
                 label="Модели"
-                selected={tempFilters.models}
+                count={tempFilters.models?.length || 0}
                 onClick={() => setPickerMode("MODEL")}
             />
-            <FilterButton
+            <SelectorRow
                 label="Фоны"
-                selected={tempFilters.backdrops}
+                count={tempFilters.backdrops?.length || 0}
                 onClick={() => setPickerMode("BACKDROP")}
             />
 
@@ -89,9 +89,10 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
 
             <Button
               h="60px" bg="brand.500" color="black" borderRadius="20px" fontWeight="900" fontSize="16px"
+              _active={{ transform: "scale(0.96)" }}
               onClick={() => { onApply(tempFilters); onClose(); }}
             >
-              СОХРАНИТЬ ПОДПИСКУ
+              ОБНОВИТЬ ПОДПИСКУ
             </Button>
           </VStack>
         </DrawerBody>
@@ -100,17 +101,17 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
   )
 }
 
-const FilterButton = ({ label, selected, onClick }: any) => (
+const SelectorRow = ({ label, count, onClick }: any) => (
   <HStack
-    bg="whiteAlpha.50" p={4} borderRadius="18px" justify="space-between" cursor="pointer"
+    bg="whiteAlpha.50" p={4} borderRadius="20px" justify="space-between" cursor="pointer"
     onClick={onClick} border="1px solid" borderColor="whiteAlpha.100" _active={{ bg: "whiteAlpha.100" }}
   >
     <VStack align="start" spacing={0}>
       <Text fontSize="14px" fontWeight="800">{label}</Text>
       <Text fontSize="11px" color="brand.500" fontWeight="700">
-        {selected.length > 0 ? `Выбрано: ${selected.length}` : "Любые"}
+        {count > 0 ? `Выбрано: ${count}` : "Любые"}
       </Text>
     </VStack>
-    <ChevronRightIcon color="whiteAlpha.300" boxSize={5} />
+    <ChevronRightIcon color="whiteAlpha.300" boxSize={6} />
   </HStack>
 )

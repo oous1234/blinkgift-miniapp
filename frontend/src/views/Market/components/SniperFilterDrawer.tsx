@@ -21,6 +21,7 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
   const [tempFilters, setTempFilters] = useState<SniperFilters>(activeFilters)
   const [pickerMode, setPickerMode] = useState<"NONE" | "MODEL" | "BACKDROP">("NONE")
   const [allGifts, setAllGifts] = useState<string[]>([])
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -33,6 +34,16 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
     const current = tempFilters[type] || []
     const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value]
     setTempFilters({ ...tempFilters, [type]: next })
+  }
+
+  const handleApplyClick = async () => {
+    setIsUpdating(true)
+    try {
+      await onApply(tempFilters)
+      onClose()
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   if (pickerMode !== "NONE") {
@@ -63,7 +74,7 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
           <HStack justify="space-between" pr={4}>
             <VStack align="start" spacing={0}>
               <Text fontSize="20px" fontWeight="900">Sniper Settings</Text>
-              <Text fontSize="12px" color="whiteAlpha.500">Уведомления о находках</Text>
+              <Text fontSize="12px" color="whiteAlpha.500">Настройка мониторинга</Text>
             </VStack>
             <IconButton
                 aria-label="Reset" icon={<DeleteIcon />} variant="ghost" color="red.400"
@@ -84,15 +95,19 @@ export const SniperFilterDrawer: React.FC<SniperFilterDrawerProps> = ({
                 count={tempFilters.backdrops?.length || 0}
                 onClick={() => setPickerMode("BACKDROP")}
             />
-
             <Box py={2}><Divider borderColor="whiteAlpha.100" /></Box>
-
             <Button
-              h="60px" bg="brand.500" color="black" borderRadius="20px" fontWeight="900" fontSize="16px"
+              h="60px"
+              bg="brand.500"
+              color="black"
+              borderRadius="20px"
+              fontWeight="900"
+              fontSize="16px"
+              isLoading={isUpdating}
               _active={{ transform: "scale(0.96)" }}
-              onClick={() => { onApply(tempFilters); onClose(); }}
+              onClick={handleApplyClick}
             >
-              ОБНОВИТЬ ПОДПИСКУ
+              ОБНОВИТЬ ФИЛЬТРЫ
             </Button>
           </VStack>
         </DrawerBody>

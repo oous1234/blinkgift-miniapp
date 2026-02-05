@@ -1,32 +1,32 @@
-import { useState, useCallback, useRef } from "react"
-import { OwnerService } from "../services/owner.service"
-import { UserProfile } from "../types/domain"
+import { useState, useCallback, useRef } from 'react';
+import { OwnerService } from '../services/owner.service';
+import { UserProfile } from '../types/domain';
 
 export const useSearch = () => {
-  const [results, setResults] = useState<UserProfile[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const [results, setResults] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout>();
 
-  const search = useCallback((query: string) => {
+  const searchOwners = useCallback((query: string) => {
     if (query.length < 2) {
-      setResults([])
-      return
+      setResults([]);
+      return;
     }
 
-    setIsLoading(true)
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    setIsLoading(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
 
-    timeoutRef.current = setTimeout(async () => {
+    timerRef.current = setTimeout(async () => {
       try {
-        const data = await OwnerService.searchOwners(query)
-        setResults(data)
+        const owners = await OwnerService.searchOwners(query);
+        setResults(owners);
       } catch (e) {
-        setResults([])
+        setResults([]);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }, 500)
-  }, [])
+    }, 500);
+  }, []);
 
-  return { results, isLoading, search }
-}
+  return { results, isLoading, searchOwners };
+};

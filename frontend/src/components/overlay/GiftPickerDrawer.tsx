@@ -4,7 +4,7 @@ import {
   VStack, HStack, Image, Text, Box, Spinner, Center, Input, InputGroup, InputLeftElement
 } from "@chakra-ui/react"
 import { SearchIcon } from "@chakra-ui/icons"
-import ChangesService from "../../services/changes"
+import { ChangesService } from "../../services/changes.service"
 
 interface GiftPickerDrawerProps {
   isOpen: boolean

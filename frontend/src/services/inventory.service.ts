@@ -1,35 +1,42 @@
-import { ApiClient } from "../infrastructure/api"
-import { ApiDetailedGift, ApiGiftShort } from "../types/api"
-import { Gift, PagedResponse } from "../types/domain"
-import { mapDetailedGiftToDomain, mapApiGiftShortToDomain } from "../utils/mappers"
+import { apiClient } from "../infrastructure/apiClient";
+import { Mappers } from "../utils/mappers";
+import { ApiDetailedGift } from "../types/apiDto";
+import { Gift } from "../types/domain";
 
 export const InventoryService = {
-  async getInventory(ownerId: string, limit: number, offset: number) {
-    const response = await ApiClient.get<{ items: ApiGiftShort[]; total: number }>("/inventory", {
+  // Получение инвентаря пользователя
+  async getInventory(ownerId: string, limit = 10, offset = 0) {
+    const response = await apiClient.get<{ items: any[]; total: number }>("/inventory", {
       current_owner_id: ownerId,
       limit,
-      offset
-    })
+      offset,
+    });
+
     return {
       total: response.total,
-      items: response.items.map(item => mapApiGiftShortToDomain(item))
-    }
+      items: (response.items || []).map(Mappers.mapInventoryItem),
+    };
   },
 
-  async searchGifts(params: any): Promise<PagedResponse<Partial<Gift>>> {
-    const response = await ApiClient.post<PagedResponse<ApiGiftShort>>("/api/v1/search/gifts", params)
+  // ЧИСТЫЙ МЕТОД: Берем ID как он есть и идем в API
+  async getGiftDetail(id: string): Promise<Gift> {
+    if (!id) throw new Error("Gift ID is required");
+
+    const data = await apiClient.get<ApiDetailedGift>(`/api/v1/gifts/${id}`);
+    return Mappers.mapDetailedGift(data);
+  },
+
+  // Поиск подарков
+  async searchGifts(params: any) {
+    const response = await apiClient.post<{ items: any[]; total: number }>("/api/v1/search/gifts", params);
     return {
-      ...response,
-      items: response.items.map(item => mapApiGiftShortToDomain(item))
-    }
+      total: response.total || 0,
+      items: (response.items || []).map(Mappers.mapInventoryItem),
+    };
   },
 
-  async getGiftDetail(slug: string, num: number): Promise<Gift> {
-    const data = await ApiClient.get<ApiDetailedGift>(`/api/v1/gifts/${slug}-${num}`)
-    return mapDetailedGiftToDomain(data)
-  },
-
+  // История транзакций из блокчейна
   async getBlockchainHistory(giftId: string) {
-    return ApiClient.get<any>(`/api/v1/explorer/nft/${giftId}/history`)
+    return apiClient.get<any>(`/api/v1/explorer/nft/${giftId}/history`);
   }
-}
+};

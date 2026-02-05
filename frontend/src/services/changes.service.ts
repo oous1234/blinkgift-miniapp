@@ -1,37 +1,45 @@
-import { API_CONFIG } from "../constants/config"
+import { API_CONFIG } from "../config/constants";
+
+const slugify = (text: string) => text.trim().toLowerCase().replace(/\s+/g, "-");
 
 export const ChangesService = {
-  slugify(text: string) {
-    return text.trim().replace(/\s+/g, "-")
-  },
-
-  async getGifts() {
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/gifts`)
-    return res.ok ? res.json() : []
+  async getGifts(): Promise<string[]> {
+    const res = await fetch(`${API_CONFIG.CHANGES_URL}/gifts`);
+    return res.ok ? res.json() : [];
   },
 
   async getModels(gift: string) {
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/models/${this.slugify(gift)}`)
-    const data = await res.json()
-    return data.map((m: any) => m.name)
+    if (!gift || gift === "Все подарки") return [];
+    const res = await fetch(`${API_CONFIG.CHANGES_URL}/models/${slugify(gift)}`);
+    const data = await res.json();
+    return data.map((m: any) => m.name);
   },
 
   async getPatterns(gift: string) {
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/patterns/${this.slugify(gift)}`)
-    const data = await res.json()
-    return data.map((p: any) => p.name)
+    if (!gift || gift === "Все подарки") return [];
+    const res = await fetch(`${API_CONFIG.CHANGES_URL}/patterns/${slugify(gift)}`);
+    const data = await res.json();
+    return data.map((p: any) => p.name);
   },
 
   async getBackdrops(gift: string) {
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/backdrops/${this.slugify(gift)}`)
-    return res.json()
+    if (!gift || gift === "Все подарки") return [];
+    const res = await fetch(`${API_CONFIG.CHANGES_URL}/backdrops/${slugify(gift)}`);
+    return res.ok ? res.json() : [];
   },
 
-  getModelUrl(gift: string, model: string, ext: 'png' | 'json' = 'json') {
-    return `${API_CONFIG.CHANGES_URL}/model/${this.slugify(gift)}/${this.slugify(model)}.${ext}`
+  // Ссылки на ассеты
+  getModelUrl(gift: string, model: string, ext: "png" | "json" = "json") {
+    const modelSlug = model === "Любая модель" ? "Original" : slugify(model);
+    return `${API_CONFIG.CHANGES_URL}/model/${slugify(gift)}/${modelSlug}.${ext}`;
   },
 
   getPatternImage(gift: string, pattern: string) {
-    return `${API_CONFIG.CHANGES_URL}/pattern/${this.slugify(gift)}/${this.slugify(pattern)}.png`
+    if (!pattern || pattern === "Любой узор") return null;
+    return `${API_CONFIG.CHANGES_URL}/pattern/${slugify(gift)}/${slugify(pattern)}.png`;
+  },
+
+  getOriginalUrl(gift: string, ext: "png" | "json" = "json") {
+    return `${API_CONFIG.CHANGES_URL}/model/${slugify(gift)}/Original.${ext}`;
   }
-}
+};

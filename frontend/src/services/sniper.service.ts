@@ -1,24 +1,34 @@
-import { ApiClient } from "../infrastructure/api"
-import { SniperRule } from "../types/sniper"
-import { ASSET_URLS } from "../constants/config"
+import { apiClient } from "../infrastructure/apiClient";
+import { ASSETS } from "../config/constants";
+import { SniperRule, SniperEvent } from "../types/sniper";
 
 export const SniperService = {
-  async getUserFilters(userId: string): Promise<SniperRule> {
-    return ApiClient.get<SniperRule>("/api/v1/sniper/filters", { userId })
+  async getFilters(userId: string): Promise<SniperRule[]> {
+    const data = await apiClient.get<any>("/api/v1/sniper/filters", { userId });
+    return Array.isArray(data) ? data : [data];
   },
 
-  async updateFilters(rule: SniperRule): Promise<void> {
-    await ApiClient.post<void>(`/api/v1/sniper/filters`, rule)
+  async updateFilters(userId: string, rule: Partial<SniperRule>): Promise<void> {
+    await apiClient.post(`/api/v1/sniper/filters`, {
+      userId,
+      ...rule
+    }, { userId });
   },
 
-  async getMatchHistory(userId: string, limit: number = 50): Promise<any[]> {
-    const data = await ApiClient.get<any[]>("/api/v1/sniper/history", { userId, limit })
+  async getMatchHistory(userId: string, limit: number = 50): Promise<SniperEvent[]> {
+    const data = await apiClient.get<any[]>("/api/v1/sniper/history", { userId, limit });
 
     return (data || []).map(item => ({
-      ...item,
       id: item.id || `evt-${Date.now()}-${Math.random()}`,
+      name: item.name || item.giftName || 'Unknown Gift',
+      model: item.model || 'Standard',
+      backdrop: item.backdrop || '',
+      symbol: item.symbol || '',
+      price: item.price ? parseFloat(item.price) : 0,
+      marketplace: item.marketplace || 'FRAGMENT',
       receivedAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
-      imageUrl: ASSET_URLS.fragmentGift((item.name || item.giftName || '').toLowerCase().replace(/#/g, "-").replace(/\s+/g, ""))
-    }))
+      imageUrl: ASSETS.FRAGMENT_GIFT((item.name || item.giftName || '').toLowerCase().replace(/#/g, "-").replace(/\s+/g, "")),
+      dealScore: item.dealScore || 0
+    }));
   }
-}
+};

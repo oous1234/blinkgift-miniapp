@@ -13,6 +13,8 @@ export const useNftSearchLogic = (onGiftClick: (slug: string, num: number) => vo
   const [page, setPage] = useState(1);
 
   const [allGifts, setAllGifts] = useState<string[]>([]);
+  const [isGiftsLoading, setIsGiftsLoading] = useState(false);
+
   const [attributes, setAttributes] = useState({
     models: [] as string[],
     patterns: [] as string[],
@@ -31,17 +33,26 @@ export const useNftSearchLogic = (onGiftClick: (slug: string, num: number) => vo
 
   const isGiftSelected = form.gift !== "Все подарки";
 
-  // Первоначальная загрузка списка подарков
+  // Загрузка списка всех доступных подарков при монтировании
   useEffect(() => {
-    ChangesService.getGifts().then(data => {
-      if (Array.isArray(data)) setAllGifts(data);
-    });
+    const fetchAllGifts = async () => {
+      setIsGiftsLoading(true);
+      try {
+        const data = await ChangesService.getGifts();
+        if (Array.isArray(data)) {
+          setAllGifts(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch all gifts:", e);
+      } finally {
+        setIsGiftsLoading(false);
+      }
+    };
+    fetchAllGifts();
   }, []);
 
-  // Загрузка атрибутов (модели, паттерны) при смене подарка
   const loadAttributes = useCallback(async (giftName: string) => {
     if (!giftName || giftName === "Все подарки") return;
-
     setAttributes(prev => ({ ...prev, loading: true }));
     try {
       const [models, patterns, backdrops] = await Promise.all([
@@ -79,26 +90,21 @@ export const useNftSearchLogic = (onGiftClick: (slug: string, num: number) => vo
     setIsSearching(true);
     setHasSearched(true);
     setPage(targetPage);
-
     const request: any = {
       limit: 20,
       offset: (targetPage - 1) * 20,
       sortBy: form.sortBy,
     };
-
     if (form.number.trim()) {
       if (/^\d+$/.test(form.number)) request.giftId = parseInt(form.number);
       else request.query = form.number;
     }
-
     if (isGiftSelected) {
       request.query = request.query ? `${form.gift} ${request.query}` : form.gift;
     }
-
     if (form.model !== "Любая модель") request.models = [form.model];
     if (form.pattern !== "Любой узор") request.symbols = [form.pattern];
     if (form.backdropObj) request.backdrops = [form.backdropObj.name];
-
     try {
       const data = await InventoryService.searchGifts(request);
       setResults(data.items);
@@ -122,8 +128,8 @@ export const useNftSearchLogic = (onGiftClick: (slug: string, num: number) => vo
     form, setForm,
     results, total, page,
     isSearching, hasSearched,
-    allGifts, attributes,
+    allGifts, isGiftsLoading, attributes,
     isGiftSelected, previewData,
-    handleSearch, handleReset
+    handleSearch, handleReset, updateForm: (key: string, val: any) => setForm(prev => ({...prev, [key]: val}))
   };
 };

@@ -1,19 +1,21 @@
-import { Gift, UserProfile, Attribute, MarketStat } from "../types/domain";
-import { ApiDetailedGift, ApiOwner, ApiInventoryItem } from "../types/apiDto";
+import { Gift, Attribute, MarketStat } from "../types/domain";
+import { ApiDetailedGift, ApiInventoryItem } from "../types/apiDto";
 import { ASSETS } from "../config/constants";
 
 export const Mappers = {
   mapInventoryItem: (api: ApiInventoryItem): Partial<Gift> => {
-    const giftNumber = api.num ?? api.number ?? 0;
-    const slug = api.slug || "";
-    const id = api.id || `${slug}-${giftNumber}`;
+    const apiSlug = api.slug || "";
+    const apiNum = api.num ?? api.number;
+    const slugHasNumber = /-\d+$/.test(apiSlug);
+    let finalId = api.id || apiSlug;
+    if (!slugHasNumber && apiNum !== undefined) finalId = `${apiSlug}-${apiNum}`;
 
     return {
-      id: id,
-      slug: slug,
-      number: giftNumber,
+      id: finalId,
+      slug: apiSlug,
+      number: apiNum ?? 0,
       name: api.title || api.name || "Unknown Gift",
-      image: api.image || ASSETS.FRAGMENT_GIFT(slug),
+      image: api.image || ASSETS.FRAGMENT_GIFT(apiSlug.split('-')[0]),
       isOffchain: api.is_offchain ?? false,
       floorPrice: api.gift_value?.model_floor?.average?.ton ?? api.price ?? 0,
     };
@@ -21,30 +23,20 @@ export const Mappers = {
 
   mapDetailedGift: (api: ApiDetailedGift): Gift => {
     const attributes: Attribute[] = [
-      { label: "Model", value: api.model, rarity: api.modelRare },
-      { label: "Backdrop", value: api.backdrop, rarity: api.backdropRare },
-      { label: "Symbol", value: api.symbol, rarity: api.symbolRare },
+      { label: "Модель", value: api.model, rarity: api.modelRare },
+      { label: "Фон", value: api.backdrop, rarity: api.backdropRare },
+      { label: "Паттерн", value: api.symbol, rarity: api.symbolRare },
     ];
 
     const stats: MarketStat[] = Object.entries(api.parameters || {}).map(([key, val]) => ({
-      label: key === 'collection' ? "Весь тираж" : key.charAt(0).toUpperCase() + key.slice(1),
+      label: key === 'model' ? 'Модель' :
+             key === 'backdrop' ? 'Фон' :
+             key === 'symbol' ? 'Паттерн' :
+             key === 'model+backdrop' ? 'Модель+Фон' :
+             key === 'model+backdrop+symbol' ? 'Модель+Фон+Паттерн' : key,
       count: val.amount,
       floor: val.floorPrice,
     }));
-
-    const history: any[] = [];
-    Object.entries(api.parameters || {}).forEach(([category, data]) => {
-      data.lastTrades?.forEach((trade) => {
-        history.push({
-          id: `${trade.giftSlug}-${trade.date}`,
-          trait_value: trade.giftSlug.split('-')[0],
-          price: trade.giftTonPrice,
-          date: new Date(trade.date).toLocaleDateString("ru-RU", { day: 'numeric', month: 'short' }),
-          platform: trade.marketplace,
-          category: category === 'symbol' ? 'pattern' : category
-        });
-      });
-    });
 
     return {
       id: api.giftSlug,
@@ -57,16 +49,7 @@ export const Mappers = {
       isOffchain: false,
       attributes,
       stats,
-      history,
+      history: [],
     };
-  },
-
-  mapOwner: (api: ApiOwner): UserProfile => ({
-    id: String(api.telegram_id),
-    username: api.username,
-    displayName: api.name || api.username || `User ${api.telegram_id}`,
-    avatarUrl: api.username ? ASSETS.AVATAR(api.username) : "",
-    giftsCount: api.gifts_count || 0,
-    portfolioValue: api.portfolio_value?.average.ton || 0,
-  }),
+  }
 };

@@ -12,25 +12,36 @@ export const NftSearchSection: React.FC<{ onGiftClick: (slug: string, num: numbe
   const logic = useNftSearchLogic(onGiftClick);
 
   if (logic.view !== "FORM") {
-    const items = logic.view === "PICK_GIFT" ? logic.allGifts :
+    const isPickingGift = logic.view === "PICK_GIFT";
+
+    // Определяем, какие элементы показывать и статус загрузки
+    const items = isPickingGift ? logic.allGifts :
                  logic.view === "PICK_MODEL" ? logic.attributes.models :
                  logic.view === "PICK_PATTERN" ? logic.attributes.patterns : logic.attributes.backdrops;
 
+    const isLoading = isPickingGift ? logic.isGiftsLoading : logic.attributes.loading;
+
     return (
       <AttributePicker
-        title={logic.view.replace("PICK_", "")}
+        title={isPickingGift ? "Выбор подарка" : logic.view.replace("PICK_", "")}
         items={items}
-        isLoading={logic.attributes.loading}
+        isLoading={isLoading}
         selectedItem={
-          logic.view === "PICK_GIFT" ? logic.form.gift :
+          isPickingGift ? logic.form.gift :
           logic.view === "PICK_MODEL" ? logic.form.model :
           logic.view === "PICK_PATTERN" ? logic.form.pattern : logic.form.backdropObj?.name
         }
         onBack={() => logic.setView("FORM")}
         onSelect={(item) => {
           const val = typeof item === 'string' ? item : item.name;
-          if (logic.view === "PICK_GIFT") {
-            logic.setForm(prev => ({ ...prev, gift: val, model: "Любая модель", pattern: "Любой узор", backdropObj: null }));
+          if (isPickingGift) {
+            logic.setForm(prev => ({
+              ...prev,
+              gift: val,
+              model: "Любая модель",
+              pattern: "Любой узор",
+              backdropObj: null
+            }));
           } else if (logic.view === "PICK_MODEL") {
             logic.setForm(prev => ({ ...prev, model: val }));
           } else if (logic.view === "PICK_PATTERN") {
@@ -41,7 +52,7 @@ export const NftSearchSection: React.FC<{ onGiftClick: (slug: string, num: numbe
           logic.setView("FORM");
         }}
         getImageUrl={(n) => {
-          if (logic.view === "PICK_GIFT") return ChangesService.getOriginalImage(n);
+          if (isPickingGift) return ChangesService.getOriginalImage(n);
           if (logic.view === "PICK_MODEL") return ChangesService.getModelUrl(logic.form.gift, n, "png");
           return ChangesService.getPatternImage(logic.form.gift, n) || "";
         }}
@@ -66,12 +77,19 @@ export const NftSearchSection: React.FC<{ onGiftClick: (slug: string, num: numbe
 
       <VStack spacing={3}>
         <SimpleGrid columns={2} spacing={3} w="full">
-          <Box onClick={() => logic.setView("PICK_GIFT")} flex={1}>
+          <Box onClick={() => logic.setView("PICK_GIFT")} flex={1} cursor="pointer">
             <SearchField label="Подарок" isMenu readOnly>
-               <Text px={4} fontSize="14px" fontWeight="800" isTruncated>{logic.form.gift}</Text>
+               <Text px={4} fontSize="14px" fontWeight="800" isTruncated>
+                 {logic.form.gift}
+               </Text>
             </SearchField>
           </Box>
-          <Box onClick={() => logic.isGiftSelected && logic.setView("PICK_MODEL")} flex={1} opacity={logic.isGiftSelected ? 1 : 0.4}>
+          <Box
+            onClick={() => logic.isGiftSelected && logic.setView("PICK_MODEL")}
+            flex={1}
+            opacity={logic.isGiftSelected ? 1 : 0.4}
+            cursor={logic.isGiftSelected ? "pointer" : "not-allowed"}
+          >
             <SearchField label="Модель" isMenu readOnly>
                <Text px={4} fontSize="14px" fontWeight="800" isTruncated>{logic.form.model}</Text>
             </SearchField>
@@ -79,12 +97,22 @@ export const NftSearchSection: React.FC<{ onGiftClick: (slug: string, num: numbe
         </SimpleGrid>
 
         <SimpleGrid columns={2} spacing={3} w="full">
-          <Box onClick={() => logic.isGiftSelected && logic.setView("PICK_PATTERN")} flex={1} opacity={logic.isGiftSelected ? 1 : 0.4}>
+          <Box
+            onClick={() => logic.isGiftSelected && logic.setView("PICK_PATTERN")}
+            flex={1}
+            opacity={logic.isGiftSelected ? 1 : 0.4}
+            cursor={logic.isGiftSelected ? "pointer" : "not-allowed"}
+          >
             <SearchField label="Узор" isMenu readOnly>
                <Text px={4} fontSize="14px" fontWeight="800" isTruncated>{logic.form.pattern}</Text>
             </SearchField>
           </Box>
-          <Box onClick={() => logic.isGiftSelected && logic.setView("PICK_BACKDROP")} flex={1} opacity={logic.isGiftSelected ? 1 : 0.4}>
+          <Box
+            onClick={() => logic.isGiftSelected && logic.setView("PICK_BACKDROP")}
+            flex={1}
+            opacity={logic.isGiftSelected ? 1 : 0.4}
+            cursor={logic.isGiftSelected ? "pointer" : "not-allowed"}
+          >
             <SearchField label="Фон" isMenu readOnly>
                <Text px={4} fontSize="14px" fontWeight="800" isTruncated>{logic.form.backdropObj?.name || "Любой"}</Text>
             </SearchField>
@@ -119,12 +147,16 @@ export const NftSearchSection: React.FC<{ onGiftClick: (slug: string, num: numbe
            {logic.results.length > 0 ? (
              <SimpleGrid columns={2} spacing={4}>
                {logic.results.map(item => (
-                 <Box key={item.id} onClick={() => onGiftClick(item.slug, item.number)}>
+                 <Box
+                   key={item.id}
+                   onClick={() => onGiftClick(item.id)}
+                   cursor="pointer"
+                 >
                     <AspectRatio ratio={1}>
                         <Box bg="whiteAlpha.50" borderRadius="24px" overflow="hidden" border="1px solid" borderColor="whiteAlpha.100">
                            <Image src={item.image} w="full" h="full" objectFit="cover" />
                            <Box position="absolute" bottom={0} left={0} right={0} p={3} bgGradient="linear(to-t, blackAlpha.800, transparent)">
-                              <Text fontSize="12px" fontWeight="900" isTruncated>{item.name}</Text>
+                              <Text fontSize="12px" fontWeight="900" isTruncated color="white">{item.name}</Text>
                               <Text fontSize="10px" color="brand.500" fontWeight="800">{item.floorPrice} TON</Text>
                            </Box>
                         </Box>

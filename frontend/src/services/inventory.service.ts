@@ -10,22 +10,20 @@ export const InventoryService = {
       limit,
       offset,
     });
-
     return {
       total: response.total,
       items: (response.items || []).map(Mappers.mapInventoryItem),
     };
   },
 
-  async getGiftDetail(slug: string, num: number): Promise<Gift> {
-    const id = `${slug}-${num}`;
-    const data = await apiClient.get<ApiDetailedGift>(`/api/v1/gifts/${id}`);
+  // Теперь принимаем просто ID, который уже сформирован правильно (Slug-Number)
+  async getGiftDetail(giftId: string): Promise<Gift> {
+    const data = await apiClient.get<ApiDetailedGift>(`/api/v1/gifts/${giftId}`);
     return Mappers.mapDetailedGift(data);
   },
 
   async searchGifts(params: any) {
     const response = await apiClient.post<ApiSearchResponse<ApiInventoryItem>>("/api/v1/search/gifts", params);
-
     return {
       total: response.total || 0,
       items: (response.items || []).map(Mappers.mapInventoryItem),

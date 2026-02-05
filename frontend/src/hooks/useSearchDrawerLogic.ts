@@ -21,14 +21,16 @@ export const useSearchDrawerLogic = (isOpen: boolean, onClose: () => void) => {
     }
   }, [isOpen]);
 
-  const handleOpenGift = async (slug: string, num: number) => {
+  // Принимаем один giftId вместо двух параметров
+  const handleOpenGift = async (giftId: string) => {
     setIsLoadingDetail(true);
     setView("DETAIL");
     try {
-      const giftData = await InventoryService.getGiftDetail(slug, num);
+      const giftData = await InventoryService.getGiftDetail(giftId);
       setSelectedGift(giftData);
+
       setIsHistoryLoading(true);
-      const historyData = await InventoryService.getBlockchainHistory(giftData.id);
+      const historyData = await InventoryService.getBlockchainHistory(giftData.id || giftId);
       setGiftHistory(historyData.history || []);
     } catch (e) {
       console.error("Error loading gift detail:", e);

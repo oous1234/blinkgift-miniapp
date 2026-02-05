@@ -13,19 +13,21 @@ export class ApiError extends Error {
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, headers: customHeaders, useChangesApi, ...rest } = options;
-
+  
   const baseUrl = useChangesApi ? API_CONFIG.CHANGES_URL : API_CONFIG.BASE_URL;
   const url = new URL(`${baseUrl}${endpoint}`);
-
-  // Автоматическая авторизация Telegram
+  
   const initData = window.Telegram?.WebApp?.initData;
-  const tgAuthValue = initData || (IS_DEV ? TELEGRAM_CONFIG.MOCK_AUTH : "");
 
-  if (tgAuthValue) {
-    url.searchParams.append("tgauth", tgAuthValue);
+  // 1. Авторизация (только для своего бэкенда)
+  if (!useChangesApi) {
+    const tgAuthValue = initData || (IS_DEV ? TELEGRAM_CONFIG.MOCK_AUTH : "");
+    if (tgAuthValue) {
+      url.searchParams.append("tgauth", tgAuthValue);
+    }
   }
 
-  // Обработка query-параметров
+  // 2. Параметры запроса
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -34,15 +36,30 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     });
   }
 
-  const headers = new Headers({
-    "Content-Type": "application/json",
-    ...(initData ? { "Authorization": initData } : {}),
-    ...customHeaders,
-  });
+  // 3. Заголовки (Формируем с нуля)
+  const headers = new Headers();
+
+  // Добавляем Content-Type только если есть тело запроса (POST/PUT)
+  // Для GET запроса к Changes API это ПРИНЦИПИАЛЬНО ВАЖНО не добавлять, чтобы избежать OPTIONS
+  if (rest.body) {
+    headers.append("Content-Type", "application/json");
+  }
+
+  // Добавляем авторизацию только для своего API
+  if (!useChangesApi && initData) {
+    headers.append("Authorization", initData);
+  }
+
+  // Кастомные заголовки (если переданы)
+  if (customHeaders) {
+    Object.entries(customHeaders).forEach(([key, value]) => {
+      headers.append(key, String(value));
+    });
+  }
 
   const response = await fetch(url.toString(), {
     ...rest,
-    headers,
+    headers, // Если headers пустой, браузер сделает "простой" GET запрос
   });
 
   if (!response.ok) {
@@ -56,17 +73,17 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 export const apiClient = {
   get: <T>(endpoint: string, params?: RequestOptions["params"], useChangesApi = false) =>
     request<T>(endpoint, { method: "GET", params, useChangesApi }),
-
+    
   post: <T>(endpoint: string, body?: any, params?: RequestOptions["params"]) =>
     request<T>(endpoint, {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
       params
     }),
-
+    
   put: <T>(endpoint: string, body?: any) =>
     request<T>(endpoint, { method: "PUT", body: JSON.stringify(body) }),
-
+    
   delete: <T>(endpoint: string) =>
     request<T>(endpoint, { method: "DELETE" }),
 };

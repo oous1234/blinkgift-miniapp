@@ -1,11 +1,14 @@
 import React from "react";
 import {
-  Box, VStack, HStack, Text, Image, Badge, Tabs,
-  TabList, TabPanels, Tab, TabPanel, SimpleGrid, Center, Spinner
+  Box, VStack, HStack, Text, Image, Badge, Divider,
+  Table, Tbody, Tr, Td, IconButton, Flex, SimpleGrid,
+  Center, Spinner
 } from "@chakra-ui/react";
 import { Gift } from "../../../types/domain";
 import { TonValue } from "../../Shared/Typography";
-import { BlockchainHistory } from "../BlockchainHistory";
+import {
+  ExternalLinkIcon, CopyIcon, StarIcon, RepeatIcon
+} from "@chakra-ui/icons";
 
 interface Props {
   gift: Gift;
@@ -13,100 +16,119 @@ interface Props {
   isHistoryLoading: boolean;
 }
 
-export const GiftDetailContent: React.FC<Props> = ({
-  gift,
-  history,
-  isHistoryLoading
-}) => {
+export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
+  // Расчет P/L для примера (в реальности данные должны приходить из API)
+  const plTon = 1.88;
+  const plPercent = 101.4;
+
   return (
-    <VStack spacing={6} align="stretch">
-      {/* Header Info */}
-      <HStack spacing={4} align="center">
-        <Box
-          boxSize="100px"
-          borderRadius="24px"
-          overflow="hidden"
-          bg="whiteAlpha.100"
-          border="1px solid"
-          borderColor="whiteAlpha.100"
-        >
+    <VStack spacing={5} align="stretch" color="white">
+      {/* HEADER: Title & Status */}
+      <VStack align="stretch" spacing={1}>
+        <HStack justify="space-between" align="center">
+          <Text fontSize="24px" fontWeight="900" letterSpacing="-0.5px">
+            {gift.name.split('#')[0]}
+            <Badge ml={3} bg="green.400" color="black" borderRadius="6px" fontSize="10px" fontWeight="900" px={2} verticalAlign="middle">
+              ПРОДАЁТСЯ
+            </Badge>
+          </Text>
+        </HStack>
+
+        <HStack spacing={2} color="whiteAlpha.400">
+          <Text fontSize="14px" fontWeight="800">#{gift.number}</Text>
+          <Text>•</Text>
+          <HStack spacing={3}>
+             <IconButton aria-label="share" icon={<ExternalLinkIcon />} size="xs" variant="ghost" color="whiteAlpha.600" />
+             <IconButton aria-label="copy" icon={<CopyIcon />} size="xs" variant="ghost" color="whiteAlpha.600" />
+             <IconButton aria-label="fav" icon={<StarIcon />} size="xs" variant="ghost" color="whiteAlpha.600" />
+             <IconButton aria-label="refresh" icon={<RepeatIcon />} size="xs" variant="ghost" color="whiteAlpha.600" />
+          </HStack>
+          <Badge bg="whiteAlpha.100" color="white" fontSize="10px" px={2} borderRadius="6px">Больше</Badge>
+        </HStack>
+      </VStack>
+
+      {/* PRICE SECTION */}
+      <VStack align="stretch" spacing={2} bg="whiteAlpha.50" p={4} borderRadius="20px">
+        <HStack justify="space-between">
+          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="700">Примерная цена</Text>
+          <TonValue value={gift.estimatedPrice.toFixed(2)} size="sm" />
+        </HStack>
+        <HStack justify="space-between">
+          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="700">Цена на маркетплейсе</Text>
+          <HStack spacing={1}>
+            <TonValue value={gift.floorPrice.toFixed(2)} size="sm" />
+            <Box boxSize="12px" bg="blue.400" borderRadius="3px" />
+          </HStack>
+        </HStack>
+        <HStack justify="space-between">
+          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="700">P/L (TON)</Text>
+          <HStack>
+            <TonValue value={`+${plTon}`} size="sm" />
+            <Badge bg="green.900" color="green.400" fontSize="10px">+{plPercent}%</Badge>
+          </HStack>
+        </HStack>
+      </VStack>
+
+      {/* ATTRIBUTES SECTION (Image + Traits) */}
+      <HStack spacing={4} align="center" bg="whiteAlpha.50" p={3} borderRadius="20px">
+        <Box boxSize="100px" borderRadius="18px" overflow="hidden" flexShrink={0}>
           <Image src={gift.image} w="100%" h="100%" objectFit="cover" />
         </Box>
-        <VStack align="start" spacing={1}>
-          <Text fontSize="20px" fontWeight="900" lineHeight="1.2">
-            {gift.name.split('#')[0]}
-            <Text as="span" color="brand.500" ml={1}>#{gift.number}</Text>
-          </Text>
-          <Badge bg="whiteAlpha.200" color="whiteAlpha.700" borderRadius="6px" px={2} fontSize="10px">
-            TELEGRAM GIFT NFT
-          </Badge>
+        <VStack flex={1} spacing={1} align="stretch">
+          {gift.attributes.map((attr, i) => (
+            <HStack key={i} justify="space-between">
+              <Text fontSize="13px" color="whiteAlpha.500" fontWeight="700">{attr.label}</Text>
+              <HStack spacing={2}>
+                <Text fontSize="13px" fontWeight="800">{attr.value}</Text>
+                <Text fontSize="11px" fontWeight="900" color="whiteAlpha.400" bg="whiteAlpha.100" px={1} borderRadius="4px">
+                  {attr.rarity}%
+                </Text>
+              </HStack>
+            </HStack>
+          ))}
         </VStack>
       </HStack>
 
-      {/* Attributes Grid */}
-      <SimpleGrid columns={2} spacing={2}>
-        {gift.attributes.map((attr, i) => (
-          <HStack key={i} justify="space-between" bg="brand.surface" p={3} borderRadius="16px" border="1px solid" borderColor="whiteAlpha.50">
-            <VStack align="start" spacing={0}>
-              <Text color="whiteAlpha.400" fontSize="9px" fontWeight="800" textTransform="uppercase">
-                {attr.label}
-              </Text>
-              <Text fontSize="12px" fontWeight="800" isTruncated maxW="80px">
-                {attr.value}
-              </Text>
-            </VStack>
-            <Box textAlign="right">
-              <Text color="brand.500" fontSize="10px" fontWeight="900">
-                {attr.rarity}%
-              </Text>
-              <Text fontSize="8px" color="whiteAlpha.300" fontWeight="bold">RARE</Text>
+      {/* TABLE 1: ПАРАМЕТРЫ */}
+      <Box mt={2}>
+        <HStack justify="space-between" mb={2} px={1}>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ПАРАМЕТР</Text>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">КОЛИЧЕСТВО</Text>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ЦЕНА</Text>
+        </HStack>
+        <VStack spacing={0} align="stretch">
+          {gift.stats.map((stat, i) => (
+            <Box key={i} py={2} borderBottom="1px solid" borderColor="whiteAlpha.50">
+              <Flex justify="space-between" align="center">
+                <Text fontSize="13px" fontWeight="800" color="whiteAlpha.700">{stat.label}</Text>
+                <Text fontSize="13px" fontWeight="800" textDecoration="underline" color="whiteAlpha.800">{stat.count}</Text>
+                <TonValue value={stat.floor?.toFixed(1) || '—'} size="sm" />
+              </Flex>
             </Box>
-          </HStack>
-        ))}
-      </SimpleGrid>
-
-      {/* Tabs Section */}
-      <Tabs variant="unstyled">
-        <TabList bg="whiteAlpha.50" p="4px" borderRadius="14px" display="flex">
-          {["АНАЛИТИКА", "ИСТОРИЯ"].map((label) => (
-            <Tab
-              key={label}
-              flex={1}
-              fontSize="11px"
-              fontWeight="900"
-              borderRadius="10px"
-              color="whiteAlpha.400"
-              _selected={{ bg: "whiteAlpha.200", color: "white" }}
-              py={2}
-            >
-              {label}
-            </Tab>
           ))}
-        </TabList>
-        <TabPanels>
-          <TabPanel px={0} pt={4}>
-            <VStack spacing={3} align="stretch">
-              <Box bg="brand.surface" p={4} borderRadius="20px" border="1px solid" borderColor="whiteAlpha.50">
-                <HStack justify="space-between" mb={4}>
-                  <Text color="whiteAlpha.500" fontSize="13px" fontWeight="700">РЫНОЧНАЯ ЦЕНА</Text>
-                  <TonValue value={gift.estimatedPrice} size="md" />
-                </HStack>
-                <HStack justify="space-between">
-                  <Text color="whiteAlpha.500" fontSize="13px" fontWeight="700">FLOOR PRICE</Text>
-                  <TonValue value={gift.floorPrice} size="md" />
-                </HStack>
-              </Box>
-            </VStack>
-          </TabPanel>
-          <TabPanel px={0} pt={4}>
-            {isHistoryLoading ? (
-              <Center py={10}><Spinner color="brand.500" /></Center>
-            ) : (
-              <BlockchainHistory history={history} />
-            )}
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+        </VStack>
+      </Box>
+
+      {/* TABLE 2: СРЕДНЯЯ ЦЕНА */}
+      <Box mt={4}>
+        <Text fontSize="18px" fontWeight="900" mb={3} letterSpacing="-0.5px">Средняя цена за 30 дней</Text>
+        <HStack justify="space-between" mb={2} px={1}>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ПАРАМЕТР</Text>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">СДЕЛКИ</Text>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ЦЕНА</Text>
+        </HStack>
+        <VStack spacing={0} align="stretch">
+          {gift.attributes.slice(0, 2).map((attr, i) => (
+            <Box key={i} py={2} borderBottom="1px solid" borderColor="whiteAlpha.50">
+              <Flex justify="space-between" align="center">
+                <Text fontSize="13px" fontWeight="800" color="whiteAlpha.700">{attr.label}</Text>
+                <Text fontSize="13px" fontWeight="800" color="whiteAlpha.800">{50 + i * 12}</Text>
+                <TonValue value={(gift.estimatedPrice - i * 0.2).toFixed(2)} size="sm" />
+              </Flex>
+            </Box>
+          ))}
+        </VStack>
+      </Box>
     </VStack>
   );
 };

@@ -9,16 +9,12 @@ interface UIState {
 
   openSearch: () => void
   closeSearch: () => void
-
   openSettings: () => void
   closeSettings: () => void
-
   openSubscription: () => void
   closeSubscription: () => void
-
   openDetail: () => void
   closeDetail: () => void
-
   openSniperFilters: () => void
   closeSniperFilters: () => void
 }
@@ -30,10 +26,10 @@ export const useUIStore = create<UIState>((set) => ({
   isDetailOpen: false,
   isSniperFiltersOpen: false,
 
-  openSearch: () => set({ isSearchOpen: true }),
+  openSearch: () => set({ isSearchOpen: true, isSettingsOpen: false }),
   closeSearch: () => set({ isSearchOpen: false }),
 
-  openSettings: () => set({ isSettingsOpen: true }),
+  openSettings: () => set({ isSettingsOpen: true, isSearchOpen: false }),
   closeSettings: () => set({ isSettingsOpen: false }),
 
   openSubscription: () => set({ isSubscriptionOpen: true }),

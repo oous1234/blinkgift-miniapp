@@ -6,15 +6,19 @@ export interface ApiPrice {
 }
 
 export interface ApiInventoryItem {
+  id?: string;
   slug: string;
-  num: number;
-  title: string;
-  gift_id: string;
-  is_offchain: boolean;
+  num?: number;
+  number?: number;
+  title?: string;
+  name?: string;
+  image?: string;
+  is_offchain?: boolean;
+  price?: number;
   gift_value?: {
     model_floor?: {
       average: ApiPrice;
-    }
+    };
   };
 }
 
@@ -31,16 +35,20 @@ export interface ApiDetailedGift {
   symbolRare: number;
   floorPriceTon: number;
   estimatedPriceTon: number;
-  parameters: Record<string, {
-    amount: number;
-    floorPrice: number | null;
-    lastTrades?: Array<{
-      giftSlug: string;
-      giftTonPrice: number;
-      marketplace: Platform;
-      date: string;
-    }>;
-  }>;
+  parameters: Record<string, ApiGiftParameter>;
+}
+
+export interface ApiGiftParameter {
+  amount: number;
+  floorPrice: number | null;
+  lastTrades?: Array<ApiLastTrade>;
+}
+
+export interface ApiLastTrade {
+  giftSlug: string;
+  giftTonPrice: number;
+  marketplace: Platform;
+  date: string;
 }
 
 export interface ApiOwner {
@@ -56,4 +64,13 @@ export interface ApiOwner {
 export interface ApiHistoryPoint {
   date: string;
   average: ApiPrice;
+}
+
+export interface ApiSearchResponse<T> {
+  items: T[];
+  total: number;
+}
+
+export interface ApiOwnerSearchResponse {
+  owners: ApiOwner[];
 }

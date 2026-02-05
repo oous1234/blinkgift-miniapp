@@ -1,45 +1,45 @@
-import { API_CONFIG } from "../config/constants";
+import { apiClient } from "../infrastructure/apiClient";
 
 const slugify = (text: string) => text.trim().toLowerCase().replace(/\s+/g, "-");
 
 export const ChangesService = {
   async getGifts(): Promise<string[]> {
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/gifts`);
-    return res.ok ? res.json() : [];
+    return apiClient.get<string[]>("/gifts", undefined, true);
   },
 
-  async getModels(gift: string) {
+  async getModels(gift: string): Promise<string[]> {
     if (!gift || gift === "Все подарки") return [];
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/models/${slugify(gift)}`);
-    const data = await res.json();
-    return data.map((m: any) => m.name);
+    const data = await apiClient.get<any[]>(`/models/${slugify(gift)}`, undefined, true);
+    return data.map((m) => m.name);
   },
 
-  async getPatterns(gift: string) {
+  async getPatterns(gift: string): Promise<string[]> {
     if (!gift || gift === "Все подарки") return [];
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/patterns/${slugify(gift)}`);
-    const data = await res.json();
-    return data.map((p: any) => p.name);
+    const data = await apiClient.get<any[]>(`/patterns/${slugify(gift)}`, undefined, true);
+    return data.map((p) => p.name);
   },
 
-  async getBackdrops(gift: string) {
+  async getBackdrops(gift: string): Promise<any[]> {
     if (!gift || gift === "Все подарки") return [];
-    const res = await fetch(`${API_CONFIG.CHANGES_URL}/backdrops/${slugify(gift)}`);
-    return res.ok ? res.json() : [];
+    return apiClient.get<any[]>(`/backdrops/${slugify(gift)}`, undefined, true);
   },
 
-  // Ссылки на ассеты
-  getModelUrl(gift: string, model: string, ext: "png" | "json" = "json") {
+  getModelUrl(gift: string, model: string, ext: "png" | "json" = "json"): string {
     const modelSlug = model === "Любая модель" ? "Original" : slugify(model);
-    return `${API_CONFIG.CHANGES_URL}/model/${slugify(gift)}/${modelSlug}.${ext}`;
+    const giftSlug = slugify(gift);
+    return `https://api.changes.tg/model/${giftSlug}/${modelSlug}.${ext}`;
   },
 
-  getPatternImage(gift: string, pattern: string) {
+  getPatternImage(gift: string, pattern: string): string | null {
     if (!pattern || pattern === "Любой узор") return null;
-    return `${API_CONFIG.CHANGES_URL}/pattern/${slugify(gift)}/${slugify(pattern)}.png`;
+    return `https://api.changes.tg/pattern/${slugify(gift)}/${slugify(pattern)}.png`;
   },
 
-  getOriginalUrl(gift: string, ext: "png" | "json" = "json") {
-    return `${API_CONFIG.CHANGES_URL}/model/${slugify(gift)}/Original.${ext}`;
+  getOriginalUrl(gift: string, ext: "png" | "json" = "json"): string {
+    return `https://api.changes.tg/model/${slugify(gift)}/Original.${ext}`;
+  },
+
+  getOriginalImage(gift: string): string {
+    return this.getOriginalUrl(gift, "png");
   }
 };

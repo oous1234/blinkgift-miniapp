@@ -1,9 +1,9 @@
-import { Gift, UserProfile, HistoryEvent, Attribute, MarketStat } from "../types/domain";
-import { ApiDetailedGift, ApiOwner } from "../types/apiDto";
+import { Gift, UserProfile, Attribute, MarketStat } from "../types/domain";
+import { ApiDetailedGift, ApiOwner, ApiInventoryItem } from "../types/apiDto";
 import { ASSETS } from "../config/constants";
 
 export const Mappers = {
-  mapInventoryItem: (api: any): Partial<Gift> => {
+  mapInventoryItem: (api: ApiInventoryItem): Partial<Gift> => {
     const giftNumber = api.num ?? api.number ?? 0;
     const slug = api.slug || "";
     const id = api.id || `${slug}-${giftNumber}`;
@@ -13,28 +13,25 @@ export const Mappers = {
       slug: slug,
       number: giftNumber,
       name: api.title || api.name || "Unknown Gift",
-      image: api.image || ASSETS.FRAGMENT_GIFT(id),
-      isOffchain: api.is_offchain || false,
-      floorPrice: api.gift_value?.model_floor?.average?.ton || api.price || 0,
+      image: api.image || ASSETS.FRAGMENT_GIFT(slug),
+      isOffchain: api.is_offchain ?? false,
+      floorPrice: api.gift_value?.model_floor?.average?.ton ?? api.price ?? 0,
     };
   },
 
   mapDetailedGift: (api: ApiDetailedGift): Gift => {
-    // 1. Атрибуты (Модель, Фон, Символ)
     const attributes: Attribute[] = [
       { label: "Model", value: api.model, rarity: api.modelRare },
       { label: "Backdrop", value: api.backdrop, rarity: api.backdropRare },
       { label: "Symbol", value: api.symbol, rarity: api.symbolRare },
     ];
 
-    // 2. Рыночные статы (Floor по категориям)
     const stats: MarketStat[] = Object.entries(api.parameters || {}).map(([key, val]) => ({
       label: key === 'collection' ? "Весь тираж" : key.charAt(0).toUpperCase() + key.slice(1),
       count: val.amount,
       floor: val.floorPrice,
     }));
 
-    // 3. История продаж (Recent Trades)
     const history: any[] = [];
     Object.entries(api.parameters || {}).forEach(([category, data]) => {
       data.lastTrades?.forEach((trade) => {
@@ -60,14 +57,14 @@ export const Mappers = {
       isOffchain: false,
       attributes,
       stats,
-      history, // Здесь лежат продажи
+      history,
     };
   },
 
   mapOwner: (api: ApiOwner): UserProfile => ({
     id: String(api.telegram_id),
     username: api.username,
-    displayName: api.name || api.username || "Unknown User",
+    displayName: api.name || api.username || `User ${api.telegram_id}`,
     avatarUrl: api.username ? ASSETS.AVATAR(api.username) : "",
     giftsCount: api.gifts_count || 0,
     portfolioValue: api.portfolio_value?.average.ton || 0,

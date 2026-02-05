@@ -1,16 +1,15 @@
-import { extendTheme, type ThemeConfig } from "@chakra-ui/react"
+import { extendTheme, type ThemeConfig } from "@chakra-ui/react";
 
 const config: ThemeConfig = {
   initialColorMode: "dark",
   useSystemColorMode: false,
-}
+};
 
 export const customTheme = extendTheme({
   config,
   fonts: {
-    // Roboto + системные шрифты как в твоем CSS
-    heading: "Roboto, system-ui, sans-serif",
-    body: "Roboto, system-ui, sans-serif",
+    heading: "'Roboto', system-ui, sans-serif",
+    body: "'Roboto', system-ui, sans-serif",
   },
   colors: {
     brand: {
@@ -19,23 +18,18 @@ export const customTheme = extendTheme({
       200: "#d1b3ff",
       500: "#e8d7fd",
       bg: "#0F1115",
-      card: "#161920",
-      surface: "rgba(255, 255, 255, 0.05)",
+      surface: "rgba(255, 255, 255, 0.04)",
+      border: "rgba(255, 255, 255, 0.08)",
     },
-    ton: "#0088CC",
   },
   styles: {
     global: {
       body: {
         bg: "brand.bg",
         color: "white",
-        WebkitTapHighlightColor: "transparent",
-        // Настройки из твоего фрагмента
         fontSize: "14px",
-        lineHeight: "16px",
-        // Оптимизация отображения шрифта
-        textRendering: "optimizeLegibility",
-        WebkitFontSmoothing: "antialiased",
+        userSelect: "none",
+        WebkitTapHighlightColor: "transparent",
       },
       "::-webkit-scrollbar": {
         display: "none",
@@ -45,30 +39,33 @@ export const customTheme = extendTheme({
   components: {
     Button: {
       baseStyle: {
-        // Умеренные скругления, характерные для Roboto-интерфейсов
-        borderRadius: "12px",
-        fontWeight: "500", // Roboto лучше всего выглядит на 500 весах в кнопках
-        _active: { transform: "scale(0.97)" },
+        borderRadius: "16px",
+        fontWeight: "800",
+        textTransform: "uppercase",
+        letterSpacing: "0.5px",
+        transition: "all 0.2s cubic-bezier(.25,.8,.25,1)",
+        _active: { transform: "scale(0.96)" },
       },
       variants: {
+        solid: {
+          bg: "whiteAlpha.100",
+          _hover: { bg: "whiteAlpha.200" },
+        },
         brand: {
           bg: "brand.500",
-          color: "black",
+          color: "brand.bg",
+          _hover: { bg: "brand.100" },
         },
-      },
-    },
-    Heading: {
-      baseStyle: {
-        fontWeight: "700",
       },
     },
     Drawer: {
       baseStyle: {
         dialog: {
           bg: "brand.bg",
-          borderTopRadius: "20px",
+          borderTopRadius: "32px",
+          boxShadow: "0 -10px 40px rgba(0,0,0,0.5)",
         },
       },
     },
   },
-})
+});

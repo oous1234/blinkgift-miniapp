@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { InventoryService } from '../services/inventory.service';
 import { OwnerService } from '../services/owner.service';
 import { Gift, UserProfile } from '../types/domain';
-import { useTelegram } from './useTelegram';
+import { useTelegram } from "../contexts/telegramContext";
 
 export const usePortfolio = (targetOwnerId?: string, range: string = '30d') => {
   const { user } = useTelegram();

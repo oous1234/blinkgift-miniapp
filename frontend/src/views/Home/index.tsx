@@ -2,7 +2,7 @@ import React from "react";
 import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Spinner } from "@chakra-ui/react";
 import { usePortfolio } from "../../hooks/usePortfolio";
 import { useGiftDetail } from "../../hooks/useGiftDetail";
-import { useTelegram } from "../../hooks/useTelegram";
+import { useTelegram } from "../../contexts/telegramContext";
 import { GiftCard } from "../../components/Home/GiftCard";
 import { Pagination } from "../../components/Home/Pagination";
 import { TonValue, TrendBadge } from "../../components/shared/Typography";

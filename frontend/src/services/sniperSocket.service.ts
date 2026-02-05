@@ -1,12 +1,21 @@
-import { Client } from '@stomp/stompjs';
+import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { useSniperStore } from '../store/useSniperStore';
 import { SniperEvent } from '../types/sniper';
 import { ASSETS } from '../config/constants';
+
+type OnEventCallback = (event: SniperEvent) => void;
+type OnStatusChange = (status: 'CONNECTED' | 'DISCONNECTED') => void;
 
 class SniperSocketService {
   private client: Client | null = null;
   private readonly baseUrl = 'https://blinkback.ru.tuna.am/ws-deals';
+  private onEventCallback: OnEventCallback | null = null;
+  private onStatusCallback: OnStatusChange | null = null;
+
+  public setCallbacks(onEvent: OnEventCallback, onStatus: OnStatusChange) {
+    this.onEventCallback = onEvent;
+    this.onStatusCallback = onStatus;
+  }
 
   public connect(userId: string) {
     if (this.client?.active) return;
@@ -15,22 +24,27 @@ class SniperSocketService {
     this.client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
-      // debug: (str) => console.log(str),
+      debug: (msg) => {
+        if (import.meta.env.DEV) console.log('[Socket]:', msg);
+      }
     });
 
     this.client.onConnect = () => {
-      useSniperStore.getState().setStatus('CONNECTED');
-      this.client?.subscribe(`/user/${userId}/queue/sniper`, (message) => {
+      this.onStatusCallback?.('CONNECTED');
+      this.client?.subscribe(`/user/${userId}/queue/sniper`, (message: IMessage) => {
         this.handleIncomingEvent(JSON.parse(message.body));
       });
     };
 
-    this.client.onDisconnect = () => useSniperStore.getState().setStatus('DISCONNECTED');
+    this.client.onDisconnect = () => {
+      this.onStatusCallback?.('DISCONNECTED');
+    };
+
     this.client.activate();
   }
 
   private handleIncomingEvent(data: any) {
-    if (!data) return;
+    if (!data || !this.onEventCallback) return;
 
     const event: SniperEvent = {
       id: data.id || `evt-${Date.now()}`,
@@ -45,13 +59,7 @@ class SniperSocketService {
       dealScore: data.dealScore || 0
     };
 
-    useSniperStore.getState().addEvent(event);
-
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred(
-        event.dealScore && event.dealScore > 15 ? 'success' : 'warning'
-      );
-    }
+    this.onEventCallback(event);
   }
 
   public disconnect() {

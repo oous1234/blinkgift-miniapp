@@ -1,4 +1,3 @@
-// frontend/src/components/overlay/search/AttributePicker.tsx
 import React, { useState } from "react"
 import {
   Box, SimpleGrid, Text, Input, VStack, Center, Spinner,
@@ -12,25 +11,24 @@ interface AttributePickerProps {
   onSelect: (item: any) => void
   onBack: () => void
   getImageUrl?: (item: any) => string
-  renderCustomItem?: (item: any) => React.ReactNode
   isLoading?: boolean
-  selectedItems?: string[] // Добавлено для подсветки
+  selectedItem?: string
 }
 
 export const AttributePicker: React.FC<AttributePickerProps> = ({
   title,
-  items,
+  items = [],
   onSelect,
   onBack,
   getImageUrl,
-  renderCustomItem,
   isLoading,
-  selectedItems = []
+  selectedItem
 }) => {
   const [search, setSearch] = useState("")
+
   const filtered = items.filter((i) => {
     const name = typeof i === "string" ? i : (i.name || "")
-    return name?.toLowerCase().includes(search.toLowerCase())
+    return name.toLowerCase().includes(search.toLowerCase())
   })
 
   return (
@@ -40,8 +38,9 @@ export const AttributePicker: React.FC<AttributePickerProps> = ({
           aria-label="back" icon={<ArrowBackIcon />} onClick={onBack}
           variant="ghost" color="white" borderRadius="full"
         />
-        <Text fontWeight="900" fontSize="20px">{title}</Text>
+        <Text fontWeight="900" fontSize="20px" textTransform="uppercase">{title}</Text>
       </HStack>
+
       <InputGroup px={2}>
         <InputLeftElement ml={2} pointerEvents="none">
           <SearchIcon color="whiteAlpha.300" />
@@ -50,16 +49,18 @@ export const AttributePicker: React.FC<AttributePickerProps> = ({
           placeholder="Поиск..." bg="whiteAlpha.50" border="none"
           h="52px" borderRadius="18px" value={search}
           onChange={(e) => setSearch(e.target.value)}
+          _focus={{ bg: "whiteAlpha.100" }}
         />
       </InputGroup>
+
       <Box flex={1} overflowY="auto" pb={10} px={2} mt={2}>
         {isLoading ? (
           <Center py={10}><Spinner color="brand.500" size="lg" thickness="3px" /></Center>
-        ) : (
+        ) : filtered.length > 0 ? (
           <SimpleGrid columns={3} spacing={3}>
             {filtered.map((item, idx) => {
               const name = typeof item === "string" ? item : (item.name || "")
-              const isSelected = selectedItems.includes(name)
+              const isSelected = selectedItem === name
 
               return (
                 <Box
@@ -81,10 +82,15 @@ export const AttributePicker: React.FC<AttributePickerProps> = ({
                     </Center>
                   )}
                   <Center h="70px" mb={1}>
-                    {renderCustomItem ? renderCustomItem(item) : (
-                      getImageUrl ? (
-                        <Image src={getImageUrl(item)} boxSize="55px" objectFit="contain" fallback={<Spinner size="xs" />} />
-                      ) : <Box boxSize="40px" borderRadius="full" bg="whiteAlpha.100" />
+                    {getImageUrl ? (
+                      <Image
+                        src={getImageUrl(name)}
+                        boxSize="55px"
+                        objectFit="contain"
+                        fallback={<Spinner size="xs" color="whiteAlpha.300" />}
+                      />
+                    ) : (
+                      <Box boxSize="40px" borderRadius="full" bg="whiteAlpha.100" />
                     )}
                   </Center>
                   <Text fontSize="10px" fontWeight="800" textAlign="center" color={isSelected ? "white" : "whiteAlpha.800"} isTruncated px={1}>
@@ -94,6 +100,8 @@ export const AttributePicker: React.FC<AttributePickerProps> = ({
               )
             })}
           </SimpleGrid>
+        ) : (
+          <Center py={10}><Text color="whiteAlpha.300">Ничего не найдено</Text></Center>
         )}
       </Box>
     </VStack>

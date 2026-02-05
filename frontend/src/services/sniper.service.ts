@@ -1,17 +1,24 @@
-// src/services/sniper.service.ts
-import { apiRequest } from "../infrastructure/apiClient";
-import { SniperRule } from "../types/sniper";
+import { ApiClient } from "../infrastructure/api"
+import { SniperRule } from "../types/sniper"
+import { ASSET_URLS } from "../constants/config"
 
-export default class SniperService {
-  static async getUserFilters(userId: string): Promise<SniperRule> {
-    return await apiRequest<SniperRule>("/api/v1/sniper/filters", "GET", null, { userId });
-  }
+export const SniperService = {
+  async getUserFilters(userId: string): Promise<SniperRule> {
+    return ApiClient.get<SniperRule>("/api/v1/sniper/filters", { userId })
+  },
 
-  static async updateFilters(rule: SniperRule): Promise<void> {
-    await apiRequest<void>(`/api/v1/sniper/filters?userId=${rule.userId}`, "POST", rule);
-  }
+  async updateFilters(rule: SniperRule): Promise<void> {
+    await ApiClient.post<void>(`/api/v1/sniper/filters`, rule)
+  },
 
-  static async getMatchHistory(userId: string, limit: number = 50): Promise<any[]> {
-    return await apiRequest<any[]>("/api/v1/sniper/history", "GET", null, { userId, limit });
+  async getMatchHistory(userId: string, limit: number = 50): Promise<any[]> {
+    const data = await ApiClient.get<any[]>("/api/v1/sniper/history", { userId, limit })
+
+    return (data || []).map(item => ({
+      ...item,
+      id: item.id || `evt-${Date.now()}-${Math.random()}`,
+      receivedAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
+      imageUrl: ASSET_URLS.fragmentGift((item.name || item.giftName || '').toLowerCase().replace(/#/g, "-").replace(/\s+/g, ""))
+    }))
   }
 }

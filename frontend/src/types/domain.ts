@@ -1,28 +1,53 @@
-export type Rarity = "Common" | "Rare" | "Legendary" | "Limited" | "NFT"
+export type Rarity = "Common" | "Rare" | "Legendary" | "NFT"
 
-export interface GiftAttribute {
-  trait_type: string
-  value: string
-  rarity_percent: number
-}
-
-export interface PriceData {
+export interface AssetPrice {
   ton: number
   usd: number
 }
 
-export interface BaseGift {
-  id: string
-  name: string
-  image: string
-  num: number
-  isOffchain: boolean
+export interface GiftAttribute {
+  label: string
+  value: string
+  rarity: number
 }
 
-export interface GiftItem extends BaseGift {
-  rarity: string
+export interface MarketHistoryItem {
+  id: string
+  price: number
+  date: string
+  platform: string
+  buyerName: string
+  avatarUrl: string
+  category: "model" | "backdrop" | "pattern"
+}
+
+export interface Gift {
+  id: string
+  slug: string
+  number: number
+  name: string
+  image: string
   floorPrice: number
-  estimatedPrice?: number
-  ownerUsername?: string
-  attributes?: GiftAttribute[]
+  estimatedPrice: number
+  isOffchain: boolean
+  attributes: GiftAttribute[]
+  stats: GiftStat[]
+  history: MarketHistoryItem[]
+}
+
+export interface GiftStat {
+  type: string
+  label: string
+  count: number
+  floor: number | null
+}
+
+export interface UserProfile {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string
+  giftsCount: number
+  totalValue: number
+  type: string
 }

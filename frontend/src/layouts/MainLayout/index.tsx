@@ -1,154 +1,66 @@
-// frontend/src/layouts/MainLayout/index.tsx
-
-import React, { useEffect } from "react"
-import { Box, Flex, Text, useDisclosure, IconButton, HStack } from "@chakra-ui/react"
-import { useNavigate, useLocation } from "react-router-dom"
-import { HOME } from "../../router/paths"
+import React from "react"
+import { Box, Flex, Text, IconButton, HStack } from "@chakra-ui/react"
+import { Outlet } from "react-router-dom"
+import { useUIStore } from "../../store/useUIStore"
+import { ShareIcon, SettingsIcon } from "../../components/Shared/Icons"
+import AdBanner from "../../components/Home/AdBanner"
+import BottomNavigation from "../../components/navigation/BottomNavigation"
+import SearchDrawer from "../../components/overlay/search/SearchDrawer"
 import SettingsDrawer from "../../components/overlay/SettingsDrawer"
 import SnappySubscriptionDrawer from "../../components/overlay/SnappySubscriptionDrawer"
-import AdBanner from "../../components/Home/AdBanner"
-import { ShareIcon, SettingsIcon } from "../../components/Shared/Icons"
+import GiftDetailDrawer from "../../components/overlay/GiftDetailDrawer"
+import { useGiftDetail } from "../../hooks/useGiftDetail"
 
-interface MainLayoutProps {
-  children: React.ReactNode
-}
+const MainLayout: React.FC = () => {
+  const ui = useUIStore()
+  const { gift, history, isHistoryLoading, reset } = useGiftDetail()
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  const settingsDisclosure = useDisclosure()
-  const subDisclosure = useDisclosure()
-
-  const WebApp = window.Telegram?.WebApp
-  const user = WebApp?.initDataUnsafe?.user
-
-  useEffect(() => {
-    if (!WebApp) return
-    if (location.pathname !== HOME) {
-      WebApp.BackButton.show()
-    } else {
-      WebApp.BackButton.hide()
-    }
-    const handleBack = () => navigate(-1)
-    WebApp.BackButton.onClick(handleBack)
-    return () => WebApp.BackButton.offClick(handleBack)
-  }, [location, navigate, WebApp])
+  const handleShare = () => {
+    window.Telegram?.WebApp?.switchInlineQuery("Посмотри мой портфель в In'Snap!")
+  }
 
   return (
     <Box minH="100vh" bg="#0F1115" color="white">
       <AdBanner />
 
-      {/* ЧИСТАЯ ШАПКА */}
-      <Flex
-        as="header"
-        align="center"
-        justify="space-between"
-        px={4}
-        h="56px"
-        bg="#0F1115"
-      >
-        {/* КНОПКА ПОДПИСКИ СТИЛЬ СТЕКЛА */}
+      <Flex as="header" align="center" justify="space-between" px={4} h="60px" position="sticky" top="0" zIndex={100} bg="#0F1115">
         <Flex
           as="button"
-          onClick={subDisclosure.onOpen}
-          align="center"
-          justify="center"
-          minW="100px"
-          h="36px"
-          px={3}
-          bg="rgba(255, 255, 255, 0.12)"
-          borderRadius="18px"
-          backdropFilter="blur(12px)"
-          boxShadow="0 8px 16px rgba(0, 0, 0, 0.2)"
-          transition="all 0.2s ease"
-          _hover={{
-            bg: "rgba(255, 255, 255, 0.15)",
-            transform: "translateY(-2px)",
-            boxShadow: "0 12px 20px rgba(0, 0, 0, 0.25)"
-          }}
-          _active={{
-            transform: "translateY(0)",
-            bg: "rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)"
-          }}
+          onClick={ui.openSubscription}
+          align="center" bg="whiteAlpha.100" px={3} h="36px" borderRadius="18px" backdropFilter="blur(10px)"
         >
-          <Flex align="center" gap={2}>
-            <Box
-              w="6px"
-              h="6px"
-              borderRadius="full"
-              bg="brand.500"
-              boxShadow="0 0 12px var(--chakra-colors-brand-500)"
-            />
-            <Text
-              fontSize="12px"
-              fontWeight="700"
-              letterSpacing="0.2px"
-              color="white"
-            >
-              SNAPPY<span style={{ color: "var(--chakra-colors-brand-500)", fontWeight: "800" }}>+</span>
-            </Text>
-          </Flex>
+          <Box w="6px" h="6px" borderRadius="full" bg="brand.500" mr={2} boxShadow="0 0 8px #e8d7fd" />
+          <Text fontSize="12px" fontWeight="800">SNAPPY<Text as="span" color="brand.500">+</Text></Text>
         </Flex>
 
-        {/* КНОПКИ ДЕЙСТВИЙ СТИЛЬ СТЕКЛА */}
         <HStack spacing={2}>
           <IconButton
-            aria-label="Share"
-            icon={<ShareIcon color="white" boxSize="16px" />}
-            w="36px"
-            h="36px"
-            minW="36px"
-            bg="rgba(255, 255, 255, 0.12)"
-            borderRadius="18px"
-            backdropFilter="blur(12px)"
-            boxShadow="0 8px 16px rgba(0, 0, 0, 0.2)"
-            transition="all 0.2s ease"
-            _hover={{
-              bg: "rgba(255, 255, 255, 0.15)",
-              transform: "translateY(-2px)",
-              boxShadow: "0 12px 20px rgba(0, 0, 0, 0.25)"
-            }}
-            _active={{
-              transform: "translateY(0)",
-              bg: "rgba(255, 255, 255, 0.1)",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)"
-            }}
-            onClick={() => WebApp?.switchInlineQuery("Check my portfolio!")}
+            aria-label="Share" icon={<ShareIcon boxSize="18px" />}
+            onClick={handleShare} bg="whiteAlpha.100" borderRadius="full" size="sm"
           />
-
           <IconButton
-            aria-label="Settings"
-            icon={<SettingsIcon color="white" boxSize="16px" />}
-            w="36px"
-            h="36px"
-            minW="36px"
-            bg="rgba(255, 255, 255, 0.12)"
-            borderRadius="18px"
-            backdropFilter="blur(12px)"
-            boxShadow="0 8px 16px rgba(0, 0, 0, 0.2)"
-            transition="all 0.2s ease"
-            _hover={{
-              bg: "rgba(255, 255, 255, 0.15)",
-              transform: "translateY(-2px)",
-              boxShadow: "0 12px 20px rgba(0, 0, 0, 0.25)"
-            }}
-            _active={{
-              transform: "translateY(0)",
-              bg: "rgba(255, 255, 255, 0.1)",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)"
-            }}
-            onClick={settingsDisclosure.onOpen}
+            aria-label="Settings" icon={<SettingsIcon boxSize="18px" />}
+            onClick={ui.openSettings} bg="whiteAlpha.100" borderRadius="full" size="sm"
           />
         </HStack>
       </Flex>
 
-      <Box pb="100px">{children}</Box>
+      <Box as="main">
+        <Outlet />
+      </Box>
 
-      {/* ОВЕРЛЕИ */}
-      <SettingsDrawer isOpen={settingsDisclosure.isOpen} onClose={settingsDisclosure.onClose} />
-      <SnappySubscriptionDrawer isOpen={subDisclosure.isOpen} onClose={subDisclosure.onClose} />
+      <SearchDrawer isOpen={ui.isSearchOpen} onClose={ui.closeSearch} />
+      <SettingsDrawer isOpen={ui.isSettingsOpen} onClose={ui.closeSettings} />
+      <SnappySubscriptionDrawer isOpen={ui.isSubscriptionOpen} onClose={ui.closeSubscription} />
+      <GiftDetailDrawer
+        isOpen={ui.isDetailOpen}
+        onClose={() => { ui.closeDetail(); reset(); }}
+        gift={gift}
+        historyData={history}
+        isHistoryLoading={isHistoryLoading}
+      />
+
+      <BottomNavigation onSearchOpen={ui.openSearch} />
     </Box>
   )
 }

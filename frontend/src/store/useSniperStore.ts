@@ -1,91 +1,65 @@
-import { create } from 'zustand';
-import { SniperEvent, SniperRule, ConnectionStatus } from '../types/sniper';
-import SniperService from '../services/sniper.service';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { SniperEvent, SniperRule, ConnectionStatus } from '../types/sniper'
+import { SniperService } from '../services/sniper.service'
 
 interface SniperState {
-  events: SniperEvent[];
-  rules: SniperRule[];
-  status: ConnectionStatus;
-  isLoading: boolean;
-
-  // Actions
-  addEvent: (event: SniperEvent) => void;
-  setStatus: (status: ConnectionStatus) => void;
-  clearEvents: () => void;
-
-  // Logic Actions
-  initTerminal: (userId: string) => Promise<void>;
-  addRule: (rule: SniperRule) => void;
-  updateRule: (id: string, updates: Partial<SniperRule>) => void;
-  deleteRule: (id: string) => void;
+  events: SniperEvent[]
+  rules: SniperRule[]
+  status: ConnectionStatus
+  isLoading: boolean
+  addEvent: (event: SniperEvent) => void
+  setStatus: (status: ConnectionStatus) => void
+  clearEvents: () => void
+  addRule: (rule: SniperRule) => void
+  updateRule: (id: string, updates: Partial<SniperRule>) => void
+  deleteRule: (id: string) => void
+  initHistory: (userId: string) => Promise<void>
 }
 
-export const useSniperStore = create<SniperState>((set, get) => ({
-  events: [],
-  rules: [],
-  status: 'DISCONNECTED',
-  isLoading: false,
+export const useSniperStore = create<SniperState>()(
+  persist(
+    (set, get) => ({
+      events: [],
+      rules: [],
+      status: 'DISCONNECTED',
+      isLoading: false,
 
-  addEvent: (event) => set((state) => {
-    if (state.events.some(e => e.id === event.id)) return state;
-    return { events: [event, ...state.events].slice(0, 100) };
-  }),
+      addEvent: (event) => {
+        const { events } = get()
+        if (events.some(e => e.id === event.id)) return
+        set({ events: [event, ...events].slice(0, 100) })
+      },
 
-  setStatus: (status) => set({ status }),
+      setStatus: (status) => set({ status }),
 
-  clearEvents: () => set({ events: [] }),
+      clearEvents: () => set({ events: [] }),
 
-  initTerminal: async (userId: string) => {
-    set({ isLoading: true });
-    try {
-      // 1. Загружаем историю из БД
-      const history = await SniperService.getMatchHistory(userId, 30);
+      addRule: (rule) => set((state) => ({
+        rules: [...state.rules, rule]
+      })),
 
-      const formattedEvents: SniperEvent[] = (history || []).map(item => ({
-        id: item.id,
-        name: item.name || item.giftName,
-        model: item.model || 'Standard',
-        backdrop: item.backdrop || '',
-        symbol: item.symbol || '',
-        price: item.price || 0,
-        marketplace: item.marketplace || 'FRAGMENT',
-        address: item.address || '',
-        receivedAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
-        imageUrl: `https://nft.fragment.com/gift/${(item.name || item.giftName || '').toLowerCase().replace(/#/g, "-").replace(/\s+/g, "")}.webp`,
-        dealScore: item.dealScore || 0,
-        isOffchain: false
-      }));
+      updateRule: (id, updates) => set((state) => ({
+        rules: state.rules.map(r => r.id === id ? { ...r, ...updates } : r)
+      })),
 
-      // 2. Пытаемся загрузить правила (пока из localStorage, позже подключим API)
-      const savedRules = localStorage.getItem("isnap_sniper_rules_v2");
-      const rules = savedRules ? JSON.parse(savedRules) : [];
+      deleteRule: (id) => set((state) => ({
+        rules: state.rules.filter(r => r.id !== id)
+      })),
 
-      set({
-        events: formattedEvents,
-        rules: rules,
-        isLoading: false
-      });
-    } catch (error) {
-      console.error("Init Terminal Error:", error);
-      set({ isLoading: false });
+      initHistory: async (userId) => {
+        set({ isLoading: true })
+        try {
+          const history = await SniperService.getMatchHistory(userId, 30)
+          set({ events: history, isLoading: false })
+        } catch (e) {
+          set({ isLoading: false })
+        }
+      }
+    }),
+    {
+      name: 'isnap-sniper-storage',
+      partialize: (state) => ({ rules: state.rules }),
     }
-  },
-
-  addRule: (rule) => set((state) => {
-    const newRules = [...state.rules, rule];
-    localStorage.setItem("isnap_sniper_rules_v2", JSON.stringify(newRules));
-    return { rules: newRules };
-  }),
-
-  updateRule: (id, updates) => set((state) => {
-    const newRules = state.rules.map(r => r.id === id ? { ...r, ...updates } : r);
-    localStorage.setItem("isnap_sniper_rules_v2", JSON.stringify(newRules));
-    return { rules: newRules };
-  }),
-
-  deleteRule: (id) => set((state) => {
-    const newRules = state.rules.filter(r => r.id !== id);
-    localStorage.setItem("isnap_sniper_rules_v2", JSON.stringify(newRules));
-    return { rules: newRules };
-  }),
-}));
+  )
+)

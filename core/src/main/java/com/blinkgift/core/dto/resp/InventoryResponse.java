@@ -1,7 +1,10 @@
 package com.blinkgift.core.dto.resp;
+
 import com.blinkgift.core.domain.UserSyncStateDocument;
 import lombok.*;
+
 import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -12,8 +15,11 @@ public class InventoryResponse {
     private int limit;
     private int offset;
     private SyncStatusDto sync;
+
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class GiftItemDto {
         private String id;
         private String slug;
@@ -26,11 +32,16 @@ public class InventoryResponse {
         private Double rarityPercent;
         private String acquiredAt;
     }
+
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SyncStatusDto {
         private UserSyncStateDocument.SyncStatus status;
-        private boolean isFullScanCompleted;
+
+        private boolean fullScanCompleted;
+
         private Integer totalItemsInTelegram;
         private String lastSyncAt;
     }

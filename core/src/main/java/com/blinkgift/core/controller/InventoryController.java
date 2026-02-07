@@ -19,16 +19,16 @@ public class InventoryController {
     @GetMapping
     public ResponseEntity<InventoryResponse> getInventory(
             @RequestParam("user_id") String userId,
-            @RequestParam(value = "tgauth", required = false) String tgAuth,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @RequestParam(value = "offset", defaultValue = "0") int offset) {
+
+        log.info("Received inventory request for user: {}", userId);
 
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
 
-        InventoryResponse response = inventoryService.getUserInventory(userId, tgAuth, limit, offset);
-
+        InventoryResponse response = inventoryService.getUserInventory(userId, limit, offset);
         return ResponseEntity.ok(response);
     }
 }

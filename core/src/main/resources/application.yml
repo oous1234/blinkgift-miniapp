@@ -35,3 +35,7 @@ feign:
         connectTimeout: 5000
         readTimeout: 10000
         loggerLevel: basic
+
+app:
+  python-gateway:
+    url: http://localhost:8082

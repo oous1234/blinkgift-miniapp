@@ -18,7 +18,6 @@ public class GiftDetailController {
 
     @GetMapping("/{slug}")
     public ResponseEntity<FullGiftDetailsResponse> getGiftDetails(@PathVariable String slug) {
-        // slug приходит в формате "WinterWreath-19852"
         return ResponseEntity.ok(giftDetailService.getGiftDetailsBySlug(slug));
     }
 }

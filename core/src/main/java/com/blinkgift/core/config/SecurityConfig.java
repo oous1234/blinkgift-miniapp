@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/wallet").permitAll()
                         .requestMatchers("/api/parsing/**").permitAll()
                         .requestMatchers("/api/v1/sniper/**").permitAll()
+                        .requestMatchers("/api/v1/inventory/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

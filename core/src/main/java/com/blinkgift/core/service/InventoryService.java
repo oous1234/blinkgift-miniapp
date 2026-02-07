@@ -1,14 +1,9 @@
 package com.blinkgift.core.service;
-
 import com.blinkgift.core.dto.resp.InventoryResponse;
-
+import com.blinkgift.core.domain.UserSyncStateDocument;
 public interface InventoryService {
-    /**
-     * Получает инвентарь пользователя из внешней системы.
-     *
-     * @param ownerId ID владельца (UUID)
-     * @param tgAuth Строка авторизации Telegram (JSON string)
-     * @return Ответ с списком подарков
-     */
-    InventoryResponse getUserInventory(String ownerId, String tgAuth, int limit, int offset);
+
+    InventoryResponse getUserInventory(String userId, String tgAuth, int limit, int offset);
+
+    UserSyncStateDocument getSyncStatus(String userId);
 }

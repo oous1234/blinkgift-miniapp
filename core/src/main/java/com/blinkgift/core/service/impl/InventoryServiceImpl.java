@@ -8,15 +8,11 @@ import com.blinkgift.core.dto.resp.InventoryResponse;
 import com.blinkgift.core.repository.UserInventoryRepository;
 import com.blinkgift.core.repository.UserSyncStateRepository;
 import com.blinkgift.core.service.InventoryService;
-import com.blinkgift.core.service.DiscoveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,140 +24,82 @@ public class InventoryServiceImpl implements InventoryService {
     private final PythonGatewayClient pythonClient;
     private final UserInventoryRepository inventoryRepository;
     private final UserSyncStateRepository syncStateRepository;
-    private final DiscoveryService discoveryService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final DiscoveryTaskPublisher discoveryTaskPublisher; // Сервис для отправки задачи в Redis Stream
+
+    private static final String REDIS_INV_PREFIX = "inv:cache:";
 
     @Override
-    @Transactional
-    public InventoryResponse getUserInventory(String userId, String tgAuth, int limit, int offset) {
-        log.debug("Inventory request for user: {}, offset: {}, limit: {}", userId, offset, limit);
+    public InventoryResponse getUserInventory(String userId, int limit, int offset) {
+        // Логика для первой страницы (offset 0)
+        if (offset == 0) {
+            String cacheKey = REDIS_INV_PREFIX + userId;
+            InventoryResponse cached = (InventoryResponse) redisTemplate.opsForValue().get(cacheKey);
 
-        UserSyncStateDocument syncState = syncStateRepository.findById(userId)
-                .orElseGet(() -> initializeSyncState(userId));
+            if (cached != null) {
+                log.debug("Returning cached first page for user: {}", userId);
+                return cached;
+            }
 
-        if (!Boolean.TRUE.equals(syncState.getIsFullScanCompleted()) &&
-                (syncState.getStatus() == UserSyncStateDocument.SyncStatus.PENDING ||
-                        syncState.getStatus() == UserSyncStateDocument.SyncStatus.FAILED) &&
-                offset == 0) {
+            // Если в кэше нет, делаем быстрый запрос в Python (Cold Start)
+            PythonInventoryResponse live = pythonClient.getInventoryLive(userId, "", limit);
 
-            return performColdStart(userId, limit, offset, syncState);
+            // Сохраняем "скелеты" в локальную БД для возможности последующей фильтрации
+            persistInventorySkeletons(userId, live.getItems());
+
+            // Создаем ответ
+            InventoryResponse response = mapToResponse(live, offset, limit);
+
+            // Кэшируем первую страницу на 5 минут для мгновенных повторных входов
+            redisTemplate.opsForValue().set(cacheKey, response, Duration.ofMinutes(5));
+
+            // Триггерим фоновую задачу для Discovery Service
+            discoveryTaskPublisher.publishDiscoveryTask(userId, live.getTotal_count());
+
+            return response;
         }
 
-        return getFromLocalDb(userId, limit, offset, syncState);
+        // Для страниц > 1 (пагинация) — прямой проброс без кэширования всей БД
+        // В реальном проекте здесь можно добавить логику проверки:
+        // если Discovery уже все выкачал, брать из БД, если нет — из Python.
+        PythonInventoryResponse livePage = pythonClient.getInventoryLive(userId, String.valueOf(offset), limit);
+        return mapToResponse(livePage, offset, limit);
     }
 
-    private InventoryResponse performColdStart(String userId, int limit, int offset, UserSyncStateDocument syncState) {
-        try {
-            log.info("Performing cold start sync for user: {}", userId);
-
-            // Синхронный запрос в Python за первой пачкой
-            PythonInventoryResponse liveData = pythonClient.getInventoryLive(userId, "", limit);
-
-            // Сохраняем полученные данные в БД
-            List<UserInventoryDocument> docs = liveData.getItems().stream()
-                    .map(item -> mapToEntity(userId, item))
-                    .collect(Collectors.toList());
-            inventoryRepository.saveAll(docs);
-
-            // Обновляем состояние
-            syncState.setStatus(UserSyncStateDocument.SyncStatus.IN_PROGRESS);
-            syncState.setTotalItemsCount(liveData.getTotal_count());
-            syncState.setLastCursor(liveData.getNext_offset());
-            syncState.setLastSyncAt(Instant.now());
-            syncStateRepository.save(syncState);
-
-            // 4. Инициируем фоновую докачку
-            discoveryService.triggerInventorySync(userId, liveData.getNext_offset());
-
-            return mapToResponse(docs, liveData.getTotal_count(), limit, offset, syncState);
-
-        } catch (Exception e) {
-            log.error("Cold start failed for user {}: {}", userId, e.getMessage());
-            syncState.setStatus(UserSyncStateDocument.SyncStatus.FAILED);
-            syncStateRepository.save(syncState);
-            return mapToEmptyResponse(limit, offset, syncState);
-        }
+    @Override
+    public PythonInventoryResponse fetchLivePage(String userId, int limit, String offsetCursor) {
+        return pythonClient.getInventoryLive(userId, offsetCursor, limit);
     }
 
-    private InventoryResponse getFromLocalDb(String userId, int limit, int offset, UserSyncStateDocument syncState) {
-        long totalInDb = inventoryRepository.countByUserId(userId);
-
-        // Пагинация в Mongo
-        var pageable = PageRequest.of(offset / limit, limit, Sort.by(Sort.Direction.DESC, "acquiredAt"));
-        List<UserInventoryDocument> items = inventoryRepository.findByUserId(userId, pageable);
-
-        // В качестве общего количества отдаем число из syncState (сколько всего в Telegram)
-        int totalExpected = syncState.getTotalItemsCount() != null ? syncState.getTotalItemsCount() : (int) totalInDb;
-
-        return mapToResponse(items, totalExpected, limit, offset, syncState);
+    private void persistInventorySkeletons(String userId, List<PythonInventoryResponse.InventoryItem> items) {
+        List<UserInventoryDocument> docs = items.stream().map(item ->
+                UserInventoryDocument.builder()
+                        .id(item.getGift_id())
+                        .userId(userId)
+                        .slug(item.getSlug())
+                        .serialNumber(item.getSerial_number())
+                        .acquiredAt(item.getDate())
+                        .build()
+        ).collect(Collectors.toList());
+        inventoryRepository.saveAll(docs);
     }
 
-    private UserSyncStateDocument initializeSyncState(String userId) {
-        UserSyncStateDocument state = UserSyncStateDocument.builder()
-                .userId(userId)
-                .status(UserSyncStateDocument.SyncStatus.PENDING)
-                .isFullScanCompleted(false)
-                .lastSyncAt(Instant.now())
+    private InventoryResponse mapToResponse(PythonInventoryResponse live, int offset, int limit) {
+        // Маппинг в DTO для фронтенда
+        return InventoryResponse.builder()
+                .items(live.getItems().stream().map(this::mapItem).collect(Collectors.toList()))
+                .total(live.getTotal_count())
+                .offset(offset)
+                .limit(limit)
                 .build();
-        return syncStateRepository.save(state);
     }
 
-    private UserInventoryDocument mapToEntity(String userId, PythonInventoryResponse.InventoryItem item) {
-        return UserInventoryDocument.builder()
+    private InventoryResponse.GiftItemDto mapItem(PythonInventoryResponse.InventoryItem item) {
+        return InventoryResponse.GiftItemDto.builder()
                 .id(item.getGift_id())
-                .userId(userId)
                 .slug(item.getSlug())
                 .serialNumber(item.getSerial_number())
-                .acquiredAt(item.getDate())
-                .name("Gift #" + item.getSerial_number())
+                .image("https://nft.fragment.com/gift/" + item.getSlug().toLowerCase() + ".medium.jpg")
                 .build();
-    }
-
-    private InventoryResponse mapToResponse(List<UserInventoryDocument> items, int total,
-                                            int limit, int offset, UserSyncStateDocument syncState) {
-        List<InventoryResponse.GiftItemDto> dtos = items.stream()
-                .map(this::mapToGiftItemDto)
-                .collect(Collectors.toList());
-
-        return InventoryResponse.builder()
-                .items(dtos)
-                .total(total)
-                .limit(limit)
-                .offset(offset)
-                .sync(InventoryResponse.SyncStatusDto.builder()
-                        .status(syncState.getStatus())
-                        .isFullScanCompleted(syncState.getIsFullScanCompleted())
-                        .totalItemsInTelegram(syncState.getTotalItemsCount())
-                        .lastSyncAt(syncState.getLastSyncAt().toString())
-                        .build())
-                .build();
-    }
-
-    private InventoryResponse.GiftItemDto mapToGiftItemDto(UserInventoryDocument doc) {
-        return InventoryResponse.GiftItemDto.builder()
-                .id(doc.getId())
-                .slug(doc.getSlug())
-                .name(doc.getName())
-                .serialNumber(doc.getSerialNumber())
-                .acquiredAt(doc.getAcquiredAt().toString())
-                .image("https://nft.fragment.com/gift/" + doc.getSlug().toLowerCase() + ".medium.jpg")
-                .build();
-    }
-
-    private InventoryResponse mapToEmptyResponse(int limit, int offset, UserSyncStateDocument state) {
-        return InventoryResponse.builder()
-                .items(List.of())
-                .total(0)
-                .limit(limit)
-                .offset(offset)
-                .sync(InventoryResponse.SyncStatusDto.builder()
-                        .status(state.getStatus())
-                        .isFullScanCompleted(state.getIsFullScanCompleted() != null ? state.getIsFullScanCompleted() : false)
-                        .build())
-                .build();
-    }
-
-    @Override
-    public UserSyncStateDocument getSyncStatus(String userId) {
-        return syncStateRepository.findById(userId).orElse(null);
     }
 }

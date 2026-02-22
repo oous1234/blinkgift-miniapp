@@ -1,14 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
-import { OwnerService } from '../services/owner.service';
-import { UserProfile } from '../types/domain';
+import { OwnerService, SearchOwnerResult } from '../services/owner.service';
 
 export const useSearch = () => {
-  const [results, setResults] = useState<UserProfile[]>([]);
+  const [results, setResults] = useState<SearchOwnerResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const timerRef = useRef<NodeJS.Timeout>();
 
   const searchOwners = useCallback((query: string) => {
-    if (query.length < 2) {
+    if (!query || query.trim().length < 2) {
       setResults([]);
       return;
     }
@@ -21,6 +20,7 @@ export const useSearch = () => {
         const owners = await OwnerService.searchOwners(query);
         setResults(owners);
       } catch (e) {
+        console.error("Search hook error:", e);
         setResults([]);
       } finally {
         setIsLoading(false);

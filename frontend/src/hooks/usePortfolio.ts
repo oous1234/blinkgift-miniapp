@@ -1,64 +1,58 @@
+// src/hooks/usePortfolio.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { InventoryService } from '../services/inventory.service';
-import { OwnerService } from '../services/owner.service';
-import { Gift, UserProfile } from '../types/domain';
+import { InventoryItem, ApiSyncState } from '../types/inventory';
 import { useTelegram } from "../contexts/telegramContext";
 
-export const usePortfolio = (targetOwnerId?: string, range: string = '30d') => {
+export const usePortfolio = (targetOwnerId?: string) => {
   const { user } = useTelegram();
   const ownerId = targetOwnerId || String(user.id);
 
-  const [items, setItems] = useState<Partial<Gift>[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [syncState, setSyncState] = useState<ApiSyncState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [total, setTotal] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     try {
-      const limit = 10;
-      const offset = (page - 1) * limit;
-
-      const [invData, historyData] = await Promise.all([
-        InventoryService.getInventory(ownerId, limit, offset),
-        OwnerService.getPortfolioHistory(ownerId, range)
-      ]);
-
-      setItems(invData.items);
-      setTotal(invData.total);
-      setHistory(historyData);
+      const data = await InventoryService.getInventory(ownerId, 100, 0);
+      setItems(data.items);
+      setTotal(data.total);
+      setSyncState(data.sync);
     } catch (e) {
-      console.error("Failed to fetch portfolio:", e);
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
-  }, [ownerId, page, range]);
+  }, [ownerId]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (syncState?.status === "IN_PROGRESS" || syncState?.status === "PENDING") {
+      interval = setInterval(() => {
+        fetchData(true);
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [syncState?.status, fetchData]);
+
   const analytics = useMemo(() => {
-    if (history.length < 2) return { current: 0, pnl: 0, percent: 0 };
-
-    const first = history[0].average.ton;
-    const last = history[history.length - 1].average.ton;
-    const pnl = last - first;
-
+    const totalValue = items.reduce((acc, item) => acc + (item.estimatedPrice || 0), 0);
     return {
-      current: last,
-      pnl,
-      percent: first > 0 ? (pnl / first) * 100 : 0
+      current: totalValue,
+      percent: 0
     };
-  }, [history]);
+  }, [items]);
 
   return {
     items,
     total,
-    page,
-    setPage,
-    history,
+    syncState,
     analytics,
     isLoading,
     refresh: fetchData

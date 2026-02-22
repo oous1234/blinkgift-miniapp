@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/parsing/**").permitAll()
                         .requestMatchers("/api/v1/sniper/**").permitAll()
                         .requestMatchers("/api/v1/inventory/**").permitAll()
+                        .requestMatchers("/api/v1/owners/search").permitAll()
                         .anyRequest().authenticated()
                 )
 

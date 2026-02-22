@@ -3,6 +3,21 @@ export interface ApiPrice {
   usd: number;
 }
 
+export interface ApiSyncStatus {
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  fullScanCompleted: boolean;
+  totalItemsInTelegram: number;
+  lastSyncAt: string | null;
+}
+
+export interface ApiInventoryResponse {
+  items: ApiInventoryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  sync: ApiSyncStatus;
+}
+
 export interface ApiLastTrade {
   giftSlug: string;
   giftTonPrice: number;

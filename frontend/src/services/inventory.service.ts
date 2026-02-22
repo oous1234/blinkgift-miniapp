@@ -2,21 +2,17 @@ import { apiClient } from "../infrastructure/apiClient";
 import { Mappers } from "../utils/mappers";
 import { ApiDetailedGift, ApiInventoryItem, ApiSearchResponse } from "../types/apiDto";
 import { Gift } from "../types/domain";
+import { InventoryResponse } from "../types/inventory";
 
 export const InventoryService = {
-  async getInventory(ownerId: string, limit = 10, offset = 0) {
-    const response = await apiClient.get<ApiSearchResponse<ApiInventoryItem>>("/inventory", {
-      current_owner_id: ownerId,
+  async getInventory(userId: string, limit = 50, offset = 0): Promise<InventoryResponse> {
+    return await apiClient.get<InventoryResponse>("/api/v1/inventory", {
+      user_id: userId,
       limit,
       offset,
     });
-    return {
-      total: response.total,
-      items: (response.items || []).map(Mappers.mapInventoryItem),
-    };
   },
 
-  // Теперь принимаем просто ID, который уже сформирован правильно (Slug-Number)
   async getGiftDetail(giftId: string): Promise<Gift> {
     const data = await apiClient.get<ApiDetailedGift>(`/api/v1/gifts/${giftId}`);
     return Mappers.mapDetailedGift(data);

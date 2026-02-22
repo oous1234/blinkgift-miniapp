@@ -2,12 +2,19 @@ package com.blinkgift.core.client;
 
 import com.blinkgift.core.dto.external.PythonInventoryResponse;
 import com.blinkgift.core.dto.external.PythonMetadataResponse;
+import com.blinkgift.core.dto.external.SearchResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "python-gateway", url = "${app.python-gateway.url:http://localhost:8082}")
 public interface PythonGatewayClient {
+
+    @GetMapping("/api/v1/search")
+    SearchResponseDto searchEntities(
+            @RequestParam("q") String query,
+            @RequestParam("limit") int limit
+    );
 
     @GetMapping("/api/v1/inventory/live")
     PythonInventoryResponse getInventoryLive(

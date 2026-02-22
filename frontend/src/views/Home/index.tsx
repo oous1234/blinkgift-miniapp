@@ -1,39 +1,32 @@
+// src/views/Home/index.tsx
 import React from "react";
-import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Spinner } from "@chakra-ui/react";
+import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Skeleton } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 import { usePortfolio } from "../../hooks/usePortfolio";
 import { useGiftDetail } from "../../hooks/useGiftDetail";
 import { useTelegram } from "../../contexts/telegramContext";
 import { GiftCard } from "../../components/Home/GiftCard";
-import { Pagination } from "../../components/Home/Pagination";
-import { TonValue, TrendBadge } from "../../components/shared/Typography";
+import { SyncBanner } from "../../components/Home/SyncBanner";
+import { TonValue } from "../../components/Shared/Typography";
 
 const HomeView: React.FC = () => {
   const { user, haptic } = useTelegram();
-  const { items, total, page, setPage, analytics, isLoading } = usePortfolio();
+  const { items, total, syncState, analytics, isLoading } = usePortfolio();
   const { loadDetail } = useGiftDetail();
 
   const handleGiftClick = (item: any) => {
     haptic.selection();
-    loadDetail(item.slug, item.number);
+    loadDetail(item.slug, item.serialNumber);
   };
 
-  if (isLoading && page === 1) {
-    return (
-      <Center h="80vh">
-        <Spinner color="brand.500" thickness="3px" size="xl" />
-      </Center>
-    );
-  }
-
   return (
-    <Box px={4} pt={2} pb="100px">
-      {/* Header Section */}
-      <Flex align="center" mb={8}>
+    <Box px={4} pt={2} pb="120px">
+      <Flex align="center" mb={8} mt={4}>
         <Avatar
           size="xl"
           src={user.photo_url}
           name={user.first_name}
-          borderRadius="24px"
+          borderRadius="28px"
           mr={5}
           border="2px solid"
           borderColor="whiteAlpha.200"
@@ -42,44 +35,55 @@ const HomeView: React.FC = () => {
           <Text color="whiteAlpha.400" fontSize="10px" fontWeight="900" textTransform="uppercase" letterSpacing="1px">
             Portfolio Value
           </Text>
-          <TonValue value={analytics.current.toFixed(2)} size="lg" />
+          <Skeleton isLoaded={!isLoading} borderRadius="8px">
+            <TonValue value={analytics.current.toFixed(2)} size="lg" />
+          </Skeleton>
           <HStack spacing={3}>
-            <TrendBadge value={analytics.percent} />
-            <Text fontSize="13px" fontWeight="800" color="whiteAlpha.700">
-              {total} items
+             <Text fontSize="13px" fontWeight="800" color="whiteAlpha.700">
+              {total} objects found
             </Text>
           </HStack>
         </VStack>
       </Flex>
 
-      {/* Inventory Grid */}
-      <Box mb={4}>
-        <Heading size="sm" fontWeight="900" mb={4} color="whiteAlpha.900">
-          INVENTORY
+      <SyncBanner state={syncState} />
+
+      <Box>
+        <Heading size="xs" fontWeight="900" mb={5} color="whiteAlpha.500" letterSpacing="1px" textTransform="uppercase">
+          Inventory
         </Heading>
-        {items.length > 0 ? (
-          <SimpleGrid columns={2} spacing={3}>
-            {items.map((item) => (
-              <GiftCard
+
+        <SimpleGrid columns={2} spacing={3}>
+          {isLoading && items.length === 0 ? (
+            Array(6).fill(0).map((_, i) => (
+              <Skeleton key={i} height="180px" borderRadius="24px" />
+            ))
+          ) : (
+            items.map((item, idx) => (
+              <motion.div
                 key={item.id}
-                item={item as any}
-                onClick={() => handleGiftClick(item)}
-              />
-            ))}
-          </SimpleGrid>
-        ) : (
-          <Center py={10} bg="whiteAlpha.50" borderRadius="24px">
-            <Text color="whiteAlpha.400" fontWeight="700">No gifts found</Text>
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+              >
+                <GiftCard
+                  item={{
+                    ...item,
+                    num: item.serialNumber,
+                  } as any}
+                  onClick={() => handleGiftClick(item)}
+                />
+              </motion.div>
+            ))
+          )}
+        </SimpleGrid>
+
+        {!isLoading && items.length === 0 && (
+          <Center py={20} flexDirection="column">
+            <Text color="whiteAlpha.200" fontWeight="900" fontSize="12px">NO GIFTS VISIBLE</Text>
           </Center>
         )}
       </Box>
-
-      <Pagination
-        currentPage={page}
-        totalCount={total}
-        pageSize={10}
-        onPageChange={setPage}
-      />
     </Box>
   );
 };

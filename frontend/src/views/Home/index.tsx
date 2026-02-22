@@ -1,6 +1,5 @@
-// frontend/src/views/Home/index.tsx
 import React, { useEffect, useState } from "react";
-import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Skeleton, IconButton } from "@chakra-ui/react";
+import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Skeleton } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePortfolio } from "../../hooks/usePortfolio";
@@ -12,30 +11,24 @@ import { TonValue } from "../../components/Shared/Typography";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 
 const HomeView: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // Получаем ID из URL
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: me, haptic } = useTelegram();
 
-  // Загружаем портфель (свой или чужой)
   const { items, total, syncState, analytics, isLoading, isExternal } = usePortfolio(id);
   const { loadDetail } = useGiftDetail();
 
-  // Состояние для отображения данных профиля (имя/аватар)
   const [profileInfo, setProfileInfo] = useState({
     name: me.first_name,
     photo: me.photo_url,
     username: me.username
   });
 
-  // Если мы смотрим чужой профиль, пытаемся подтянуть данные из API или пропсов
-  // В реальном приложении здесь должен быть вызов OwnerService.getProfile(id)
   useEffect(() => {
     if (isExternal && id) {
-      // Имитация получения данных о пользователе.
-      // В идеале данные должны приходить вместе с инвентарем или отдельным запросом.
       setProfileInfo({
         name: `User #${id.slice(-4)}`,
-        photo: `https://poso.see.tg/api/avatar/${id}`, // Пример API аватарок
+        photo: `https://poso.see.tg/api/avatar/${id}`,
         username: undefined
       });
     } else {
@@ -49,12 +42,12 @@ const HomeView: React.FC = () => {
 
   const handleGiftClick = (item: any) => {
     haptic.selection();
-    loadDetail(item.slug, item.serialNumber);
+    // ПЕРЕДАЕМ ТОЛЬКО SLUG (напр. TrappedHeart-6709)
+    loadDetail(item.slug);
   };
 
   return (
     <Box px={4} pt={2} pb="120px">
-      {/* Кнопка "Назад", если мы смотрим не свой профиль */}
       {isExternal && (
         <HStack mb={4} onClick={() => navigate(-1)} cursor="pointer" color="brand.500">
           <ArrowBackIcon />
@@ -87,7 +80,6 @@ const HomeView: React.FC = () => {
         </VStack>
       </Flex>
 
-      {/* Синхронизацию показываем только в своем профиле */}
       {!isExternal && <SyncBanner state={syncState} />}
 
       <Box>
@@ -103,7 +95,7 @@ const HomeView: React.FC = () => {
           ) : (
             items.map((item, idx) => (
               <motion.div
-                key={item.id}
+                key={item.id || item.slug}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
@@ -111,7 +103,7 @@ const HomeView: React.FC = () => {
                 <GiftCard
                   item={{
                     ...item,
-                    num: item.serialNumber,
+                    num: item.serialNumber || item.num,
                   } as any}
                   onClick={() => handleGiftClick(item)}
                 />

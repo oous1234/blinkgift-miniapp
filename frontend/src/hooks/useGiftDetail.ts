@@ -5,35 +5,32 @@ import { useUIStore } from '../store/useUIStore';
 
 export const useGiftDetail = () => {
   const [gift, setGift] = useState<Gift | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   const { openDetail } = useUIStore();
 
-  const loadDetail = useCallback(async (slug: string, num: number) => {
+  const loadDetail = useCallback(async (slug: string) => {
+    if (!slug) return;
+
     setIsLoading(true);
+    setGift(null);
     openDetail();
 
     try {
-      const data = await InventoryService.getGiftDetail(slug, num);
+      // Только ОДИН запрос за данными
+      const data = await InventoryService.getGiftDetail(slug);
       setGift(data);
-
-      setIsHistoryLoading(true);
-      const blockchainData = await InventoryService.getBlockchainHistory(data.id);
-      setHistory(blockchainData.history || []);
     } catch (e) {
       console.error("Failed to load gift detail:", e);
+      setGift(null);
     } finally {
       setIsLoading(false);
-      setIsHistoryLoading(false);
     }
   }, [openDetail]);
 
   const reset = useCallback(() => {
     setGift(null);
-    setHistory([]);
   }, []);
 
-  return { gift, history, isLoading, isHistoryLoading, loadDetail, reset };
+  return { gift, isLoading, loadDetail, reset };
 };

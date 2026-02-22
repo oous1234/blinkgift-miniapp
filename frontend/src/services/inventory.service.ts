@@ -13,6 +13,7 @@ export const InventoryService = {
     });
   },
 
+  // Запрос за деталями (возвращает FullGiftDetailsResponse из твоего лога)
   async getGiftDetail(giftId: string): Promise<Gift> {
     const data = await apiClient.get<ApiDetailedGift>(`/api/v1/gifts/${giftId}`);
     return Mappers.mapDetailedGift(data);
@@ -24,9 +25,5 @@ export const InventoryService = {
       total: response.total || 0,
       items: (response.items || []).map(Mappers.mapInventoryItem),
     };
-  },
-
-  async getBlockchainHistory(giftId: string): Promise<any> {
-    return apiClient.get<any>(`/api/v1/explorer/nft/${giftId}/history`);
   }
 };

@@ -10,7 +10,7 @@ interface Props {
   gift: Gift;
 }
 
-type TradeCategory = "model" | "backdrop" | "model+backdrop";
+type TradeCategory = "model" | "backdrop" | "symbol" | "collection";
 
 export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
   const [activeTab, setActiveTab] = useState<TradeCategory>("model");
@@ -18,10 +18,11 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
   const tabLabels: Record<TradeCategory, string> = {
     "model": "Модель",
     "backdrop": "Фон",
-    "model+backdrop": "Модель + Фон"
+    "symbol": "Узор",
+    "collection": "Коллекция"
   };
 
-  // Безопасное получение сделок
+  // Берем сделки из поля stats (которые мы маппили из parameters)
   const currentTrades = useMemo(() => {
     if (!gift || !gift.stats) return [];
 
@@ -35,14 +36,14 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
 
   return (
     <VStack spacing={4} align="stretch" color="white" pt={2}>
-      {/* --- ЗАГОЛОВОК --- */}
+      {/* HEADER */}
       <Box px={1}>
         <HStack justify="space-between" mb={1} align="center">
           <Text fontSize="24px" fontWeight="900" letterSpacing="-0.5px">
             {gift.name}
           </Text>
-          <Badge bg="green.100" color="green.800" borderRadius="6px" px={2} py={0.5} fontSize="11px" fontWeight="800">
-            Продаётся
+          <Badge bg="brand.500" color="black" borderRadius="6px" px={2} py={0.5} fontSize="11px" fontWeight="800">
+            В НАЛИЧИИ
           </Badge>
         </HStack>
         <Text fontSize="14px" fontWeight="700" color="whiteAlpha.400">
@@ -50,31 +51,19 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
         </Text>
       </Box>
 
-      {/* --- БЛОК ЦЕН --- */}
+      {/* PRICES */}
       <VStack spacing={2} align="stretch" px={1} py={2}>
         <Flex justify="space-between" align="center">
-          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="600">Примерная цена</Text>
+          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="600">Оценка стоимости</Text>
           <TonValue value={gift.estimatedPrice?.toFixed(2) || "0.00"} size="sm" />
         </Flex>
         <Flex justify="space-between" align="center">
-          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="600">Цена на маркетплейсе</Text>
-          <HStack spacing={1}>
-            <TonValue value={gift.floorPrice?.toFixed(2) || "0.00"} size="sm" />
-            <Box boxSize="10px" bg="blue.400" borderRadius="2px" />
-          </HStack>
-        </Flex>
-        <Flex justify="space-between" align="center">
-          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="600">P/L (TON)</Text>
-          <HStack spacing={2}>
-            <TonValue value={`+${(gift.estimatedPrice - gift.floorPrice).toFixed(2)}`} size="sm" />
-            <Badge bg="green.900" color="green.400" fontSize="10px" borderRadius="4px">
-              +{((gift.estimatedPrice / (gift.floorPrice || 1) - 1) * 100).toFixed(1)}%
-            </Badge>
-          </HStack>
+          <Text color="whiteAlpha.500" fontSize="13px" fontWeight="600">Floor Price</Text>
+          <TonValue value={gift.floorPrice?.toFixed(2) || "0.00"} size="sm" />
         </Flex>
       </VStack>
 
-      {/* --- ПРЕВЬЮ И АТТРИБУТЫ --- */}
+      {/* ATTRIBUTES */}
       <HStack spacing={4} align="center" py={2}>
         <Box boxSize="100px" borderRadius="14px" overflow="hidden" flexShrink={0} border="1px solid" borderColor="whiteAlpha.100" bg="black">
           <Image src={gift.image} w="100%" h="100%" objectFit="cover" />
@@ -96,19 +85,19 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
 
       <Divider borderColor="whiteAlpha.100" />
 
-      {/* --- ТАБЛИЦА ПАРАМЕТРОВ --- */}
+      {/* STATS TABLE */}
       <Box>
         <HStack justify="space-between" mb={2} px={1}>
           <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ПАРАМЕТР</Text>
-          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">КОЛИЧЕСТВО</Text>
-          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ЦЕНА</Text>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300" textAlign="center">В ПРОДАЖЕ</Text>
+          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300" textAlign="right">FLOOR</Text>
         </HStack>
         <VStack spacing={0} align="stretch">
           {(gift.stats || []).map((stat, i) => (
             <Box key={i} py={2.5} borderBottom="1px solid" borderColor="whiteAlpha.50">
               <Flex justify="space-between" align="center">
                 <Text fontSize="13px" fontWeight="800" color="whiteAlpha.700" flex={1}>{stat.label}</Text>
-                <Text fontSize="13px" fontWeight="800" textDecoration="underline" color="whiteAlpha.800" textAlign="center" flex={1}>
+                <Text fontSize="13px" fontWeight="800" color="whiteAlpha.800" textAlign="center" flex={1}>
                   {stat.count?.toLocaleString() || 0}
                 </Text>
                 <Box flex={1} textAlign="right">
@@ -120,12 +109,12 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
         </VStack>
       </Box>
 
-      {/* --- СРЕДНЯЯ ЦЕНА / ИСТОРИЯ СДЕЛОК --- */}
+      {/* MARKET TRADES (LAST SALES) */}
       <Box mt={4}>
-        <Text fontSize="18px" fontWeight="900" mb={3} color="white">средняя цена за 30 дней</Text>
+        <Text fontSize="18px" fontWeight="900" mb={3} color="white">Последние продажи</Text>
 
         <HStack spacing={1} mb={4} bg="whiteAlpha.50" p="2px" borderRadius="8px">
-          {(["model", "backdrop", "model+backdrop"] as TradeCategory[]).map((cat) => (
+          {(["model", "backdrop", "symbol", "collection"] as TradeCategory[]).map((cat) => (
             <Box
               key={cat}
               as="button"
@@ -144,17 +133,11 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
           ))}
         </HStack>
 
-        <HStack justify="space-between" mb={2} px={1}>
-          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ПРЕДМЕТ</Text>
-          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300" textAlign="center">ДАТА</Text>
-          <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300" textAlign="right">ЦЕНА</Text>
-        </HStack>
-
         <VStack spacing={0} align="stretch" pb={10}>
           {currentTrades.length > 0 ? (
             currentTrades.map((trade, i) => {
-              const [name, num] = trade.giftSlug.split("-");
-              const avatarSlug = name.toLowerCase();
+              const avatarSlug = trade.giftSlug.split("-")[0].toLowerCase();
+              const num = trade.giftSlug.split("-")[1];
               return (
                 <Box key={i} py={2.5} borderBottom="1px solid" borderColor="whiteAlpha.50">
                   <Flex justify="space-between" align="center">
@@ -165,7 +148,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
                           fallback={<Box boxSize="28px" bg="whiteAlpha.100" />}
                         />
                       </Box>
-                      <Text fontSize="12px" fontWeight="800" isTruncated>
+                      <Text fontSize="12px" fontWeight="800">
                         #{num || "???"}
                       </Text>
                     </HStack>
@@ -183,7 +166,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
             })
           ) : (
             <Center py={8}>
-              <Text fontSize="12px" color="whiteAlpha.300">Нет сделок по этому фильтру</Text>
+              <Text fontSize="12px" color="whiteAlpha.300">Нет данных о продажах</Text>
             </Center>
           )}
         </VStack>

@@ -21,16 +21,16 @@ export const useSearchDrawerLogic = (isOpen: boolean, onClose: () => void) => {
     }
   }, [isOpen]);
 
-  // Принимаем один giftId вместо двух параметров
-  const handleOpenGift = async (giftId: string) => {
+  // handleOpenGift теперь принимает slug (напр. TrappedHeart-6709)
+  const handleOpenGift = async (slug: string) => {
     setIsLoadingDetail(true);
     setView("DETAIL");
     try {
-      const giftData = await InventoryService.getGiftDetail(giftId);
+      const giftData = await InventoryService.getGiftDetail(slug);
       setSelectedGift(giftData);
 
       setIsHistoryLoading(true);
-      const historyData = await InventoryService.getBlockchainHistory(giftData.id || giftId);
+      const historyData = await InventoryService.getBlockchainHistory(slug);
       setGiftHistory(historyData.history || []);
     } catch (e) {
       console.error("Error loading gift detail:", e);

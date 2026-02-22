@@ -1,4 +1,4 @@
-// src/hooks/usePortfolio.ts
+// frontend/src/hooks/usePortfolio.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { InventoryService } from '../services/inventory.service';
 import { InventoryItem, ApiSyncState } from '../types/inventory';
@@ -6,6 +6,7 @@ import { useTelegram } from "../contexts/telegramContext";
 
 export const usePortfolio = (targetOwnerId?: string) => {
   const { user } = useTelegram();
+
   const ownerId = targetOwnerId || String(user.id);
 
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -21,7 +22,9 @@ export const usePortfolio = (targetOwnerId?: string) => {
       setTotal(data.total);
       setSyncState(data.sync);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to fetch inventory for:", ownerId, e);
+      setItems([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -29,7 +32,7 @@ export const usePortfolio = (targetOwnerId?: string) => {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [ownerId, fetchData]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -55,6 +58,7 @@ export const usePortfolio = (targetOwnerId?: string) => {
     syncState,
     analytics,
     isLoading,
-    refresh: fetchData
+    refresh: fetchData,
+    isExternal: !!targetOwnerId && targetOwnerId !== String(user.id)
   };
 };

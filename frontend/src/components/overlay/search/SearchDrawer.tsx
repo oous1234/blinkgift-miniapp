@@ -1,18 +1,28 @@
+// frontend/src/components/overlay/search/SearchDrawer.tsx
 import React from "react";
 import { Box, Flex, Button, HStack, Center, Spinner, Text, IconButton } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { CloseIcon, ArrowBackIcon } from "@chakra-ui/icons";
+
+// Компоненты разделов поиска
 import { ProfileSearchSection } from "./ProfileSearchSection";
 import { NftSearchSection } from "./NftSearchSection";
 import { GiftDetailContent } from "../GiftDetail/GiftDetailContent";
+
+// Логика и стейт
 import { useSearchDrawerLogic } from "../../../hooks/useSearchDrawerLogic";
 
-const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+interface SearchDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const SearchDrawer: React.FC<SearchDrawerProps> = ({ isOpen, onClose }) => {
   const logic = useSearchDrawerLogic(isOpen, onClose);
   const navigate = useNavigate();
 
-  // Общий стиль для кнопок-контейнеров
+  // Общий стиль для кнопок в "стеклянном" стиле (Glassmorphism)
   const glassStyle = {
     bg: "whiteAlpha.100",
     backdropFilter: "blur(12px)",
@@ -25,7 +35,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
     <AnimatePresence>
       {isOpen && (
         <Box position="fixed" inset={0} zIndex={2000}>
-          {/* Backdrop */}
+          {/* Затемнение фона (Backdrop) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -39,7 +49,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
             onClick={onClose}
           />
 
-          {/* Drawer Body */}
+          {/* Тело шторки */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
@@ -60,7 +70,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
               overflow: "hidden"
             }}
           >
-            {/* Header - ПОЛНОСТЬЮ ПРОЗРАЧНЫЙ */}
+            {/* Хедер управления */}
             <Flex
               position="absolute"
               top="0"
@@ -73,10 +83,10 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
               justify="space-between"
               bg="transparent"
             >
-              {/* Кнопка НАЗАД / ЗАКРЫТЬ */}
+              {/* Левая кнопка: НАЗАД (если в деталях) или ЗАКРЫТЬ */}
               <Button
                 {...glassStyle}
-                leftIcon={<ArrowBackIcon boxSize="14px" />}
+                leftIcon={logic.view === "DETAIL" ? <ArrowBackIcon /> : undefined}
                 h="36px"
                 px={4}
                 fontSize="11px"
@@ -88,7 +98,7 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                 {logic.view === "DETAIL" ? "НАЗАД" : "ЗАКРЫТЬ"}
               </Button>
 
-              {/* Переключатель ПРОФИЛИ / МАРКЕТ */}
+              {/* Центральный переключатель: ПРОФИЛИ / МАРКЕТ (только в режиме списка) */}
               {logic.view === "LIST" && (
                 <HStack
                   {...glassStyle}
@@ -102,11 +112,9 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                     borderRadius="full"
                     fontSize="10px"
                     fontWeight="900"
-                    transition="all 0.2s"
                     bg={logic.searchType === "PROFILE" ? "whiteAlpha.300" : "transparent"}
                     color={logic.searchType === "PROFILE" ? "white" : "whiteAlpha.500"}
                     onClick={() => logic.setSearchType("PROFILE")}
-                    _hover={{}} // Убираем ховер
                     _active={{ transform: "scale(0.95)" }}
                   >
                     ПРОФИЛИ
@@ -117,11 +125,9 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                     borderRadius="full"
                     fontSize="10px"
                     fontWeight="900"
-                    transition="all 0.2s"
                     bg={logic.searchType === "NFT" ? "whiteAlpha.300" : "transparent"}
                     color={logic.searchType === "NFT" ? "white" : "whiteAlpha.500"}
                     onClick={() => logic.setSearchType("NFT")}
-                    _hover={{}}
                     _active={{ transform: "scale(0.95)" }}
                   >
                     МАРКЕТ
@@ -143,12 +149,12 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
               />
             </Flex>
 
-            {/* Scrollable Content Area */}
+            {/* Контентная область со скроллом */}
             <Box
               flex={1}
               overflowY="auto"
               px={5}
-              pt="80px"
+              pt="80px" // Отступ под хедер
               pb="100px"
               css={{
                 '&::-webkit-scrollbar': { display: 'none' },
@@ -163,27 +169,40 @@ const SearchDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
                     exit={{ opacity: 0 }}
                   >
                     {logic.searchType === "PROFILE" ? (
-                      <ProfileSearchSection onSelect={(user) => { onClose(); navigate(`/user/${user.id}`); }} />
+                      /* Секция поиска пользователей */
+                      <ProfileSearchSection
+                        onSelect={(user) => {
+                          // 1. Закрываем поиск
+                          onClose();
+                          // 2. Переходим на страницу выбранного пользователя
+                          navigate(`/user/${user.id}`);
+                        }}
+                      />
                     ) : (
+                      /* Секция поиска по атрибутам NFT */
                       <NftSearchSection onGiftClick={logic.handleOpenGift} />
                     )}
                   </motion.div>
                 ) : (
+                  /* Вид деталей конкретного подарка (открывается внутри поиска) */
                   <motion.div
                     key="detail"
                     initial={{ x: 20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                   >
                     {logic.isLoadingDetail ? (
-                      <Center h="40vh"><Spinner color="brand.500" thickness="3px" size="xl" /></Center>
+                      <Center h="40vh">
+                        <Spinner color="brand.500" thickness="3px" size="xl" />
+                      </Center>
                     ) : logic.selectedGift ? (
                       <GiftDetailContent
                         gift={logic.selectedGift}
-                        history={logic.giftHistory}
-                        isHistoryLoading={logic.isHistoryLoading}
+                        // В этом компоненте мы передаем историю, если она нужна
                       />
                     ) : (
-                      <Center h="40vh"><Text>Не удалось загрузить данные</Text></Center>
+                      <Center h="40vh">
+                        <Text>Не удалось загрузить данные</Text>
+                      </Center>
                     )}
                   </motion.div>
                 )}

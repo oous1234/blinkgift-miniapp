@@ -1,18 +1,51 @@
-// src/views/Home/index.tsx
-import React from "react";
-import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Skeleton } from "@chakra-ui/react";
+// frontend/src/views/Home/index.tsx
+import React, { useEffect, useState } from "react";
+import { Box, SimpleGrid, Flex, Avatar, VStack, HStack, Text, Heading, Center, Skeleton, IconButton } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import { useParams, useNavigate } from "react-router-dom";
 import { usePortfolio } from "../../hooks/usePortfolio";
 import { useGiftDetail } from "../../hooks/useGiftDetail";
 import { useTelegram } from "../../contexts/telegramContext";
 import { GiftCard } from "../../components/Home/GiftCard";
 import { SyncBanner } from "../../components/Home/SyncBanner";
 import { TonValue } from "../../components/Shared/Typography";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 
 const HomeView: React.FC = () => {
-  const { user, haptic } = useTelegram();
-  const { items, total, syncState, analytics, isLoading } = usePortfolio();
+  const { id } = useParams<{ id: string }>(); // Получаем ID из URL
+  const navigate = useNavigate();
+  const { user: me, haptic } = useTelegram();
+
+  // Загружаем портфель (свой или чужой)
+  const { items, total, syncState, analytics, isLoading, isExternal } = usePortfolio(id);
   const { loadDetail } = useGiftDetail();
+
+  // Состояние для отображения данных профиля (имя/аватар)
+  const [profileInfo, setProfileInfo] = useState({
+    name: me.first_name,
+    photo: me.photo_url,
+    username: me.username
+  });
+
+  // Если мы смотрим чужой профиль, пытаемся подтянуть данные из API или пропсов
+  // В реальном приложении здесь должен быть вызов OwnerService.getProfile(id)
+  useEffect(() => {
+    if (isExternal && id) {
+      // Имитация получения данных о пользователе.
+      // В идеале данные должны приходить вместе с инвентарем или отдельным запросом.
+      setProfileInfo({
+        name: `User #${id.slice(-4)}`,
+        photo: `https://poso.see.tg/api/avatar/${id}`, // Пример API аватарок
+        username: undefined
+      });
+    } else {
+      setProfileInfo({
+        name: me.first_name,
+        photo: me.photo_url,
+        username: me.username
+      });
+    }
+  }, [id, isExternal, me]);
 
   const handleGiftClick = (item: any) => {
     haptic.selection();
@@ -21,19 +54,27 @@ const HomeView: React.FC = () => {
 
   return (
     <Box px={4} pt={2} pb="120px">
-      <Flex align="center" mb={8} mt={4}>
+      {/* Кнопка "Назад", если мы смотрим не свой профиль */}
+      {isExternal && (
+        <HStack mb={4} onClick={() => navigate(-1)} cursor="pointer" color="brand.500">
+          <ArrowBackIcon />
+          <Text fontSize="14px" fontWeight="800">НАЗАД</Text>
+        </HStack>
+      )}
+
+      <Flex align="center" mb={8} mt={isExternal ? 0 : 4}>
         <Avatar
           size="xl"
-          src={user.photo_url}
-          name={user.first_name}
+          src={profileInfo.photo}
+          name={profileInfo.name}
           borderRadius="28px"
           mr={5}
           border="2px solid"
-          borderColor="whiteAlpha.200"
+          borderColor={isExternal ? "brand.500" : "whiteAlpha.200"}
         />
         <VStack align="start" spacing={1}>
           <Text color="whiteAlpha.400" fontSize="10px" fontWeight="900" textTransform="uppercase" letterSpacing="1px">
-            Portfolio Value
+            {isExternal ? "User Portfolio Value" : "My Portfolio Value"}
           </Text>
           <Skeleton isLoaded={!isLoading} borderRadius="8px">
             <TonValue value={analytics.current.toFixed(2)} size="lg" />
@@ -46,11 +87,12 @@ const HomeView: React.FC = () => {
         </VStack>
       </Flex>
 
-      <SyncBanner state={syncState} />
+      {/* Синхронизацию показываем только в своем профиле */}
+      {!isExternal && <SyncBanner state={syncState} />}
 
       <Box>
         <Heading size="xs" fontWeight="900" mb={5} color="whiteAlpha.500" letterSpacing="1px" textTransform="uppercase">
-          Inventory
+          {isExternal ? "User Inventory" : "My Inventory"}
         </Heading>
 
         <SimpleGrid columns={2} spacing={3}>

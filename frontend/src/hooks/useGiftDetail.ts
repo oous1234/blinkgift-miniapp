@@ -6,20 +6,22 @@ import { useUIStore } from '../store/useUIStore';
 export const useGiftDetail = () => {
   const [gift, setGift] = useState<Gift | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
   const { openDetail } = useUIStore();
 
   const loadDetail = useCallback(async (slug: string) => {
     if (!slug) return;
 
-    setIsLoading(true);
+    // ПОРЯДОК ВАЖЕН: сначала загрузка и сброс, потом открытие
     setGift(null);
+    setIsLoading(true);
     openDetail();
 
     try {
-      // Только ОДИН запрос за данными
       const data = await InventoryService.getGiftDetail(slug);
-      setGift(data);
+      // Если запрос прошел успешно, записываем данные
+      if (data) {
+        setGift(data);
+      }
     } catch (e) {
       console.error("Failed to load gift detail:", e);
       setGift(null);
@@ -30,6 +32,7 @@ export const useGiftDetail = () => {
 
   const reset = useCallback(() => {
     setGift(null);
+    setIsLoading(false);
   }, []);
 
   return { gift, isLoading, loadDetail, reset };

@@ -14,7 +14,6 @@ const HomeView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: me, haptic } = useTelegram();
-
   const { items, total, syncState, analytics, isLoading, isExternal } = usePortfolio(id);
   const { loadDetail } = useGiftDetail();
 
@@ -42,20 +41,20 @@ const HomeView: React.FC = () => {
 
   const handleGiftClick = (item: any) => {
     haptic.selection();
-    // ПЕРЕДАЕМ ТОЛЬКО SLUG (напр. TrappedHeart-6709)
     loadDetail(item.slug);
   };
 
   return (
     <Box px={4} pt={2} pb="120px">
       {isExternal && (
-        <HStack mb={4} onClick={() => navigate(-1)} cursor="pointer" color="brand.500">
+        <HStack mb={6} onClick={() => navigate(-1)} cursor="pointer" color="brand.500">
           <ArrowBackIcon />
-          <Text fontSize="14px" fontWeight="800">НАЗАД</Text>
+          <Text fontSize="14px" fontWeight="800">BACK</Text>
         </HStack>
       )}
 
-      <Flex align="center" mb={8} mt={isExternal ? 0 : 4}>
+      {/* Profile Header */}
+      <Flex align="center" mb={10} mt={isExternal ? 0 : 4}>
         <Avatar
           size="xl"
           src={profileInfo.photo}
@@ -63,31 +62,30 @@ const HomeView: React.FC = () => {
           borderRadius="28px"
           mr={5}
           border="2px solid"
-          borderColor={isExternal ? "brand.500" : "whiteAlpha.200"}
+          borderColor="whiteAlpha.100"
         />
         <VStack align="start" spacing={1}>
-          <Text color="whiteAlpha.400" fontSize="10px" fontWeight="900" textTransform="uppercase" letterSpacing="1px">
-            {isExternal ? "User Portfolio Value" : "My Portfolio Value"}
+          <Text color="whiteAlpha.400" fontSize="10px" fontWeight="900" textTransform="uppercase">
+            Portfolio Value
           </Text>
           <Skeleton isLoaded={!isLoading} borderRadius="8px">
             <TonValue value={analytics.current.toFixed(2)} size="lg" />
           </Skeleton>
-          <HStack spacing={3}>
-             <Text fontSize="13px" fontWeight="800" color="whiteAlpha.700">
-              {total} objects found
-            </Text>
-          </HStack>
+          <Text fontSize="12px" fontWeight="800" color="brand.500">
+            {total} COLLECTIBLES
+          </Text>
         </VStack>
       </Flex>
 
       {!isExternal && <SyncBanner state={syncState} />}
 
       <Box>
-        <Heading size="xs" fontWeight="900" mb={5} color="whiteAlpha.500" letterSpacing="1px" textTransform="uppercase">
-          {isExternal ? "User Inventory" : "My Inventory"}
+        <Heading size="xs" fontWeight="900" mb={6} color="whiteAlpha.400" textTransform="uppercase" letterSpacing="1px">
+          Inventory
         </Heading>
 
-        <SimpleGrid columns={2} spacing={3}>
+        {/* minChildWidth гарантирует, что карточки не будут растягиваться слишком сильно */}
+        <SimpleGrid minChildWidth="160px" spacing={4}>
           {isLoading && items.length === 0 ? (
             Array(6).fill(0).map((_, i) => (
               <Skeleton key={i} height="180px" borderRadius="24px" />
@@ -96,7 +94,7 @@ const HomeView: React.FC = () => {
             items.map((item, idx) => (
               <motion.div
                 key={item.id || item.slug}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
               >
@@ -113,8 +111,8 @@ const HomeView: React.FC = () => {
         </SimpleGrid>
 
         {!isLoading && items.length === 0 && (
-          <Center py={20} flexDirection="column">
-            <Text color="whiteAlpha.200" fontWeight="900" fontSize="12px">NO GIFTS VISIBLE</Text>
+          <Center py={20}>
+            <Text color="whiteAlpha.200" fontWeight="900" fontSize="12px">EMPTY</Text>
           </Center>
         )}
       </Box>

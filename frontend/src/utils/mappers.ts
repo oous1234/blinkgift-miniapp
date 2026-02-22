@@ -13,7 +13,7 @@ const PARAM_LABELS: Record<string, string> = {
 
 export const Mappers = {
   mapInventoryItem: (api: any): Partial<Gift> => {
-    const slug = api.slug;
+    const slug = api.slug || "";
     return {
       id: slug,
       slug: slug,
@@ -26,38 +26,56 @@ export const Mappers = {
   },
 
   mapDetailedGift: (api: any): Gift => {
-    // 1. Атрибуты самого предмета
+    if (!api) {
+      return {
+        id: "",
+        slug: "",
+        number: 0,
+        name: "Unknown",
+        image: "",
+        floorPrice: 0,
+        estimatedPrice: 0,
+        attributes: [],
+        stats: [],
+        isOffchain: false,
+        history: [],
+      };
+    }
+
+    // Безопасно собираем атрибуты, даже если редкость (rare) пришла как null
     const attributes: Attribute[] = [
-      { label: "Модель", value: api.model, rarity: api.modelRare || 0 },
-      { label: "Фон", value: api.backdrop, rarity: api.backdropRare || 0 },
-      { label: "Узор", value: api.symbol, rarity: api.symbolRare || 0 },
+      { label: "Модель", value: api.model || "—", rarity: api.modelRare ?? 0 },
+      { label: "Фон", value: api.backdrop || "—", rarity: api.backdropRare ?? 0 },
+      { label: "Узор", value: api.symbol || "—", rarity: api.symbolRare ?? 0 },
     ];
 
-    // 2. Статистика и сделки (из поля parameters твоего JSON)
-    const stats: MarketStat[] = Object.entries(api.parameters || {}).map(([key, anyVal]) => {
-      const val = anyVal as any;
-      return {
-        label: PARAM_LABELS[key] || key,
-        count: val.amount || 0,
-        floor: val.floorPrice || 0,
-        avgPrice30d: val.avg30dPrice || 0,
-        dealsCount30d: val.dealsCount30d || 0,
-        lastTrades: val.lastTrades || [], // Те самые сделки по модели/фону/символу
-      };
-    });
+    // Обработка параметров статистики с защитой от null
+    const stats: MarketStat[] = api.parameters
+      ? Object.entries(api.parameters).map(([key, anyVal]: [string, any]) => {
+          const val = anyVal || {};
+          return {
+            label: PARAM_LABELS[key] || key,
+            count: val.amount ?? 0,
+            floor: val.floorPrice ?? 0,
+            avgPrice30d: val.avg30dPrice ?? 0,
+            dealsCount30d: val.dealsCount30d ?? 0,
+            lastTrades: val.lastTrades || [],
+          };
+        })
+      : [];
 
     return {
-      id: api.giftSlug,
-      slug: api.giftSlug,
-      number: api.giftNum,
-      name: api.giftName,
-      image: api.giftAvatarLink,
-      floorPrice: api.floorPriceTon || 0,
-      estimatedPrice: api.estimatedPriceTon || 0,
+      id: api.giftSlug || "",
+      slug: api.giftSlug || "",
+      number: api.giftNum ?? 0,
+      name: api.giftName || "Unknown Gift",
+      image: api.giftAvatarLink || "",
+      floorPrice: api.floorPriceTon ?? 0,
+      estimatedPrice: api.estimatedPriceTon ?? 0,
       attributes,
       stats,
       isOffchain: false,
-      history: [], // Блокчейн историю здесь не используем
+      history: [],
     };
   }
 };

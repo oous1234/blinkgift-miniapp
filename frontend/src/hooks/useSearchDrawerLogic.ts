@@ -21,17 +21,18 @@ export const useSearchDrawerLogic = (isOpen: boolean, onClose: () => void) => {
     }
   }, [isOpen]);
 
-  // handleOpenGift теперь принимает slug (напр. TrappedHeart-6709)
   const handleOpenGift = async (slug: string) => {
+    setSelectedGift(null);
     setIsLoadingDetail(true);
     setView("DETAIL");
+
     try {
       const giftData = await InventoryService.getGiftDetail(slug);
-      setSelectedGift(giftData);
+      if (giftData) {
+        setSelectedGift(giftData);
+      }
 
       setIsHistoryLoading(true);
-      const historyData = await InventoryService.getBlockchainHistory(slug);
-      setGiftHistory(historyData.history || []);
     } catch (e) {
       console.error("Error loading gift detail:", e);
     } finally {
@@ -44,6 +45,7 @@ export const useSearchDrawerLogic = (isOpen: boolean, onClose: () => void) => {
     if (view === "DETAIL") {
       setView("LIST");
       setSelectedGift(null);
+      setIsLoadingDetail(false);
     } else {
       onClose();
     }

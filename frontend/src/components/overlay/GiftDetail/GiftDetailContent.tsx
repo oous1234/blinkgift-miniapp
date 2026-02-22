@@ -22,13 +22,10 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
     "collection": "Коллекция"
   };
 
-  // Берем сделки из поля stats (которые мы маппили из parameters)
   const currentTrades = useMemo(() => {
     if (!gift || !gift.stats) return [];
-
     const targetLabel = tabLabels[activeTab];
     const stat = gift.stats.find(s => s.label === targetLabel);
-
     return stat?.lastTrades || [];
   }, [gift, activeTab]);
 
@@ -36,7 +33,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
 
   return (
     <VStack spacing={4} align="stretch" color="white" pt={2}>
-      {/* HEADER */}
+      {/* Header */}
       <Box px={1}>
         <HStack justify="space-between" mb={1} align="center">
           <Text fontSize="24px" fontWeight="900" letterSpacing="-0.5px">
@@ -51,7 +48,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
         </Text>
       </Box>
 
-      {/* PRICES */}
+      {/* Pricing */}
       <VStack spacing={2} align="stretch" px={1} py={2}>
         <Flex justify="space-between" align="center">
           <Text color="whiteAlpha.500" fontSize="13px" fontWeight="600">Оценка стоимости</Text>
@@ -63,7 +60,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
         </Flex>
       </VStack>
 
-      {/* ATTRIBUTES */}
+      {/* Attributes & Image */}
       <HStack spacing={4} align="center" py={2}>
         <Box boxSize="100px" borderRadius="14px" overflow="hidden" flexShrink={0} border="1px solid" borderColor="whiteAlpha.100" bg="black">
           <Image src={gift.image} w="100%" h="100%" objectFit="cover" />
@@ -73,9 +70,9 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
             <Flex key={i} justify="space-between" align="center">
               <Text fontSize="13px" color="whiteAlpha.500" fontWeight="600">{attr.label}</Text>
               <HStack spacing={2}>
-                <Text fontSize="13px" fontWeight="800">{attr.value}</Text>
+                <Text fontSize="13px" fontWeight="800">{attr.value || "—"}</Text>
                 <Text fontSize="11px" fontWeight="900" color="whiteAlpha.400" bg="whiteAlpha.100" px={1} borderRadius="3px">
-                  {attr.rarity}%
+                  {attr.rarity ?? 0}%
                 </Text>
               </HStack>
             </Flex>
@@ -85,7 +82,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
 
       <Divider borderColor="whiteAlpha.100" />
 
-      {/* STATS TABLE */}
+      {/* Market Stats */}
       <Box>
         <HStack justify="space-between" mb={2} px={1}>
           <Text fontSize="11px" fontWeight="900" color="whiteAlpha.300">ПАРАМЕТР</Text>
@@ -101,7 +98,7 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
                   {stat.count?.toLocaleString() || 0}
                 </Text>
                 <Box flex={1} textAlign="right">
-                  <TonValue value={stat.floor?.toFixed(1) || '—'} size="sm" />
+                  <TonValue value={stat.floor ? stat.floor.toFixed(1) : '—'} size="sm" />
                 </Box>
               </Flex>
             </Box>
@@ -109,10 +106,9 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
         </VStack>
       </Box>
 
-      {/* MARKET TRADES (LAST SALES) */}
+      {/* Last Trades */}
       <Box mt={4}>
         <Text fontSize="18px" fontWeight="900" mb={3} color="white">Последние продажи</Text>
-
         <HStack spacing={1} mb={4} bg="whiteAlpha.50" p="2px" borderRadius="8px">
           {(["model", "backdrop", "symbol", "collection"] as TradeCategory[]).map((cat) => (
             <Box
@@ -136,8 +132,11 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
         <VStack spacing={0} align="stretch" pb={10}>
           {currentTrades.length > 0 ? (
             currentTrades.map((trade, i) => {
-              const avatarSlug = trade.giftSlug.split("-")[0].toLowerCase();
-              const num = trade.giftSlug.split("-")[1];
+              // Добавлена защита от пустых значений giftSlug
+              const slugStr = trade.giftSlug || "";
+              const avatarSlug = slugStr.split("-")[0]?.toLowerCase() || "unknown";
+              const num = slugStr.split("-")[1] || "???";
+
               return (
                 <Box key={i} py={2.5} borderBottom="1px solid" borderColor="whiteAlpha.50">
                   <Flex justify="space-between" align="center">
@@ -149,16 +148,14 @@ export const GiftDetailContent: React.FC<Props> = ({ gift }) => {
                         />
                       </Box>
                       <Text fontSize="12px" fontWeight="800">
-                        #{num || "???"}
+                        #{num}
                       </Text>
                     </HStack>
-
                     <Text flex={1} fontSize="11px" fontWeight="700" color="whiteAlpha.400" textAlign="center">
-                      {new Date(trade.date).toLocaleDateString([], { day: '2-digit', month: '2-digit' })}
+                      {trade.date ? new Date(trade.date).toLocaleDateString([], { day: '2-digit', month: '2-digit' }) : "—"}
                     </Text>
-
                     <Box flex={1} textAlign="right">
-                      <TonValue value={trade.giftTonPrice?.toFixed(1) || "0"} size="sm" />
+                      <TonValue value={trade.giftTonPrice ? trade.giftTonPrice.toFixed(1) : "0"} size="sm" />
                     </Box>
                   </Flex>
                 </Box>

@@ -1,11 +1,19 @@
 import React from "react";
-import { Drawer, DrawerBody, DrawerOverlay, DrawerContent, DrawerCloseButton, Box, Center, Spinner, Text, Button } from "@chakra-ui/react";
+import {
+  Drawer,
+  DrawerBody,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  Box,
+  Center,
+  Spinner,
+  Text,
+  Button,
+  VStack // Добавлено сюда
+} from "@chakra-ui/react";
 import { useUIStore } from "../../store/useUIStore";
 import { GiftDetailContent } from "./GiftDetail/GiftDetailContent";
-
-// Пропсы больше не нужны, всё берем из глобального стейта или передаем через контекст
-// Но в данном случае лучше передавать gift и history из родителя (MainLayout),
-// где работает хук useGiftDetail.
 
 interface Props {
   gift: any;
@@ -23,21 +31,44 @@ const GiftDetailDrawer: React.FC<Props> = ({ gift, history, isLoading, isHistory
       <DrawerContent borderTopRadius="36px" bg="#0F1115" color="white" maxH="90vh">
         <Box w="40px" h="5px" bg="whiteAlpha.200" borderRadius="full" mx="auto" mt={4} mb={2} />
         <DrawerCloseButton color="whiteAlpha.400" />
+
         <DrawerBody px={6} pt={2} pb={10}>
           {isLoading ? (
-            <Center h="300px"><Spinner color="brand.500" /></Center>
+            <Center h="400px">
+              <Spinner color="brand.500" size="xl" thickness="4px" />
+            </Center>
           ) : gift ? (
             <>
-              <GiftDetailContent gift={gift} history={history} isHistoryLoading={isHistoryLoading} />
+              <GiftDetailContent gift={gift} />
               <Button
-                mt={6} w="100%" h="56px" bg="#0088CC" color="white" borderRadius="20px" fontWeight="900"
+                mt={6}
+                w="100%"
+                h="56px"
+                bg="#0088CC"
+                color="white"
+                borderRadius="20px"
+                fontWeight="900"
+                _active={{ transform: "scale(0.98)" }}
                 onClick={() => window.Telegram?.WebApp?.openLink(`https://fragment.com/gift/${gift.slug}-${gift.number}`)}
               >
                 ОТКРЫТЬ НА FRAGMENT
               </Button>
             </>
           ) : (
-            <Center h="200px"><Text>Ошибка загрузки данных</Text></Center>
+            <Center h="300px">
+              <VStack spacing={4}>
+                <Text color="whiteAlpha.600" fontWeight="700">Не удалось загрузить данные</Text>
+                <Button
+                  variant="outline"
+                  borderColor="whiteAlpha.200"
+                  color="white"
+                  size="sm"
+                  onClick={closeDetail}
+                >
+                  ЗАКРЫТЬ
+                </Button>
+              </VStack>
+            </Center>
           )}
         </DrawerBody>
       </DrawerContent>

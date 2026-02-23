@@ -1,8 +1,7 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Box, Flex, IconButton, HStack, Text } from "@chakra-ui/react";
 import { Outlet } from "react-router-dom";
 import { useUIStore } from "../../store/useUIStore";
-import { useGiftDetail } from "../../hooks/useGiftDetail";
 import { useTelegramTheme } from "../../hooks/useTelegramTheme";
 import { ShareIcon, SettingsIcon } from "../../components/Shared/Icons";
 import BottomNavigation from "../../components/navigation/BottomNavigation";
@@ -15,8 +14,6 @@ import { SniperFilterDrawer } from "../../views/Market/components/SniperFilterDr
 
 const MainLayout: React.FC = () => {
   const ui = useUIStore();
-  const { gift, history, isLoading, isHistoryLoading } = useGiftDetail();
-
   useTelegramTheme();
 
   const handleShare = () => {
@@ -83,14 +80,14 @@ const MainLayout: React.FC = () => {
         <Outlet />
       </Box>
 
-      {/* Оверлеи */}
       <SearchDrawer isOpen={ui.isSearchOpen} onClose={ui.closeSearch} />
 
+      {/* Теперь передаем данные напрямую из UI стора */}
       <GiftDetailDrawer
-        gift={gift}
-        history={history}
-        isLoading={isLoading}
-        isHistoryLoading={isHistoryLoading}
+        gift={ui.selectedGift}
+        history={[]}
+        isLoading={ui.isDetailLoading}
+        isHistoryLoading={false}
       />
 
       <SettingsDrawer isOpen={ui.isSettingsOpen} onClose={ui.closeSettings} />

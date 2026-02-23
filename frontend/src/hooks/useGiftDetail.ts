@@ -1,39 +1,41 @@
-import { useState, useCallback } from 'react';
-import { Gift } from '../types/domain';
+import { useCallback } from 'react';
 import { InventoryService } from '../services/inventory.service';
 import { useUIStore } from '../store/useUIStore';
 
 export const useGiftDetail = () => {
-  const [gift, setGift] = useState<Gift | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { openDetail } = useUIStore();
+  const {
+    setSelectedGift,
+    setDetailLoading,
+    openDetail,
+    selectedGift,
+    isDetailLoading
+  } = useUIStore();
 
   const loadDetail = useCallback(async (slug: string) => {
     if (!slug) return;
 
-    // ПОРЯДОК ВАЖЕН: сначала загрузка и сброс, потом открытие
-    setGift(null);
-    setIsLoading(true);
+    // 1. Сначала открываем шторку и ставим загрузку
+    setDetailLoading(true);
+    setSelectedGift(null);
     openDetail();
 
     try {
+      // 2. Загружаем данные
       const data = await InventoryService.getGiftDetail(slug);
-      // Если запрос прошел успешно, записываем данные
-      if (data) {
-        setGift(data);
-      }
+
+      // 3. Сохраняем в глобальный стор
+      setSelectedGift(data);
     } catch (e) {
       console.error("Failed to load gift detail:", e);
-      setGift(null);
+      setSelectedGift(null);
     } finally {
-      setIsLoading(false);
+      setDetailLoading(false);
     }
-  }, [openDetail]);
+  }, [openDetail, setSelectedGift, setDetailLoading]);
 
-  const reset = useCallback(() => {
-    setGift(null);
-    setIsLoading(false);
-  }, []);
-
-  return { gift, isLoading, loadDetail, reset };
+  return {
+    loadDetail,
+    gift: selectedGift,
+    isLoading: isDetailLoading
+  };
 };

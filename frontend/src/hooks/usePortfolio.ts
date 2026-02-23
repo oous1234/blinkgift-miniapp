@@ -1,15 +1,13 @@
-// frontend/src/hooks/usePortfolio.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { InventoryService } from '../services/inventory.service';
 import { InventoryItem, ApiSyncState } from '../types/inventory';
 import { useTelegram } from "../contexts/telegramContext";
+import { Mappers } from '../utils/mappers';
 
 export const usePortfolio = (targetOwnerId?: string) => {
   const { user } = useTelegram();
-
   const ownerId = targetOwnerId || String(user.id);
-
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [syncState, setSyncState] = useState<ApiSyncState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -18,7 +16,11 @@ export const usePortfolio = (targetOwnerId?: string) => {
     if (!isSilent) setIsLoading(true);
     try {
       const data = await InventoryService.getInventory(ownerId, 100, 0);
-      setItems(data.items);
+
+      // Маппим каждый элемент через Mappers.mapInventoryItem
+      const mappedItems = (data.items || []).map(Mappers.mapInventoryItem);
+
+      setItems(mappedItems);
       setTotal(data.total);
       setSyncState(data.sync);
     } catch (e) {
@@ -45,7 +47,7 @@ export const usePortfolio = (targetOwnerId?: string) => {
   }, [syncState?.status, fetchData]);
 
   const analytics = useMemo(() => {
-    const totalValue = items.reduce((acc, item) => acc + (item.estimatedPrice || 0), 0);
+    const totalValue = items.reduce((acc, item) => acc + (item.floorPrice || 0), 0);
     return {
       current: totalValue,
       percent: 0

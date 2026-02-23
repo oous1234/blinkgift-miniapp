@@ -13,7 +13,6 @@ export const InventoryService = {
     });
   },
 
-  // Запрос за деталями (возвращает FullGiftDetailsResponse из твоего лога)
   async getGiftDetail(giftId: string): Promise<Gift> {
     const data = await apiClient.get<ApiDetailedGift>(`/api/v1/gifts/${giftId}`);
     return Mappers.mapDetailedGift(data);

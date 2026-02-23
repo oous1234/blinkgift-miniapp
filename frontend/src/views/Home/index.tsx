@@ -41,7 +41,8 @@ const HomeView: React.FC = () => {
 
   const handleGiftClick = (item: any) => {
     haptic.selection();
-    loadDetail(item.slug);
+    // Теперь мы уверены, что в item.slug лежит правильная строка (напр. TrappedHeart-6709)
+    loadDetail(item.slug || item.id);
   };
 
   return (
@@ -53,7 +54,6 @@ const HomeView: React.FC = () => {
         </HStack>
       )}
 
-      {/* Profile Header */}
       <Flex align="center" mb={10} mt={isExternal ? 0 : 4}>
         <Avatar
           size="xl"
@@ -84,7 +84,6 @@ const HomeView: React.FC = () => {
           Inventory
         </Heading>
 
-        {/* minChildWidth гарантирует, что карточки не будут растягиваться слишком сильно */}
         <SimpleGrid minChildWidth="160px" spacing={4}>
           {isLoading && items.length === 0 ? (
             Array(6).fill(0).map((_, i) => (
@@ -101,7 +100,7 @@ const HomeView: React.FC = () => {
                 <GiftCard
                   item={{
                     ...item,
-                    num: item.serialNumber || item.num,
+                    num: item.number || item.serialNumber,
                   } as any}
                   onClick={() => handleGiftClick(item)}
                 />

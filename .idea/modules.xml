@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core.test.iml" filepath="$PROJECT_DIR$/.idea/modules/core.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/telegram-mini-app.iml" filepath="$PROJECT_DIR$/.idea/telegram-mini-app.iml" />
     </modules>
   </component>

@@ -11,7 +11,7 @@
    Duplicate `.env.example` to `.env`:
 
    ```sh
-   cp .env.example .env
+   cp .env .env
    ```
 
 3.  Edit the `.env` file:

@@ -1,14 +1,14 @@
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { SniperEvent } from '../types/sniper';
-import { ASSETS } from '../config/constants';
+import { ASSETS, API_CONFIG } from '../config/constants';
 
 type OnEventCallback = (event: SniperEvent) => void;
 type OnStatusChange = (status: 'CONNECTED' | 'DISCONNECTED') => void;
 
 class SniperSocketService {
   private client: Client | null = null;
-  private readonly baseUrl = 'https://blinkback.ru.tuna.am/ws-deals';
+  private readonly baseUrl = API_CONFIG.WS_URL;
   private onEventCallback: OnEventCallback | null = null;
   private onStatusCallback: OnStatusChange | null = null;
 
@@ -25,7 +25,7 @@ class SniperSocketService {
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
       debug: (msg) => {
-        if (import.meta.env.DEV) console.log('[Socket]:', msg);
+        if (import.meta.env.DEV) console.log('[Socket Debug]:', msg);
       }
     });
 

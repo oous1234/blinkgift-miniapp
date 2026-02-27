@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { defineConfig } from "vite"
 import { fileURLToPath, URL } from "url"
 import react from "@vitejs/plugin-react"
@@ -6,7 +5,7 @@ import react from "@vitejs/plugin-react"
 export default defineConfig({
   plugins: [react()],
   define: {
-      global: 'window',
+    global: 'window',
   },
   base: "/",
   server: {
@@ -16,6 +15,7 @@ export default defineConfig({
       usePolling: true,
     },
   },
+  // Указываем путь к папке с .env файлами
   envDir: fileURLToPath(new URL("./env", import.meta.url)),
   test: {
     globals: true,

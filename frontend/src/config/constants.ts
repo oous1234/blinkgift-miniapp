@@ -1,14 +1,18 @@
 export const IS_DEV = import.meta.env.DEV;
 
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || "https://api.isnap.io",
-  CHANGES_URL: "https://api.changes.tg",
-  DEFAULT_USER_ID: "8241853306",
+  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:7777",
+
+  WS_URL: import.meta.env.VITE_WS_URL || "http://localhost:7777/ws-deals",
+
+  CHANGES_URL: import.meta.env.VITE_CHANGES_API_URL || "https://api.changes.tg",
+
+  DEFAULT_USER_ID: import.meta.env.VITE_DEFAULT_USER_ID || "8241853306",
 };
 
 export const TELEGRAM_CONFIG = {
   MOCK_AUTH: JSON.stringify({
-    id: 8241853306,
+    id: Number(API_CONFIG.DEFAULT_USER_ID),
     first_name: "LinkPro",
     username: "linkproadmin",
     auth_date: Math.floor(Date.now() / 1000),
